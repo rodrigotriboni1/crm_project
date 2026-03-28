@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "description": "CRM Embalagens — static Parcel build from Claude artifact",
+  "workspaces": [
+    "client"
+  ],
   "scripts": {
     "dev": "npm run dev --prefix client",
     "build": "npm run build --prefix client",
