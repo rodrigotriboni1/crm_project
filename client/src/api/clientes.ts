@@ -1,32 +1,42 @@
+import type { PostgrestError } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeClienteTaxId } from '@/lib/taxId'
 import type { Cliente, ClienteListItem, ClienteTipo, ClienteUpdate } from '@/types/database'
 
-export async function listClientes(
-  sb: SupabaseClient,
-  userId: string,
-  opts?: { ativosApenas?: boolean }
-): Promise<Cliente[]> {
-  let q = sb.from('clientes').select('*').eq('user_id', userId).order('nome')
-  if (opts?.ativosApenas) {
-    q = q.eq('ativo', true)
-  }
-  const { data, error } = await q
-  if (error) throw error
-  return (data ?? []) as Cliente[]
+/** PostgREST quando a função RPC ainda não existe (migração não aplicada). */
+function isMissingListClientesRpcError(error: PostgrestError): boolean {
+  const code = error.code ?? ''
+  const msg = (error.message ?? '').toLowerCase()
+  return (
+    code === 'PGRST202' ||
+    code === '42883' ||
+    (msg.includes('function') && (msg.includes('does not exist') || msg.includes('not found'))) ||
+    msg.includes('could not find the function')
+  )
 }
 
-export async function listClientesComUltimoContato(
+/** Caminho legado: 2 queries + merge no browser (use se RPC `list_clientes_com_ultimo_contato` não existir). */
+async function listClientesComUltimoContatoLegacy(
   sb: SupabaseClient,
   userId: string,
   opts?: { ativosApenas?: boolean }
 ): Promise<ClienteListItem[]> {
-  void userId
-  const { data, error } = await sb.rpc('list_clientes_com_ultimo_contato', {
-    p_ativos_apenas: opts?.ativosApenas === true,
-  })
+  const clientes = await listClientes(sb, userId, opts)
+  const { data: ints, error } = await sb
+    .from('interacoes')
+    .select('cliente_id, data_contato')
+    .eq('user_id', userId)
+    .order('data_contato', { ascending: false })
   if (error) throw error
-  const rows = (data ?? []) as Record<string, unknown>[]
+  const first = new Map<string, string>()
+  for (const row of ints ?? []) {
+    const cid = (row as { cliente_id: string }).cliente_id
+    if (!first.has(cid)) first.set(cid, (row as { data_contato: string }).data_contato)
+  }
+  return clientes.map((c) => ({ ...c, ultimo_contato: first.get(c.id) ?? null }))
+}
+
+function mapRpcRowsToClienteListItem(rows: Record<string, unknown>[]): ClienteListItem[] {
   return rows.map((r) => {
     const ultimo = r.ultimo_contato
     return {
@@ -48,6 +58,38 @@ export async function listClientesComUltimoContato(
       ultimo_contato: ultimo == null ? null : String(ultimo),
     }
   })
+}
+
+export async function listClientes(
+  sb: SupabaseClient,
+  userId: string,
+  opts?: { ativosApenas?: boolean }
+): Promise<Cliente[]> {
+  let q = sb.from('clientes').select('*').eq('user_id', userId).order('nome')
+  if (opts?.ativosApenas) {
+    q = q.eq('ativo', true)
+  }
+  const { data, error } = await q
+  if (error) throw error
+  return (data ?? []) as Cliente[]
+}
+
+export async function listClientesComUltimoContato(
+  sb: SupabaseClient,
+  userId: string,
+  opts?: { ativosApenas?: boolean }
+): Promise<ClienteListItem[]> {
+  const { data, error } = await sb.rpc('list_clientes_com_ultimo_contato', {
+    p_ativos_apenas: opts?.ativosApenas === true,
+  })
+  if (error) {
+    if (isMissingListClientesRpcError(error)) {
+      return listClientesComUltimoContatoLegacy(sb, userId, opts)
+    }
+    throw error
+  }
+  const rows = (data ?? []) as Record<string, unknown>[]
+  return mapRpcRowsToClienteListItem(rows)
 }
 
 export async function getCliente(sb: SupabaseClient, userId: string, id: string): Promise<Cliente | null> {
