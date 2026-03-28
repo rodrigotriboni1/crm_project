@@ -53,7 +53,7 @@ const followField: FieldDefinition = {
 }
 
 export default function NovoOrcamentoDialog({ user, open, onOpenChange }: Props) {
-  const { data: clientes = [] } = useClientes(user)
+  const { data: clientes = [] } = useClientes(user, { ativosApenas: true })
   const { data: produtosCatalogo = [] } = useProdutos(user, { ativosApenas: true })
   const create = useCreateOrcamento(user)
 

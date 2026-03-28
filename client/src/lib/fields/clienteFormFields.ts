@@ -90,6 +90,15 @@ export const clienteDetailCardFields = {
     label: 'Observações',
     optional: true,
   } satisfies FieldDefinition,
+  estadoFicha: {
+    id: 'cd-estado',
+    kind: 'select',
+    label: 'Estado da ficha',
+    options: [
+      { value: '1', label: 'Ativo (aparece em novos orçamentos)' },
+      { value: '0', label: 'Arquivado' },
+    ],
+  } satisfies FieldDefinition,
 } as const
 
 /** Metadados mínimos para `formatFieldValueForDisplay` na lista de clientes. */

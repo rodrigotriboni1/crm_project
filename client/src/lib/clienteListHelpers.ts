@@ -5,6 +5,12 @@ import type { ClienteListItem } from '@/types/database'
 export type ClienteTipoFilter = 'todos' | 'novo' | 'recompra'
 export type ClientePhoneFilter = 'todos' | 'com' | 'sem'
 export type ClienteSort = 'nome_asc' | 'ultimo_desc' | 'criado_desc'
+/** Filtro de ficha: ativos (default em listagem), arquivados ou todos. */
+export type ClienteArchiveFilter = 'ativos' | 'arquivados' | 'todos'
+
+export function clienteEstaAtivo(c: ClienteListItem): boolean {
+  return c.ativo !== false
+}
 
 const MS_DAY = 86_400_000
 
@@ -73,9 +79,15 @@ export function filterAndSortClientes(
     tipo: ClienteTipoFilter
     phone: ClientePhoneFilter
     sort: ClienteSort
+    archive: ClienteArchiveFilter
   }
 ): ClienteListItem[] {
   let out = list.filter((c) => clienteMatchesSearch(c, opts.q))
+  if (opts.archive === 'ativos') {
+    out = out.filter((c) => clienteEstaAtivo(c))
+  } else if (opts.archive === 'arquivados') {
+    out = out.filter((c) => !clienteEstaAtivo(c))
+  }
   if (opts.tipo !== 'todos') {
     out = out.filter((c) => c.tipo === opts.tipo)
   }
@@ -101,10 +113,19 @@ export function filterAndSortClientes(
 }
 
 export function clientesListKpis(list: ClienteListItem[]) {
-  const total = list.length
-  const recompras = list.filter((c) => c.tipo === 'recompra').length
-  const comTel = list.filter((c) => clienteHasPhone(c)).length
-  const semContato30 = list.filter((c) => isSemContactoLongo(c.ultimo_contato, 30)).length
-  const pctTel = total ? Math.round((comTel / total) * 100) : 0
-  return { total, recompras, comTel, semContato30, pctTel }
+  const ativos = list.filter((c) => clienteEstaAtivo(c))
+  const arquivados = list.length - ativos.length
+  const recomprasAtivos = ativos.filter((c) => c.tipo === 'recompra').length
+  const comTel = ativos.filter((c) => clienteHasPhone(c)).length
+  const semContato30 = ativos.filter((c) => isSemContactoLongo(c.ultimo_contato, 30)).length
+  const nAtivos = ativos.length
+  const pctTel = nAtivos ? Math.round((comTel / nAtivos) * 100) : 0
+  return {
+    ativos: nAtivos,
+    arquivados,
+    recompras: recomprasAtivos,
+    comTel,
+    semContato30,
+    pctTel,
+  }
 }

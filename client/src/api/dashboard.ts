@@ -2,10 +2,10 @@
  * Contrato `fetchDashboard` (KPIs do cockpit — alterações aqui são breaking para produto/analytics).
  *
  * Queries em `Promise.all` (ordem fixa, usada nos testes de contrato):
- *  0. totalClientes — count `clientes` do user (head).
+ *  0. totalClientes — count `clientes` do user com `ativo = true` (head).
  *  1. orcamentosEmAberto — count `orcamentos` status ∈ {novo_contato, orcamento_enviado}.
  *  2. orcamentosDormindo — count `orcamentos` status = dormindo.
- *  3. clientesNovosMes — count `clientes` com created_at no mês civil local (início→fim do mês, ISO).
+ *  3. clientesNovosMes — count `clientes` ativos com created_at no mês civil local (início→fim do mês, ISO).
  *  4. orcamentosGanhosMes — count `orcamentos` status = ganho e updated_at no mesmo intervalo mensal local.
  *  5. valorPipelineAberto — select `valor` onde status ∈ {novo_contato, orcamento_enviado}; soma numérica.
  *  6. alertasFollowUp — orçamentos com follow_up_at não nulo, ≤ hoje+N dias (`FOLLOW_UP_ALERT_WINDOW_DAYS`),
@@ -69,7 +69,7 @@ export async function fetchDashboard(sb: SupabaseClient, userId: string): Promis
     { data: pipelineRows, error: pe },
     { data: alertRows, error: ae },
   ] = await Promise.all([
-    sb.from('clientes').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+    sb.from('clientes').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('ativo', true),
     sb
       .from('orcamentos')
       .select('*', { count: 'exact', head: true })
@@ -80,6 +80,7 @@ export async function fetchDashboard(sb: SupabaseClient, userId: string): Promis
       .from('clientes')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
+      .eq('ativo', true)
       .gte('created_at', monthStart)
       .lte('created_at', monthEnd),
     sb

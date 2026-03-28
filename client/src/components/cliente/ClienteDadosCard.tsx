@@ -159,6 +159,13 @@ export default function ClienteDadosCard({ cliente, update }: Props) {
             }}
           />
         </div>
+        <div className="sm:col-span-2">
+          <UiComponent
+            field={clienteDetailCardFields.estadoFicha}
+            value={cliente.ativo ? '1' : '0'}
+            onChange={(v) => saveField({ ativo: v === '1' })}
+          />
+        </div>
         {update.isError && (
           <p className="text-sm text-red-600 sm:col-span-2">{(update.error as Error).message}</p>
         )}

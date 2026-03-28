@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
   LayoutGrid,
+  BarChart3,
   Package,
   Users,
   LogOut,
@@ -20,6 +21,8 @@ import {
   LEGACY_SIDEBAR_COLLAPSED_KEY,
   SIDEBAR_COLLAPSED_KEY,
 } from '@/lib/storageKeys'
+import { AssistantDockProvider } from '@/contexts/AssistantDockContext'
+import LayoutAssistantRail from '@/components/LayoutAssistantRail'
 import { cn } from '@/lib/utils'
 
 function readSidebarCollapsed(): boolean {
@@ -36,6 +39,7 @@ const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/kanban', label: 'Kanban', icon: LayoutGrid },
   { to: '/orcamentos', label: 'Orçamentos', icon: Package },
+  { to: '/relatorios', label: 'Relatórios', icon: BarChart3 },
   { to: '/produtos', label: 'Produtos', icon: Tags },
   { to: '/clientes', label: 'Clientes', icon: Users },
 ]
@@ -186,9 +190,14 @@ export default function Layout() {
       />
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
-          <Outlet />
-        </div>
+        <AssistantDockProvider>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
+              <Outlet />
+            </div>
+            <LayoutAssistantRail />
+          </div>
+        </AssistantDockProvider>
       </main>
     </div>
   )

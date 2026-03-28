@@ -2,21 +2,26 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeClienteTaxId } from '@/lib/taxId'
 import type { Cliente, ClienteListItem, ClienteTipo, ClienteUpdate } from '@/types/database'
 
-export async function listClientes(sb: SupabaseClient, userId: string): Promise<Cliente[]> {
-  const { data, error } = await sb
-    .from('clientes')
-    .select('*')
-    .eq('user_id', userId)
-    .order('nome')
+export async function listClientes(
+  sb: SupabaseClient,
+  userId: string,
+  opts?: { ativosApenas?: boolean }
+): Promise<Cliente[]> {
+  let q = sb.from('clientes').select('*').eq('user_id', userId).order('nome')
+  if (opts?.ativosApenas) {
+    q = q.eq('ativo', true)
+  }
+  const { data, error } = await q
   if (error) throw error
   return (data ?? []) as Cliente[]
 }
 
 export async function listClientesComUltimoContato(
   sb: SupabaseClient,
-  userId: string
+  userId: string,
+  opts?: { ativosApenas?: boolean }
 ): Promise<ClienteListItem[]> {
-  const clientes = await listClientes(sb, userId)
+  const clientes = await listClientes(sb, userId, opts)
   const { data: ints, error } = await sb
     .from('interacoes')
     .select('cliente_id, data_contato')
@@ -56,6 +61,7 @@ export async function createCliente(
     observacoes?: string
     cor?: string
     iniciais?: string
+    ativo?: boolean
   }
 ): Promise<Cliente> {
   const { data, error } = await sb
@@ -64,6 +70,7 @@ export async function createCliente(
       user_id: userId,
       nome: row.nome,
       tipo: row.tipo ?? 'novo',
+      ativo: row.ativo ?? true,
       tax_id: normalizeClienteTaxId(row.tax_id),
       document_enrichment: row.document_enrichment ?? null,
       whatsapp: row.whatsapp ?? null,

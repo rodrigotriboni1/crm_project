@@ -1,6 +1,7 @@
 /** React Query keys centralizadas (evitar conflitos em PRs paralelos). */
 export const qk = {
   dashboard: (uid: string) => ['dashboard', uid] as const,
+  reports: (uid: string, start: string, end: string) => ['reports', uid, start, end] as const,
   clientes: (uid: string) => ['clientes', uid] as const,
   cliente: (uid: string, id: string) => ['cliente', uid, id] as const,
   orcamentos: (uid: string) => ['orcamentos', uid] as const,

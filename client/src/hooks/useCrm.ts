@@ -7,6 +7,7 @@ import {
   createOrcamento,
   createProduto,
   fetchDashboard,
+  fetchReportsData,
   getCliente,
   getOrcamento,
   listClientesComUltimoContato,
@@ -22,6 +23,7 @@ import { supabase } from '@/lib/supabase'
 import { INTERACAO_CANAIS_USUARIO } from '@/lib/interacaoCanal'
 import { qk } from '@/lib/queryKeys'
 import type { ClienteTipo, ClienteUpdate, OrcamentoStatus, ProdutoUpdate } from '@/types/database'
+import type { ReportsDateRange } from '@/api/crm'
 
 function requireClient(user: User | null) {
   if (!supabase) throw new Error('Supabase não configurado')
@@ -40,12 +42,26 @@ export function useDashboard(user: User | null) {
   })
 }
 
-export function useClientes(user: User | null) {
+export function useReports(user: User | null, range: ReportsDateRange | null) {
+  const key =
+    user && range ? qk.reports(user.id, range.start, range.end) : (['reports', 'none'] as const)
   return useQuery({
-    queryKey: user ? qk.clientes(user.id) : ['clientes', 'none'],
+    queryKey: key,
     queryFn: () => {
       const { sb, uid } = requireClient(user)
-      return listClientesComUltimoContato(sb, uid)
+      return fetchReportsData(sb, uid, range!)
+    },
+    enabled: Boolean(supabase && user && range),
+  })
+}
+
+export function useClientes(user: User | null, opts?: { ativosApenas?: boolean }) {
+  const ativosOnly = opts?.ativosApenas === true
+  return useQuery({
+    queryKey: user ? ([...qk.clientes(user.id), ativosOnly ? 'ativos' : 'all'] as const) : (['clientes', 'none'] as const),
+    queryFn: () => {
+      const { sb, uid } = requireClient(user)
+      return listClientesComUltimoContato(sb, uid, { ativosApenas: ativosOnly })
     },
     enabled: Boolean(supabase && user),
   })

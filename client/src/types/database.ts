@@ -37,6 +37,8 @@ export type Cliente = {
   /** Dados estruturados da consulta ao documento (CNPJ BrasilAPI; CPF placeholder). */
   document_enrichment: ClienteDocumentEnrichment | null
   tipo: ClienteTipo
+  /** false = arquivado (fora de novos orçamentos). */
+  ativo: boolean
   whatsapp: string | null
   telefone: string | null
   produtos_habituais: string | null

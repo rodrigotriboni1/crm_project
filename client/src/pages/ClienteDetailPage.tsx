@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
 import {
   useCliente,
   useInteracoes,
@@ -17,6 +18,7 @@ import ClienteInteracoesSection from '@/components/cliente/ClienteInteracoesSect
 export default function ClienteDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  useGenericAssistantDock('Cliente')
   const { data: cliente, isLoading } = useCliente(user, id)
   const { data: interacoes = [] } = useInteracoes(user, id)
   const { data: orcamentos = [] } = useOrcamentosByCliente(user, id)

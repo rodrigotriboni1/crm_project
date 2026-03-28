@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
 import {
   useOrcamentos,
   useClientes,
@@ -19,6 +20,7 @@ type FilterKey = 'todos' | OrcamentoStatus
 
 export default function OrcamentosPage() {
   const { user } = useAuth()
+  useGenericAssistantDock('Orçamentos')
   const { data: orcamentos = [], isLoading } = useOrcamentos(user)
   const { data: clientes = [] } = useClientes(user)
 

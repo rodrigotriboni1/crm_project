@@ -1,13 +1,16 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Users } from 'lucide-react'
+import { Users } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
 import { useClientes } from '@/hooks/useCrm'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   EmptyState,
+  EntityActiveBadge,
+  ListPageKpiGrid,
   PageContainer,
+  SearchField,
   SectionCard,
   ToolbarRow,
 } from '@/components/library'
@@ -20,6 +23,7 @@ import {
   clientePhoneLine,
   clienteTaxDisplay,
   formatUltimoContatoLabel,
+  type ClienteArchiveFilter,
   type ClientePhoneFilter,
   type ClienteSort,
   type ClienteTipoFilter,
@@ -29,12 +33,14 @@ import { cn } from '@/lib/utils'
 
 export default function ClientesPage() {
   const { user } = useAuth()
+  useGenericAssistantDock('Clientes')
   const { data: clientes = [], isLoading } = useClientes(user)
   const [q, setQ] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [tipoFilter, setTipoFilter] = useState<ClienteTipoFilter>('todos')
   const [phoneFilter, setPhoneFilter] = useState<ClientePhoneFilter>('todos')
+  const [archiveFilter, setArchiveFilter] = useState<ClienteArchiveFilter>('ativos')
   const [sort, setSort] = useState<ClienteSort>('nome_asc')
 
   const kpis = useMemo(() => clientesListKpis(clientes), [clientes])
@@ -46,47 +52,52 @@ export default function ClientesPage() {
         tipo: tipoFilter,
         phone: phoneFilter,
         sort,
+        archive: archiveFilter,
       }),
-    [clientes, q, tipoFilter, phoneFilter, sort]
+    [clientes, q, tipoFilter, phoneFilter, sort, archiveFilter]
   )
 
   return (
     <PageContainer max="lg" className="space-y-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <div className="rounded-lg border border-border/80 bg-muted/30 px-3 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total</p>
-          <p className="text-lg font-semibold tabular-nums">{kpis.total}</p>
-        </div>
-        <div className="rounded-lg border border-border/80 bg-muted/30 px-3 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Recompra</p>
-          <p className="text-lg font-semibold tabular-nums text-green-700">{kpis.recompras}</p>
-        </div>
-        <div className="rounded-lg border border-border/80 bg-muted/30 px-3 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Com telefone</p>
-          <p className="text-lg font-semibold tabular-nums">
-            {kpis.comTel}
-            <span className="ml-1 text-xs font-normal text-muted-foreground">({kpis.pctTel}%)</span>
-          </p>
-        </div>
-        <div className="rounded-lg border border-border/80 bg-muted/30 px-3 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Sem contacto 30d</p>
-          <p className="text-lg font-semibold tabular-nums text-amber-800">{kpis.semContato30}</p>
-        </div>
-      </div>
+      <ListPageKpiGrid
+        columnsClassName="sm:grid-cols-2 lg:grid-cols-5"
+        items={[
+          { label: 'Ativos', value: kpis.ativos, valueClassName: 'text-foreground' },
+          { label: 'Arquivados', value: kpis.arquivados, valueClassName: 'text-muted-foreground' },
+          { label: 'Recompra (ativos)', value: kpis.recompras, valueClassName: 'text-green-700' },
+          {
+            label: 'Com telefone',
+            value: (
+              <>
+                {kpis.comTel}
+                <span className="ml-1 text-xs font-normal text-muted-foreground">({kpis.pctTel}%)</span>
+              </>
+            ),
+          },
+          { label: 'Sem contacto 30d', value: kpis.semContato30, valueClassName: 'text-amber-800' },
+        ]}
+      />
 
       <ToolbarRow
         start={
           <div className="space-y-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="h-9 pl-9 text-sm"
-                placeholder="Nome, CPF/CNPJ, telefone ou produtos habituais…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-            </div>
+            <SearchField
+              className="max-w-xl"
+              value={q}
+              onChange={setQ}
+              placeholder="Nome, CPF/CNPJ, telefone ou produtos habituais…"
+            />
             <div className="flex flex-wrap items-center gap-2">
+              <SelectNative
+                className="h-9 w-auto min-w-[8rem] text-xs"
+                value={archiveFilter}
+                onChange={(e) => setArchiveFilter(e.target.value as ClienteArchiveFilter)}
+                aria-label="Fichas ativas ou arquivadas"
+              >
+                <option value="ativos">Só ativos</option>
+                <option value="arquivados">Só arquivados</option>
+                <option value="todos">Todos</option>
+              </SelectNative>
               <SelectNative
                 className="h-9 w-auto min-w-[7.5rem] text-xs"
                 value={tipoFilter}
@@ -175,16 +186,19 @@ export default function ClientesPage() {
                     <span>{formatUltimoContatoLabel(c.ultimo_contato)}</span>
                   </div>
                 </div>
-                <span
-                  className={cn(
-                    'mt-0.5 shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium',
-                    c.tipo === 'recompra'
-                      ? 'border-green-200 bg-green-50 text-green-700'
-                      : 'border-blue-200 bg-blue-50 text-blue-700'
-                  )}
-                >
-                  {c.tipo === 'recompra' ? 'Recompra' : 'Novo'}
-                </span>
+                <div className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
+                  <EntityActiveBadge active={c.ativo} activeLabel="Ativo" inactiveLabel="Arquivado" />
+                  <span
+                    className={cn(
+                      'rounded-full border px-2 py-0.5 text-[11px] font-medium',
+                      c.tipo === 'recompra'
+                        ? 'border-green-200 bg-green-50 text-green-700'
+                        : 'border-blue-200 bg-blue-50 text-blue-700'
+                    )}
+                  >
+                    {c.tipo === 'recompra' ? 'Recompra' : 'Novo'}
+                  </span>
+                </div>
               </Link>
             ))
           )}

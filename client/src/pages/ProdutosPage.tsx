@@ -1,12 +1,25 @@
 import { useMemo, useState } from 'react'
-import { LayoutList, Plus, Search, Pencil, Table2 } from 'lucide-react'
+import { LayoutList, Plus, Pencil, Table2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
 import { useProdutos, useCreateProduto, useUpdateProduto } from '@/hooks/useCrm'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Card, CardContent } from '@/components/ui/card'
-import { EmptyState, FormStack, PageContainer, SectionCard, ToolbarRow } from '@/components/library'
+import {
+  EmptyState,
+  EntityActiveBadge,
+  FormStack,
+  ListGroupCard,
+  ListPageKpiGrid,
+  PageContainer,
+  SearchField,
+  SectionCard,
+  SimpleDataTable,
+  SortableTh,
+  ToolbarRow,
+  ViewModeToggle,
+} from '@/components/library'
 import { UiComponent } from '@/components/standards'
 import { cn } from '@/lib/utils'
 import type { FieldDefinition } from '@/types'
@@ -132,6 +145,7 @@ function categoryLabel(p: Produto): string {
 }
 
 export default function ProdutosPage() {
+  useGenericAssistantDock('Produtos')
   const { user } = useAuth()
   const { data: produtos = [], isLoading } = useProdutos(user)
   const create = useCreateProduto(user)
@@ -325,88 +339,43 @@ export default function ProdutosPage() {
           {[p.categoria, p.codigo].filter(Boolean).join(' · ') || '—'} · {p.unidade}
         </p>
       </div>
-      <span
-        className={cn(
-          'shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium',
-          p.ativo
-            ? 'border-green-200 bg-green-50 text-green-700'
-            : 'border-muted bg-muted/40 text-muted-foreground'
-        )}
-      >
-        {p.ativo ? 'Ativo' : 'Arquivado'}
-      </span>
+      <EntityActiveBadge active={p.ativo} />
       <Button type="button" variant="outline" size="sm" className="h-8 shrink-0" onClick={() => openEdit(p)}>
         <Pencil className="h-3.5 w-3.5" />
       </Button>
     </div>
   )
 
-  const sortableTh = (label: string, k: SortKey) => (
-    <th className="p-2 font-medium">
-      <button
-        type="button"
-        className="text-left hover:underline"
-        onClick={() => toggleSort(k)}
-      >
-        {label}
-        {sortKey === k ? (sortAsc ? ' ↑' : ' ↓') : ''}
-      </button>
-    </th>
-  )
-
   return (
     <PageContainer max="lg" className="space-y-4">
-      <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-lg border border-border/80 bg-muted/30 px-3 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total</p>
-          <p className="text-lg font-semibold tabular-nums">{kpis.total}</p>
-        </div>
-        <div className="rounded-lg border border-border/80 bg-muted/30 px-3 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Ativos</p>
-          <p className="text-lg font-semibold tabular-nums text-green-700">{kpis.ativos}</p>
-        </div>
-        <div className="rounded-lg border border-border/80 bg-muted/30 px-3 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Arquivados</p>
-          <p className="text-lg font-semibold tabular-nums text-muted-foreground">{kpis.arquivados}</p>
-        </div>
-      </div>
+      <ListPageKpiGrid
+        columnsClassName="sm:grid-cols-3"
+        items={[
+          { label: 'Total', value: kpis.total },
+          { label: 'Ativos', value: kpis.ativos, valueClassName: 'text-green-700' },
+          { label: 'Arquivados', value: kpis.arquivados, valueClassName: 'text-muted-foreground' },
+        ]}
+      />
 
       <ToolbarRow
         start={
-          <div className="relative w-full max-w-xl">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="h-9 pl-9 text-sm"
-              placeholder="Nome, categoria, código ou descrição…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
+          <SearchField
+            className="max-w-xl"
+            value={q}
+            onChange={setQ}
+            placeholder="Nome, categoria, código ou descrição…"
+          />
         }
         end={
           <>
-            <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
-              <Button
-                type="button"
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                size="sm"
-                className="h-8 px-2"
-                onClick={() => setViewMode('list')}
-                aria-label="Vista em lista"
-              >
-                <LayoutList className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-                size="sm"
-                className="h-8 px-2"
-                onClick={() => setViewMode('table')}
-                aria-label="Vista em tabela"
-              >
-                <Table2 className="h-4 w-4" />
-              </Button>
-            </div>
+            <ViewModeToggle
+              value={viewMode}
+              onChange={setViewMode}
+              modes={[
+                { value: 'list', icon: <LayoutList className="h-4 w-4" />, label: 'Vista em lista' },
+                { value: 'table', icon: <Table2 className="h-4 w-4" />, label: 'Vista em tabela' },
+              ]}
+            />
             <Button
               type="button"
               variant={groupByCategory ? 'secondary' : 'outline'}
@@ -507,59 +476,67 @@ export default function ProdutosPage() {
           />
         </SectionCard>
       ) : viewMode === 'table' ? (
-        <Card className="border shadow-none">
-          <CardContent className="overflow-x-auto p-0">
-            <table className="w-full min-w-[520px] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b bg-muted/40 text-xs">
-                  {sortableTh('Nome', 'nome')}
-                  {sortableTh('Categoria', 'categoria')}
-                  {sortableTh('SKU', 'codigo')}
-                  {sortableTh('Un.', 'unidade')}
-                  {sortableTh('Estado', 'ativo')}
-                  <th className="p-2 w-24" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((p) => (
-                  <tr key={p.id} className="border-b border-border/60">
-                    <td className="p-2 font-medium">{p.nome}</td>
-                    <td className="p-2 text-muted-foreground">{categoryLabel(p)}</td>
-                    <td className="p-2 font-mono text-xs">{p.codigo ?? '—'}</td>
-                    <td className="p-2">{p.unidade}</td>
-                    <td className="p-2">
-                      <span
-                        className={cn(
-                          'rounded-full border px-2 py-0.5 text-[11px] font-medium',
-                          p.ativo
-                            ? 'border-green-200 bg-green-50 text-green-700'
-                            : 'border-muted bg-muted/40 text-muted-foreground'
-                        )}
-                      >
-                        {p.ativo ? 'Ativo' : 'Arquivado'}
-                      </span>
-                    </td>
-                    <td className="p-2">
-                      <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => openEdit(p)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+        <SimpleDataTable>
+          <thead>
+            <tr className="border-b bg-muted/40 text-xs">
+              <SortableTh
+                label="Nome"
+                active={sortKey === 'nome'}
+                ascending={sortAsc}
+                onToggle={() => toggleSort('nome')}
+              />
+              <SortableTh
+                label="Categoria"
+                active={sortKey === 'categoria'}
+                ascending={sortAsc}
+                onToggle={() => toggleSort('categoria')}
+              />
+              <SortableTh
+                label="SKU"
+                active={sortKey === 'codigo'}
+                ascending={sortAsc}
+                onToggle={() => toggleSort('codigo')}
+              />
+              <SortableTh
+                label="Un."
+                active={sortKey === 'unidade'}
+                ascending={sortAsc}
+                onToggle={() => toggleSort('unidade')}
+              />
+              <SortableTh
+                label="Estado"
+                active={sortKey === 'ativo'}
+                ascending={sortAsc}
+                onToggle={() => toggleSort('ativo')}
+              />
+              <th className="w-24 p-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((p) => (
+              <tr key={p.id} className="border-b border-border/60">
+                <td className="p-2 font-medium">{p.nome}</td>
+                <td className="p-2 text-muted-foreground">{categoryLabel(p)}</td>
+                <td className="p-2 font-mono text-xs">{p.codigo ?? '—'}</td>
+                <td className="p-2">{p.unidade}</td>
+                <td className="p-2">
+                  <EntityActiveBadge active={p.ativo} />
+                </td>
+                <td className="p-2">
+                  <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => openEdit(p)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </SimpleDataTable>
       ) : groupByCategory && grouped ? (
         <div className="space-y-4">
           {grouped.map(([cat, items]) => (
-            <Card key={cat} className="border shadow-none">
-              <div className="border-b border-border/60 bg-muted/30 px-4 py-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{cat}</p>
-                <p className="text-[11px] text-muted-foreground">{items.length} produto(s)</p>
-              </div>
-              <CardContent className="p-0">{items.map((p, i) => renderRow(p, i < items.length - 1))}</CardContent>
-            </Card>
+            <ListGroupCard key={cat} title={cat} subtitle={`${items.length} produto(s)`}>
+              {items.map((p, i) => renderRow(p, i < items.length - 1))}
+            </ListGroupCard>
           ))}
         </div>
       ) : (

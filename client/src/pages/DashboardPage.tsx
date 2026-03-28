@@ -6,8 +6,8 @@ import { useDashboard } from '@/hooks/useCrm'
 import { FOLLOW_UP_ALERT_WINDOW_DAYS } from '@/api/crm'
 import { Card, CardContent } from '@/components/ui/card'
 import OrcamentoDetailModal from '@/components/OrcamentoDetailModal'
-import DashboardAssistant from '@/components/DashboardAssistant'
 import AvatarCircle from '@/components/AvatarCircle'
+import { useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
 import { buildDashboardAgentContext } from '@/lib/dashboardAgentContext'
 import { cn } from '@/lib/utils'
 
@@ -41,18 +41,15 @@ function addDaysIso(iso: string, days: number): string {
 
 function DashboardSkeleton() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:items-stretch">
-      <div className="min-w-0 flex-1 space-y-6 px-4 py-4 sm:p-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 animate-pulse rounded-lg bg-muted/60" />
-          ))}
-        </div>
-        <div className="h-10 animate-pulse rounded-lg bg-muted/50" />
-        <div className="h-40 animate-pulse rounded-lg bg-muted/60" />
-        <div className="h-40 animate-pulse rounded-lg bg-muted/60" />
+    <div className="min-w-0 flex-1 space-y-6 px-4 py-4 sm:p-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-24 animate-pulse rounded-lg bg-muted/60" />
+        ))}
       </div>
-      <aside className="hidden min-h-[280px] w-full shrink-0 animate-pulse border-t border-[#d4d2c8] bg-muted/30 lg:block lg:min-h-0 lg:w-[min(480px,46vw)] lg:max-w-[520px] lg:border-l lg:border-t-0" />
+      <div className="h-10 animate-pulse rounded-lg bg-muted/50" />
+      <div className="h-40 animate-pulse rounded-lg bg-muted/60" />
+      <div className="h-40 animate-pulse rounded-lg bg-muted/60" />
     </div>
   )
 }
@@ -65,9 +62,10 @@ export default function DashboardPage() {
   const todayIso = new Date().toISOString().slice(0, 10)
 
   const contextJson = useMemo(
-    () => (data ? buildDashboardAgentContext(data, todayIso) : ''),
+    () => (data ? buildDashboardAgentContext(data, todayIso) : '{}'),
     [data, todayIso]
   )
+  useRegisterAssistantDock('dashboard', contextJson)
 
   if (isLoading) return <DashboardSkeleton />
   if (isError) {
@@ -85,8 +83,7 @@ export default function DashboardPage() {
 
   return (
     <>
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:items-stretch">
-      <div className="min-w-0 flex-1 space-y-6 px-4 py-4 sm:p-6">
+    <div className="min-w-0 flex-1 space-y-6 px-4 py-4 sm:p-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Card className="border-0 bg-muted/50 shadow-none">
             <CardContent className="p-4">
@@ -243,11 +240,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
-
-      <aside className="sticky top-0 flex max-h-[min(560px,70dvh)] min-h-[min(360px,45dvh)] flex-col border-t border-[#d4d2c8] bg-white lg:max-h-dvh lg:min-h-0 lg:w-[min(480px,46vw)] lg:max-w-[520px] lg:shrink-0 lg:self-stretch lg:border-l lg:border-t-0">
-        <DashboardAssistant contextJson={contextJson} className="min-h-0 flex-1" />
-      </aside>
     </div>
 
     <OrcamentoDetailModal

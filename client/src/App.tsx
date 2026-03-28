@@ -11,6 +11,7 @@ import ClienteDetailPage from '@/pages/ClienteDetailPage'
 import OrcamentosPage from '@/pages/OrcamentosPage'
 import ProdutosPage from '@/pages/ProdutosPage'
 import KanbanPage from '@/pages/KanbanPage'
+import RelatoriosPage from '@/pages/RelatoriosPage'
 
 function ProtectedLayout() {
   const { user, loading } = useAuth()
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="clientes/:id" element={<ClienteDetailPage />} />
           <Route path="orcamentos" element={<OrcamentosPage />} />
           <Route path="produtos" element={<ProdutosPage />} />
+          <Route path="relatorios" element={<RelatoriosPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
