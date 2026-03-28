@@ -12,14 +12,46 @@ export type OrcamentoRow = Orcamento & {
   produtos?: OrcamentoProdutoJoin | null
 }
 
-export async function listOrcamentos(sb: SupabaseClient, userId: string): Promise<OrcamentoRow[]> {
+/** Tamanho de página ao carregar orçamentos (evita uma única resposta gigante). */
+export const ORCAMENTOS_PAGE_SIZE = 300
+
+const ORCAMENTOS_LIST_SELECT = '*, clientes(nome), produtos(nome, codigo, categoria)'
+
+/**
+ * Uma página de orçamentos ordenados por `created_at desc`, `id desc`.
+ * Com índice `orcamentos_user_created_id_idx` cada página evita full scan.
+ */
+export async function listOrcamentosPage(
+  sb: SupabaseClient,
+  userId: string,
+  opts: { limit?: number; offset?: number }
+): Promise<OrcamentoRow[]> {
+  const limit = Math.min(Math.max(opts.limit ?? ORCAMENTOS_PAGE_SIZE, 1), 500)
+  const offset = Math.max(opts.offset ?? 0, 0)
   const { data, error } = await sb
     .from('orcamentos')
-    .select('*, clientes(nome), produtos(nome, codigo, categoria)')
+    .select(ORCAMENTOS_LIST_SELECT)
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
   return (data ?? []) as OrcamentoRow[]
+}
+
+/**
+ * Lista completa do utilizador, obtida em páginas (menos pressão de memória/rede que um único select).
+ */
+export async function listOrcamentos(sb: SupabaseClient, userId: string): Promise<OrcamentoRow[]> {
+  const all: OrcamentoRow[] = []
+  let offset = 0
+  while (true) {
+    const chunk = await listOrcamentosPage(sb, userId, { offset, limit: ORCAMENTOS_PAGE_SIZE })
+    all.push(...chunk)
+    if (chunk.length < ORCAMENTOS_PAGE_SIZE) break
+    offset += ORCAMENTOS_PAGE_SIZE
+  }
+  return all
 }
 
 export async function listOrcamentosByCliente(

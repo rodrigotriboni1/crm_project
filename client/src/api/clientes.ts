@@ -21,19 +21,33 @@ export async function listClientesComUltimoContato(
   userId: string,
   opts?: { ativosApenas?: boolean }
 ): Promise<ClienteListItem[]> {
-  const clientes = await listClientes(sb, userId, opts)
-  const { data: ints, error } = await sb
-    .from('interacoes')
-    .select('cliente_id, data_contato')
-    .eq('user_id', userId)
-    .order('data_contato', { ascending: false })
+  void userId
+  const { data, error } = await sb.rpc('list_clientes_com_ultimo_contato', {
+    p_ativos_apenas: opts?.ativosApenas === true,
+  })
   if (error) throw error
-  const first = new Map<string, string>()
-  for (const row of ints ?? []) {
-    const cid = (row as { cliente_id: string }).cliente_id
-    if (!first.has(cid)) first.set(cid, (row as { data_contato: string }).data_contato)
-  }
-  return clientes.map((c) => ({ ...c, ultimo_contato: first.get(c.id) ?? null }))
+  const rows = (data ?? []) as Record<string, unknown>[]
+  return rows.map((r) => {
+    const ultimo = r.ultimo_contato
+    return {
+      id: r.id as string,
+      user_id: r.user_id as string,
+      nome: r.nome as string,
+      tipo: r.tipo as Cliente['tipo'],
+      tax_id: (r.tax_id as string | null) ?? null,
+      document_enrichment: (r.document_enrichment as Cliente['document_enrichment']) ?? null,
+      ativo: r.ativo as boolean,
+      whatsapp: (r.whatsapp as string | null) ?? null,
+      telefone: (r.telefone as string | null) ?? null,
+      produtos_habituais: (r.produtos_habituais as string | null) ?? null,
+      observacoes: (r.observacoes as string | null) ?? null,
+      cor: (r.cor as string | null) ?? null,
+      iniciais: (r.iniciais as string | null) ?? null,
+      created_at: r.created_at as string,
+      updated_at: r.updated_at as string,
+      ultimo_contato: ultimo == null ? null : String(ultimo),
+    }
+  })
 }
 
 export async function getCliente(sb: SupabaseClient, userId: string, id: string): Promise<Cliente | null> {
