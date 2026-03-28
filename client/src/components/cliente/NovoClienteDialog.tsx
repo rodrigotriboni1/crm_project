@@ -96,22 +96,7 @@ export default function NovoClienteDialog({ user, open, onOpenChange }: Props) {
         <DialogHeader>
           <DialogTitle>Novo cliente</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 border-b border-border pb-3 text-xs text-muted-foreground">
-          <p>
-            <strong className="text-foreground">Campos essenciais:</strong> nome (ou razão social) e, idealmente,
-            WhatsApp ou telefone para follow-up.
-          </p>
-          <p>
-            <strong className="text-foreground">CNPJ (14 dígitos):</strong> a consulta na{' '}
-            <span className="text-foreground">BrasilAPI</span> corre automaticamente após parar de digitar; nome,
-            telefone e painel abaixo são preenchidos com dados públicos.
-          </p>
-          <p>
-            <strong className="text-foreground">CPF (11 dígitos):</strong> deteção automática; consulta de dados ainda
-            não integrada — o registo guarda o documento e um marcador para futura API.
-          </p>
-        </div>
-        <FormStack className="pt-2">
+        <FormStack>
           <UiComponent field={novoClienteFormFields.taxId} value={taxIdDisplay} onChange={setTaxIdDisplay} />
           {showLivePanel && (
             <DocumentEnrichmentPanel
