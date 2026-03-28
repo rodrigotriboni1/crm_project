@@ -1,0 +1,51 @@
+export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string }
+
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+
+export function getOpenRouterKey(): string | undefined {
+  return import.meta.env.VITE_OPENROUTER_API_KEY?.trim() || undefined
+}
+
+export function getOpenRouterModel(): string {
+  return import.meta.env.VITE_OPENROUTER_MODEL?.trim() || 'openai/gpt-4o-mini'
+}
+
+export async function openrouterChat(messages: ChatMessage[]): Promise<string> {
+  const key = getOpenRouterKey()
+  if (!key) {
+    throw new Error('Defina VITE_OPENROUTER_API_KEY no .env do client.')
+  }
+  const model = getOpenRouterModel()
+  const res = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+      'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
+      'X-Title': 'EmbalaFlow CRM',
+    },
+    body: JSON.stringify({ model, messages }),
+  })
+  if (!res.ok) {
+    let detail = res.statusText
+    try {
+      const j = (await res.json()) as { error?: { message?: string }; message?: string }
+      detail = j.error?.message ?? j.message ?? detail
+    } catch {
+      try {
+        detail = await res.text()
+      } catch {
+        /* ignore */
+      }
+    }
+    throw new Error(detail || `OpenRouter ${res.status}`)
+  }
+  const data = (await res.json()) as {
+    choices?: { message?: { content?: string } }[]
+  }
+  const content = data.choices?.[0]?.message?.content
+  if (!content || typeof content !== 'string') {
+    throw new Error('Resposta vazia do modelo.')
+  }
+  return content.trim()
+}

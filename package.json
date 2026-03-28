@@ -1,0 +1,17 @@
+{
+  "name": "crm-embalagens",
+  "private": true,
+  "version": "1.0.0",
+  "description": "CRM Embalagens — static Parcel build from Claude artifact",
+  "scripts": {
+    "dev": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "preview": "npm run preview --prefix client",
+    "start": "npm run dev",
+    "serve:legacy": "serve . -l 8080"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4",
+    "supabase": "^2.84.4"
+  }
+}

@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+/* Anthropic-aligned brand tokens + Poppins (headings) / Lora (body) */
+@theme {
+  --font-sans: "Poppins", Arial, system-ui, sans-serif;
+  --font-serif: "Lora", Georgia, "Times New Roman", serif;
+
+  --color-brand-dark: #141413;
+  --color-brand-light: #faf9f5;
+  --color-brand-mid: #b0aea5;
+  --color-brand-surface: #e8e6dc;
+  --color-brand-orange: #d97757;
+  --color-brand-blue: #6a9bcc;
+  --color-brand-green: #788c5d;
+
+  --color-background: var(--color-brand-light);
+  --color-foreground: var(--color-brand-dark);
+  --color-muted: var(--color-brand-surface);
+  --color-muted-foreground: #5c5a52;
+  --color-border: #d4d2c8;
+  --color-ring: var(--color-brand-blue);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-serif);
+  background: var(--color-brand-light);
+  color: var(--color-brand-dark);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Headings use Poppins unless overridden */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Focus visible: brand accent, accessible */
+:focus-visible {
+  outline: 2px solid var(--color-brand-blue);
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline-offset: 2px;
+}

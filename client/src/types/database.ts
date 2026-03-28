@@ -1,0 +1,77 @@
+export type ClienteTipo = 'novo' | 'recompra'
+
+export type OrcamentoStatus =
+  | 'novo_contato'
+  | 'orcamento_enviado'
+  | 'dormindo'
+  | 'ganho'
+  | 'perdido'
+
+export type Produto = {
+  id: string
+  user_id: string
+  nome: string
+  codigo: string | null
+  categoria: string | null
+  descricao: string | null
+  unidade: string
+  especificacoes: Record<string, unknown>
+  ativo: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type ProdutoUpdate = Partial<
+  Omit<Produto, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+>
+
+export type Cliente = {
+  id: string
+  user_id: string
+  nome: string
+  tipo: ClienteTipo
+  whatsapp: string | null
+  telefone: string | null
+  produtos_habituais: string | null
+  observacoes: string | null
+  cor: string | null
+  iniciais: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type Orcamento = {
+  id: string
+  user_id: string
+  cliente_id: string
+  /** Catálogo opcional; texto exibido continua em produto_descricao. */
+  produto_id: string | null
+  /** Sequencial por usuário para referência curta (ex.: 00000001). */
+  display_num: number
+  /** CPF ou CNPJ do cartão de oportunidade (pode diferir do cliente). */
+  tax_id: string | null
+  produto_descricao: string
+  valor: number
+  status: OrcamentoStatus
+  data_orcamento: string
+  follow_up_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type Interacao = {
+  id: string
+  user_id: string
+  cliente_id: string
+  orcamento_id: string | null
+  canal: string
+  anotacao: string
+  data_contato: string
+  created_at: string
+}
+
+export type ClienteUpdate = Partial<
+  Omit<Cliente, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+>
+
+export type ClienteListItem = Cliente & { ultimo_contato: string | null }

@@ -1,0 +1,190 @@
+import { useCallback, useState } from 'react'
+import { NavLink, Outlet } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  LayoutGrid,
+  Package,
+  Users,
+  LogOut,
+  Box,
+  Plus,
+  Tags,
+  ChevronsLeft,
+  ChevronsRight,
+  ExternalLink,
+} from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { Button } from '@/components/ui/button'
+import NovoOrcamentoDialog from '@/components/NovoOrcamentoDialog'
+import { cn } from '@/lib/utils'
+
+const SIDEBAR_STORAGE_KEY = 'embalfow-sidebar-collapsed'
+
+function readSidebarCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+const nav = [
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/kanban', label: 'Kanban', icon: LayoutGrid },
+  { to: '/orcamentos', label: 'Orçamentos', icon: Package },
+  { to: '/produtos', label: 'Produtos', icon: Tags },
+  { to: '/clientes', label: 'Clientes', icon: Users },
+]
+
+const externalNovoOrcamentoUrl =
+  typeof import.meta.env.VITE_NOVO_ORCAMENTO_EXTERNAL_URL === 'string'
+    ? import.meta.env.VITE_NOVO_ORCAMENTO_EXTERNAL_URL.trim()
+    : ''
+
+export default function Layout() {
+  const { user, signOut } = useAuth()
+  const [novoOrcamentoOpen, setNovoOrcamentoOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed)
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? '1' : '0')
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+  }, [])
+
+  const collapsed = sidebarCollapsed
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-brand-light">
+      <aside
+        id="app-sidebar"
+        className={cn(
+          'flex shrink-0 flex-col border-r border-[#d4d2c8] bg-white transition-[width] duration-200 ease-out',
+          collapsed ? 'w-16' : 'w-52'
+        )}
+      >
+        <div
+          className={cn(
+            'flex items-center border-b border-[#d4d2c8] py-3',
+            collapsed ? 'flex-col gap-2 px-2' : 'gap-2 px-3'
+          )}
+        >
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-orange">
+              <Box className="h-4 w-4 text-white" />
+            </div>
+            {!collapsed && (
+              <div className="min-w-0 overflow-hidden">
+                <p className="truncate font-sans text-sm font-semibold leading-tight text-brand-dark">
+                  EmbalaFlow
+                </p>
+                <p className="font-sans text-[11px] text-brand-mid">CRM</p>
+              </div>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 shrink-0 p-0 text-brand-mid hover:text-brand-dark"
+            onClick={toggleSidebar}
+            aria-expanded={!collapsed}
+            aria-controls="app-sidebar"
+            title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          >
+            {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
+            <span className="sr-only">{collapsed ? 'Expandir menu' : 'Recolher menu'}</span>
+          </Button>
+        </div>
+
+        <nav className="flex flex-1 flex-col py-2" aria-label="Navegação principal">
+          {nav.map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              title={label}
+              className={({ isActive }) =>
+                cn(
+                  'flex w-full items-center border-l-2 font-sans text-sm transition-colors',
+                  collapsed ? 'justify-center px-2 py-2.5' : 'gap-2.5 px-4 py-2.5',
+                  isActive
+                    ? 'border-brand-orange bg-brand-orange/10 font-medium text-brand-orange'
+                    : 'border-transparent text-brand-mid hover:bg-brand-surface/50 hover:text-brand-dark'
+                )
+              }
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {!collapsed && <span className="truncate">{label}</span>}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className={cn('border-t border-[#d4d2c8] py-2', collapsed ? 'px-1.5' : 'px-2')}>
+          <Button
+            type="button"
+            size="sm"
+            className={cn(
+              'w-full gap-2 font-sans',
+              collapsed ? 'justify-center px-0' : 'justify-start'
+            )}
+            onClick={() => setNovoOrcamentoOpen(true)}
+            title="Novo orçamento (no CRM)"
+          >
+            <Plus className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>Novo orçamento</span>}
+          </Button>
+          {externalNovoOrcamentoUrl && (
+            <a
+              href={externalNovoOrcamentoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                'mt-1 flex w-full items-center gap-2 rounded-md border border-transparent bg-transparent px-3 py-2 font-sans text-sm text-brand-mid transition-colors hover:bg-brand-surface/50 hover:text-brand-dark',
+                collapsed && 'justify-center px-0 py-2'
+              )}
+              title="Novo orçamento (abre página externa)"
+            >
+              <ExternalLink className="h-4 w-4 shrink-0" />
+              {!collapsed && <span className="truncate">Novo orçamento (web)</span>}
+            </a>
+          )}
+        </div>
+
+        <div className={cn('border-t border-[#d4d2c8] p-2', collapsed && 'px-1.5')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'w-full font-sans text-brand-mid hover:bg-brand-surface/50 hover:text-brand-dark',
+              collapsed ? 'justify-center px-0' : 'justify-start gap-2'
+            )}
+            onClick={() => void signOut()}
+            title="Sair"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>Sair</span>}
+          </Button>
+        </div>
+      </aside>
+
+      <NovoOrcamentoDialog
+        user={user}
+        open={novoOrcamentoOpen}
+        onOpenChange={setNovoOrcamentoOpen}
+      />
+
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
+          <Outlet />
+        </div>
+      </main>
+    </div>
+  )
+}
