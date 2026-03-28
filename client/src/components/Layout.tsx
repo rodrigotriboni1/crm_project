@@ -16,13 +16,17 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import NovoOrcamentoDialog from '@/components/NovoOrcamentoDialog'
+import {
+  LEGACY_SIDEBAR_COLLAPSED_KEY,
+  SIDEBAR_COLLAPSED_KEY,
+} from '@/lib/storageKeys'
 import { cn } from '@/lib/utils'
-
-const SIDEBAR_STORAGE_KEY = 'embalfow-sidebar-collapsed'
 
 function readSidebarCollapsed(): boolean {
   try {
-    return localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1'
+    const cur = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
+    if (cur !== null) return cur === '1'
+    return localStorage.getItem(LEGACY_SIDEBAR_COLLAPSED_KEY) === '1'
   } catch {
     return false
   }
@@ -50,7 +54,8 @@ export default function Layout() {
     setSidebarCollapsed((prev) => {
       const next = !prev
       try {
-        localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? '1' : '0')
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0')
+        localStorage.removeItem(LEGACY_SIDEBAR_COLLAPSED_KEY)
       } catch {
         /* ignore */
       }

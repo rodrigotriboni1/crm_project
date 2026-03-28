@@ -52,7 +52,7 @@ function DashboardSkeleton() {
         <div className="h-40 animate-pulse rounded-lg bg-muted/60" />
         <div className="h-40 animate-pulse rounded-lg bg-muted/60" />
       </div>
-      <aside className="hidden min-h-[280px] w-full shrink-0 animate-pulse border-t border-[#d4d2c8] bg-muted/30 lg:block lg:min-h-0 lg:w-[min(380px,42vw)] lg:max-w-[420px] lg:border-l lg:border-t-0" />
+      <aside className="hidden min-h-[280px] w-full shrink-0 animate-pulse border-t border-[#d4d2c8] bg-muted/30 lg:block lg:min-h-0 lg:w-[min(480px,46vw)] lg:max-w-[520px] lg:border-l lg:border-t-0" />
     </div>
   )
 }
@@ -245,7 +245,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <aside className="sticky top-0 flex max-h-[min(560px,70dvh)] min-h-[min(360px,45dvh)] flex-col border-t border-[#d4d2c8] bg-white lg:max-h-dvh lg:min-h-0 lg:w-[min(380px,42vw)] lg:max-w-[420px] lg:shrink-0 lg:self-stretch lg:border-l lg:border-t-0">
+      <aside className="sticky top-0 flex max-h-[min(560px,70dvh)] min-h-[min(360px,45dvh)] flex-col border-t border-[#d4d2c8] bg-white lg:max-h-dvh lg:min-h-0 lg:w-[min(480px,46vw)] lg:max-w-[520px] lg:shrink-0 lg:self-stretch lg:border-l lg:border-t-0">
         <DashboardAssistant contextJson={contextJson} className="min-h-0 flex-1" />
       </aside>
     </div>

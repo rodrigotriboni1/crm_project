@@ -1,0 +1,2 @@
+-- EmbalaFlow CRM — seed opcional após `supabase db reset`.
+-- Adicione aqui INSERTs de dados de desenvolvimento se precisar.

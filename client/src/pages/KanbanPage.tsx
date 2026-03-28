@@ -21,10 +21,9 @@ import DormindoFollowUpDialog from '@/components/kanban/DormindoFollowUpDialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { groupOrcamentosByCliente } from '@/lib/kanbanGroup'
+import { KANBAN_VIEW_KEY } from '@/lib/storageKeys'
 import type { OrcamentoRow } from '@/api/crm'
 import type { OrcamentoStatus } from '@/types/database'
-
-const VIEW_STORAGE_KEY = 'embala_kanban_view'
 
 type ViewMode = 'kanban' | 'table'
 
@@ -72,7 +71,7 @@ export default function KanbanPage() {
   const [activeOrcamento, setActiveOrcamento] = useState<OrcamentoRow | null>(null)
   const [view, setView] = useState<ViewMode>(() => {
     try {
-      return localStorage.getItem(VIEW_STORAGE_KEY) === 'table' ? 'table' : 'kanban'
+      return localStorage.getItem(KANBAN_VIEW_KEY) === 'table' ? 'table' : 'kanban'
     } catch {
       return 'kanban'
     }
@@ -80,7 +79,7 @@ export default function KanbanPage() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(VIEW_STORAGE_KEY, view)
+      localStorage.setItem(KANBAN_VIEW_KEY, view)
     } catch {
       /* ignore */
     }

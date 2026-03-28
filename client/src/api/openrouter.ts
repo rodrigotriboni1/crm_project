@@ -1,3 +1,6 @@
+import type { User } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
+
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string }
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
@@ -10,12 +13,13 @@ export function getOpenRouterModel(): string {
   return import.meta.env.VITE_OPENROUTER_MODEL?.trim() || 'openai/gpt-4o-mini'
 }
 
-export async function openrouterChat(messages: ChatMessage[]): Promise<string> {
-  const key = getOpenRouterKey()
-  if (!key) {
-    throw new Error('Defina VITE_OPENROUTER_API_KEY no .env do client.')
-  }
-  const model = getOpenRouterModel()
+/** Assistente disponível: chave no client (dev) ou sessão Supabase (Edge Function `openrouter-chat`). */
+export function isAssistantConfigured(user: User | null): boolean {
+  if (getOpenRouterKey()) return true
+  return Boolean(supabase && user)
+}
+
+async function openrouterChatDirect(messages: ChatMessage[], model: string, key: string): Promise<string> {
   const res = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: {
@@ -48,4 +52,32 @@ export async function openrouterChat(messages: ChatMessage[]): Promise<string> {
     throw new Error('Resposta vazia do modelo.')
   }
   return content.trim()
+}
+
+export async function openrouterChat(messages: ChatMessage[]): Promise<string> {
+  const model = getOpenRouterModel()
+  const viteKey = getOpenRouterKey()
+
+  if (supabase) {
+    const { data, error } = await supabase.functions.invoke<{ content?: string; error?: string }>(
+      'openrouter-chat',
+      { body: { messages, model } }
+    )
+    if (!error && data?.content && typeof data.content === 'string') {
+      return data.content.trim()
+    }
+    if (viteKey) {
+      return openrouterChatDirect(messages, model, viteKey)
+    }
+    const msg =
+      data?.error ??
+      error?.message ??
+      'Deploy a função openrouter-chat e defina o segredo OPENROUTER_API_KEY no projeto, ou use VITE_OPENROUTER_API_KEY em desenvolvimento.'
+    throw new Error(msg)
+  }
+
+  if (viteKey) {
+    return openrouterChatDirect(messages, model, viteKey)
+  }
+  throw new Error('Configure Supabase ou VITE_OPENROUTER_API_KEY no .env do client.')
 }

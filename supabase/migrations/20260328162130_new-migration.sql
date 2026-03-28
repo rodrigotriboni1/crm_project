@@ -1,2 +1,0 @@
--- Migração: new-migration
--- Edite este arquivo e rode: supabase db push (remoto) ou supabase migration up (local)

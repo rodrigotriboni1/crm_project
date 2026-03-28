@@ -75,3 +75,21 @@ export type ClienteUpdate = Partial<
 >
 
 export type ClienteListItem = Cliente & { ultimo_contato: string | null }
+
+export type AssistantChatTurn = { role: 'user' | 'assistant'; content: string }
+
+export type AssistantChatThread = {
+  id: string
+  user_id: string
+  title: string
+  created_at: string
+  updated_at: string
+}
+
+export type AssistantChatMessage = {
+  id: string
+  thread_id: string
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
+}

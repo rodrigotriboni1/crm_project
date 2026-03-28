@@ -1,0 +1,113 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { OrcamentoStatus } from '@/types/database'
+import { FOLLOW_UP_ALERT_WINDOW_DAYS } from './constants'
+import type { OrcamentoRow } from './orcamentos'
+import { listRecentInteracoes, type InteracaoRow } from './interacoes'
+
+const ALERT_STATUSES: OrcamentoStatus[] = ['orcamento_enviado', 'dormindo']
+
+function addDaysToIsoDate(isoDate: string, days: number): string {
+  const [y, mo, d] = isoDate.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, mo - 1, d))
+  dt.setUTCDate(dt.getUTCDate() + days)
+  return dt.toISOString().slice(0, 10)
+}
+
+function localMonthBoundsIso(): { start: string; end: string } {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = now.getMonth()
+  const start = new Date(y, m, 1, 0, 0, 0, 0)
+  const end = new Date(y, m + 1, 0, 23, 59, 59, 999)
+  return { start: start.toISOString(), end: end.toISOString() }
+}
+
+export type DashboardData = {
+  totalClientes: number
+  orcamentosEmAberto: number
+  orcamentosDormindo: number
+  /** Soma dos valores em novo_contato + orcamento_enviado (mesmo critério do card “em aberto”). */
+  valorPipelineAberto: number
+  /** Clientes com created_at no mês corrente (fuso local do navegador). */
+  clientesNovosMes: number
+  /** Orçamentos ganhos no mês (status ganho, updated_at no mês corrente, fuso local). */
+  orcamentosGanhosMes: number
+  alertasFollowUp: OrcamentoRow[]
+  ultimas5: InteracaoRow[]
+}
+
+export async function fetchDashboard(sb: SupabaseClient, userId: string): Promise<DashboardData> {
+  const today = new Date().toISOString().slice(0, 10)
+  const followUpWindowEnd = addDaysToIsoDate(today, FOLLOW_UP_ALERT_WINDOW_DAYS)
+  const { start: monthStart, end: monthEnd } = localMonthBoundsIso()
+
+  const [
+    { count: totalClientes },
+    { count: orcamentosEmAberto },
+    { count: orcamentosDormindo },
+    { count: clientesNovosMes },
+    { count: orcamentosGanhosMes },
+    { data: pipelineRows, error: pe },
+    { data: alertRows, error: ae },
+  ] = await Promise.all([
+    sb.from('clientes').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+    sb
+      .from('orcamentos')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .in('status', ['novo_contato', 'orcamento_enviado']),
+    sb.from('orcamentos').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'dormindo'),
+    sb
+      .from('clientes')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', monthStart)
+      .lte('created_at', monthEnd),
+    sb
+      .from('orcamentos')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'ganho')
+      .gte('updated_at', monthStart)
+      .lte('updated_at', monthEnd),
+    sb
+      .from('orcamentos')
+      .select('valor')
+      .eq('user_id', userId)
+      .in('status', ['novo_contato', 'orcamento_enviado']),
+    sb
+      .from('orcamentos')
+      .select('*, clientes(nome), produtos(nome, codigo, categoria)')
+      .eq('user_id', userId)
+      .not('follow_up_at', 'is', null)
+      .lte('follow_up_at', followUpWindowEnd)
+      .in('status', ALERT_STATUSES),
+  ])
+
+  if (pe) throw pe
+  if (ae) throw ae
+
+  const valorPipelineAberto = (pipelineRows ?? []).reduce((acc, row) => acc + Number((row as { valor: number }).valor), 0)
+
+  const sortedAlerts = ((alertRows ?? []) as OrcamentoRow[]).sort((a, b) => {
+    const fa = a.follow_up_at!
+    const fb = b.follow_up_at!
+    const aOver = fa < today
+    const bOver = fb < today
+    if (aOver !== bOver) return aOver ? -1 : 1
+    return fa.localeCompare(fb)
+  })
+
+  const ultimas5 = await listRecentInteracoes(sb, userId, 5)
+
+  return {
+    totalClientes: totalClientes ?? 0,
+    orcamentosEmAberto: orcamentosEmAberto ?? 0,
+    orcamentosDormindo: orcamentosDormindo ?? 0,
+    valorPipelineAberto,
+    clientesNovosMes: clientesNovosMes ?? 0,
+    orcamentosGanhosMes: orcamentosGanhosMes ?? 0,
+    alertasFollowUp: sortedAlerts,
+    ultimas5,
+  }
+}
