@@ -18,6 +18,7 @@ import KanbanColumn from '@/components/kanban/KanbanColumn'
 import { KanbanCardBody } from '@/components/kanban/KanbanCard'
 import KanbanTableView from '@/components/kanban/KanbanTableView'
 import DormindoFollowUpDialog from '@/components/kanban/DormindoFollowUpDialog'
+import PerdidoLostReasonDialog from '@/components/kanban/PerdidoLostReasonDialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { groupOrcamentosByCliente } from '@/lib/kanbanGroup'
@@ -61,9 +62,13 @@ export default function KanbanPage() {
     setMoveError,
     pendingDormindo,
     dormindoDialogError,
+    pendingPerdido,
+    perdidoDialogError,
     attemptStatusChange,
     confirmDormindo,
     onDormindoDialogOpenChange,
+    confirmPerdido,
+    onPerdidoDialogOpenChange,
   } = useOrcamentoStatusTransitions(user)
 
   const [modalId, setModalId] = useState<string | null>(null)
@@ -249,6 +254,15 @@ export default function KanbanPage() {
         onConfirm={(date) => void confirmDormindo(date)}
         isPending={Boolean(savingId)}
         error={dormindoDialogError}
+      />
+
+      <PerdidoLostReasonDialog
+        open={pendingPerdido !== null}
+        orcamento={pendingPerdido}
+        onOpenChange={onPerdidoDialogOpenChange}
+        onConfirm={(reason) => void confirmPerdido(reason)}
+        isPending={Boolean(savingId)}
+        error={perdidoDialogError}
       />
     </div>
   )

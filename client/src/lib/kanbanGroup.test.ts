@@ -12,6 +12,7 @@ function row(partial: Partial<OrcamentoRow> & Pick<OrcamentoRow, 'id' | 'cliente
     status: 'novo_contato',
     data_orcamento: '2025-01-01',
     follow_up_at: null,
+    lost_reason: null,
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
     clientes: { nome: 'X' },

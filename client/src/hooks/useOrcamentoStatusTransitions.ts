@@ -13,9 +13,16 @@ export function useOrcamentoStatusTransitions(user: User | null) {
   const [moveError, setMoveError] = useState<string | null>(null)
   const [pendingDormindo, setPendingDormindo] = useState<OrcamentoRow | null>(null)
   const [dormindoDialogError, setDormindoDialogError] = useState<string | null>(null)
+  const [pendingPerdido, setPendingPerdido] = useState<OrcamentoRow | null>(null)
+  const [perdidoDialogError, setPerdidoDialogError] = useState<string | null>(null)
 
   const executeMove = useCallback(
-    async (o: OrcamentoRow, newStatus: OrcamentoStatus, followUpAt: string | null) => {
+    async (
+      o: OrcamentoRow,
+      newStatus: OrcamentoStatus,
+      followUpAt: string | null,
+      lostReason?: string | null
+    ) => {
       setSavingId(o.id)
       setMoveError(null)
       try {
@@ -25,6 +32,7 @@ export function useOrcamentoStatusTransitions(user: User | null) {
           status: newStatus,
           followUpAt,
           note: null,
+          lostReason: newStatus === 'perdido' ? lostReason : undefined,
         })
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
@@ -44,6 +52,12 @@ export function useOrcamentoStatusTransitions(user: User | null) {
         setMoveError(null)
         setDormindoDialogError(null)
         setPendingDormindo(o)
+        return
+      }
+      if (newStatus === 'perdido') {
+        setMoveError(null)
+        setPerdidoDialogError(null)
+        setPendingPerdido(o)
         return
       }
       const fu = o.follow_up_at?.slice(0, 10) ?? null
@@ -76,14 +90,41 @@ export function useOrcamentoStatusTransitions(user: User | null) {
     }
   }, [])
 
+  const confirmPerdido = useCallback(
+    async (lostReason: string | null) => {
+      if (!pendingPerdido) return
+      setPerdidoDialogError(null)
+      const fu = pendingPerdido.follow_up_at?.slice(0, 10) ?? null
+      try {
+        await executeMove(pendingPerdido, 'perdido', fu, lostReason)
+        setPendingPerdido(null)
+      } catch (e) {
+        setMoveError(null)
+        setPerdidoDialogError(e instanceof Error ? e.message : 'Falha ao salvar.')
+      }
+    },
+    [pendingPerdido, executeMove]
+  )
+
+  const onPerdidoDialogOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      setPendingPerdido(null)
+      setPerdidoDialogError(null)
+    }
+  }, [])
+
   return {
     savingId,
     moveError,
     setMoveError,
     pendingDormindo,
     dormindoDialogError,
+    pendingPerdido,
+    perdidoDialogError,
     attemptStatusChange,
     confirmDormindo,
     onDormindoDialogOpenChange,
+    confirmPerdido,
+    onPerdidoDialogOpenChange,
   }
 }

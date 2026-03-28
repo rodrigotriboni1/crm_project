@@ -1,7 +1,8 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import * as interacoesMod from './interacoes'
-import { fetchDashboard } from './dashboard'
+import { DASHBOARD_FOLLOW_UP_ALERT_STATUSES, fetchDashboard } from './dashboard'
+import { FOLLOW_UP_ALERT_WINDOW_DAYS } from './constants'
 
 function createThenableChain(response: unknown) {
   const chain = {
@@ -37,7 +38,7 @@ function createMockSupabase(responses: unknown[]) {
 describe('fetchDashboard', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date('2025-06-15T12:00:00.000Z'))
+    vi.setSystemTime(new Date('2026-06-15T12:00:00.000Z'))
     vi.spyOn(interacoesMod, 'listRecentInteracoes').mockResolvedValue([])
   })
 
@@ -46,10 +47,18 @@ describe('fetchDashboard', () => {
     vi.restoreAllMocks()
   })
 
+  it('contrato: status na fila de follow-up', () => {
+    expect(DASHBOARD_FOLLOW_UP_ALERT_STATUSES).toEqual(['orcamento_enviado', 'dormindo'])
+  })
+
+  it('contrato: janela de alerta em dias (alinhar copy do dashboard ao mudar)', () => {
+    expect(FOLLOW_UP_ALERT_WINDOW_DAYS).toBe(7)
+  })
+
   it('agrega contagens, soma pipeline e ordena alertas (atrasados primeiro)', async () => {
     const alertA = {
       id: 'a1',
-      follow_up_at: '2025-06-20',
+      follow_up_at: '2026-06-20',
       user_id: 'u',
       cliente_id: 'c',
       produto_id: null,
@@ -58,7 +67,8 @@ describe('fetchDashboard', () => {
       produto_descricao: '',
       valor: 0,
       status: 'dormindo' as const,
-      data_orcamento: '2025-01-01',
+      data_orcamento: '2026-01-01',
+      lost_reason: null,
       created_at: '',
       updated_at: '',
       clientes: { nome: 'X' },
@@ -67,7 +77,7 @@ describe('fetchDashboard', () => {
     const alertB = {
       ...alertA,
       id: 'a2',
-      follow_up_at: '2025-06-10',
+      follow_up_at: '2026-06-10',
     }
     const responses = [
       { count: 5, error: null },
@@ -90,5 +100,55 @@ describe('fetchDashboard', () => {
     expect(result.alertasFollowUp.map((o) => o.id)).toEqual(['a2', 'a1'])
     expect(result.ultimas5).toEqual([])
     expect(interacoesMod.listRecentInteracoes).toHaveBeenCalledWith(sb, 'user-1', 5)
+  })
+
+  it('contrato: valorPipelineAberto com lista vazia é zero', async () => {
+    const responses = [
+      { count: 0, error: null },
+      { count: 0, error: null },
+      { count: 0, error: null },
+      { count: 0, error: null },
+      { count: 0, error: null },
+      { data: [], error: null },
+      { data: [], error: null },
+    ]
+    const sb = createMockSupabase(responses)
+    const result = await fetchDashboard(sb, 'u')
+    expect(result.valorPipelineAberto).toBe(0)
+    expect(result.alertasFollowUp).toEqual([])
+  })
+
+  it('contrato: alertas futuros no mesmo dia ordenam por data ISO', async () => {
+    const alertEarly = {
+      id: 'e',
+      follow_up_at: '2026-06-16',
+      user_id: 'u',
+      cliente_id: 'c',
+      produto_id: null,
+      display_num: 1,
+      tax_id: null,
+      produto_descricao: '',
+      valor: 0,
+      status: 'orcamento_enviado' as const,
+      data_orcamento: '2026-01-01',
+      lost_reason: null,
+      created_at: '',
+      updated_at: '',
+      clientes: { nome: 'E' },
+      produtos: null,
+    }
+    const alertLate = { ...alertEarly, id: 'l', follow_up_at: '2026-06-18' }
+    const responses = [
+      { count: 0, error: null },
+      { count: 0, error: null },
+      { count: 0, error: null },
+      { count: 0, error: null },
+      { count: 0, error: null },
+      { data: [], error: null },
+      { data: [alertLate, alertEarly], error: null },
+    ]
+    const sb = createMockSupabase(responses)
+    const result = await fetchDashboard(sb, 'u')
+    expect(result.alertasFollowUp.map((o) => o.id)).toEqual(['e', 'l'])
   })
 })

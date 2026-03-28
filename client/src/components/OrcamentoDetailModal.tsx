@@ -42,6 +42,13 @@ const noteField: FieldDefinition = {
   placeholder: 'Opcional — será combinada com a alteração de status/follow-up',
 }
 
+const lostReasonField: FieldDefinition = {
+  id: 'orc-detail-lost',
+  kind: 'longText',
+  label: 'Motivo da perda',
+  placeholder: 'Opcional se status for Perdido (vazio → «Não informado»)',
+}
+
 type Props = {
   user: User | null
   orcamentoId: string | null
@@ -58,6 +65,7 @@ export default function OrcamentoDetailModal({ user, orcamentoId, open, onOpenCh
   const [status, setStatus] = useState<OrcamentoStatus>('novo_contato')
   const [followUp, setFollowUp] = useState('')
   const [note, setNote] = useState('')
+  const [lostReason, setLostReason] = useState('')
   const [taxId, setTaxId] = useState('')
 
   const statusField = useMemo((): FieldDefinition => {
@@ -74,9 +82,10 @@ export default function OrcamentoDetailModal({ user, orcamentoId, open, onOpenCh
       setStatus(o.status)
       setFollowUp(o.follow_up_at?.slice(0, 10) ?? '')
       setNote('')
+      setLostReason((o.lost_reason ?? '').trim())
       setTaxId(digitsOnly((o.tax_id ?? '').trim()))
     }
-  }, [o?.id, o?.status, o?.follow_up_at, o?.tax_id])
+  }, [o?.id, o?.status, o?.follow_up_at, o?.tax_id, o?.lost_reason])
 
   const salvar = async () => {
     if (!o) return
@@ -99,8 +108,13 @@ export default function OrcamentoDetailModal({ user, orcamentoId, open, onOpenCh
     const serverFu = o.follow_up_at?.slice(0, 10) ?? null
     const fuNorm = followUp.trim() ? followUp.trim() : null
     const noteTrim = note.trim() || null
+    const serverLost = (o.lost_reason ?? '').trim()
+    const lostTrim = lostReason.trim()
     const needsApply =
-      status !== o.status || fuNorm !== serverFu || (noteTrim !== null && noteTrim.length > 0)
+      status !== o.status ||
+      fuNorm !== serverFu ||
+      (noteTrim !== null && noteTrim.length > 0) ||
+      (status === 'perdido' && lostTrim !== serverLost)
 
     if (needsApply) {
       await apply.mutateAsync({
@@ -109,6 +123,7 @@ export default function OrcamentoDetailModal({ user, orcamentoId, open, onOpenCh
         status,
         followUpAt: fuNorm,
         note: noteTrim,
+        lostReason: status === 'perdido' ? (lostTrim || null) : null,
       })
     }
 
@@ -162,6 +177,9 @@ export default function OrcamentoDetailModal({ user, orcamentoId, open, onOpenCh
             <UiComponent field={followField} value={followUp} onChange={setFollowUp} />
             {status === 'dormindo' && !followUp.trim() && (
               <p className="text-xs text-red-600">Obrigatório para status Dormindo.</p>
+            )}
+            {status === 'perdido' && (
+              <UiComponent field={lostReasonField} value={lostReason} onChange={setLostReason} />
             )}
             <UiComponent field={noteField} value={note} onChange={setNote} />
             {(apply.isError || patchTax.isError) && (

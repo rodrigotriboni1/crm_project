@@ -8,6 +8,10 @@ const corsHeaders: Record<string, string> = {
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
+/** Máximo de pedidos por utilizador por janela (alinhado a `consume_openrouter_chat_rate`). */
+const OPENROUTER_RATE_MAX = 30
+const OPENROUTER_RATE_WINDOW_SEC = 3600
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -36,6 +40,29 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { data: rateRaw, error: rateErr } = await supabase.rpc('consume_openrouter_chat_rate', {
+      p_max: OPENROUTER_RATE_MAX,
+      p_window_seconds: OPENROUTER_RATE_WINDOW_SEC,
+    })
+    if (rateErr) {
+      return new Response(JSON.stringify({ error: 'Rate limit check failed' }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const rate = rateRaw as { allowed?: boolean; retry_after_seconds?: number } | null
+    if (!rate?.allowed) {
+      const retry = Math.max(1, Math.min(86400, Number(rate?.retry_after_seconds) || 60))
+      return new Response(JSON.stringify({ error: 'Too many requests; try again later.' }), {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Retry-After': String(retry),
+        },
       })
     }
 

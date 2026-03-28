@@ -110,6 +110,7 @@ export async function applyOrcamentoUpdate(
     status: OrcamentoStatus
     followUpAt: string | null
     note?: string | null
+    lostReason?: string | null
   }
 ): Promise<void> {
   const { error } = await sb.rpc('apply_orcamento_update', {
@@ -117,6 +118,7 @@ export async function applyOrcamentoUpdate(
     p_status: args.status,
     p_follow_up: args.followUpAt,
     p_note: args.note ?? null,
+    p_lost_reason: args.lostReason ?? null,
   })
   if (error) throw error
 }

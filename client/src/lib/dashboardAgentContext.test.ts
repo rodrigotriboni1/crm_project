@@ -49,6 +49,7 @@ describe('buildDashboardAgentContext', () => {
           status: 'dormindo',
           data_orcamento: '2025-01-01',
           follow_up_at: '2025-06-20',
+          lost_reason: null,
           created_at: '',
           updated_at: '',
           clientes: { nome: 'Cliente X' },

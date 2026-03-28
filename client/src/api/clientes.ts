@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { normalizeClienteTaxId } from '@/lib/taxId'
 import type { Cliente, ClienteListItem, ClienteTipo, ClienteUpdate } from '@/types/database'
 
 export async function listClientes(sb: SupabaseClient, userId: string): Promise<Cliente[]> {
@@ -47,6 +48,8 @@ export async function createCliente(
   row: {
     nome: string
     tipo?: ClienteTipo
+    tax_id?: string | null
+    document_enrichment?: Cliente['document_enrichment']
     whatsapp?: string
     telefone?: string
     produtos_habituais?: string
@@ -61,6 +64,8 @@ export async function createCliente(
       user_id: userId,
       nome: row.nome,
       tipo: row.tipo ?? 'novo',
+      tax_id: normalizeClienteTaxId(row.tax_id),
+      document_enrichment: row.document_enrichment ?? null,
       whatsapp: row.whatsapp ?? null,
       telefone: row.telefone ?? null,
       produtos_habituais: row.produtos_habituais ?? null,
@@ -80,9 +85,13 @@ export async function updateCliente(
   id: string,
   patch: ClienteUpdate
 ): Promise<Cliente> {
+  const patchNorm: ClienteUpdate = { ...patch }
+  if (Object.prototype.hasOwnProperty.call(patch, 'tax_id')) {
+    patchNorm.tax_id = normalizeClienteTaxId(patch.tax_id ?? null)
+  }
   const { data, error } = await sb
     .from('clientes')
-    .update(patch)
+    .update(patchNorm)
     .eq('user_id', userId)
     .eq('id', id)
     .select()

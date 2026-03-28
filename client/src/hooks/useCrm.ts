@@ -19,18 +19,9 @@ import {
   updateProduto,
 } from '@/api/crm'
 import { supabase } from '@/lib/supabase'
+import { INTERACAO_CANAIS_USUARIO } from '@/lib/interacaoCanal'
+import { qk } from '@/lib/queryKeys'
 import type { ClienteTipo, ClienteUpdate, OrcamentoStatus, ProdutoUpdate } from '@/types/database'
-
-const qk = {
-  dashboard: (uid: string) => ['dashboard', uid] as const,
-  clientes: (uid: string) => ['clientes', uid] as const,
-  cliente: (uid: string, id: string) => ['cliente', uid, id] as const,
-  orcamentos: (uid: string) => ['orcamentos', uid] as const,
-  orcamento: (uid: string, id: string) => ['orcamento', uid, id] as const,
-  orcamentosCliente: (uid: string, cid: string) => ['orcamentos', uid, 'cliente', cid] as const,
-  interacoes: (uid: string, cid: string) => ['interacoes', uid, cid] as const,
-  produtos: (uid: string) => ['produtos', uid] as const,
-}
 
 function requireClient(user: User | null) {
   if (!supabase) throw new Error('Supabase não configurado')
@@ -220,6 +211,7 @@ export function useApplyOrcamentoUpdate(user: User | null) {
       status: OrcamentoStatus
       followUpAt: string | null
       note?: string | null
+      lostReason?: string | null
     }) => {
       const { sb } = requireClient(user)
       return applyOrcamentoUpdate(sb, {
@@ -227,6 +219,7 @@ export function useApplyOrcamentoUpdate(user: User | null) {
         status: args.status,
         followUpAt: args.followUpAt,
         note: args.note,
+        lostReason: args.lostReason,
       })
     },
     onSuccess: (_d, args) => {
@@ -302,4 +295,5 @@ export const ORCAMENTO_STATUS_ORDER: OrcamentoStatus[] = [
   'perdido',
 ]
 
-export const CANAIS_CONTATO = ['WhatsApp', 'Telefone', 'Presencial'] as const
+/** Re-export alinhado a `interacoes.canal` (CHECK no Postgres). */
+export const CANAIS_CONTATO = INTERACAO_CANAIS_USUARIO

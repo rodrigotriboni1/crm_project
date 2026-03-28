@@ -1,3 +1,6 @@
+import type { InteracaoCanal } from '@/lib/interacaoCanal'
+import type { ClienteDocumentEnrichment } from '@/types/clienteDocumentEnrichment'
+
 export type ClienteTipo = 'novo' | 'recompra'
 
 export type OrcamentoStatus =
@@ -29,6 +32,10 @@ export type Cliente = {
   id: string
   user_id: string
   nome: string
+  /** CPF (11) ou CNPJ (14) — apenas dígitos na persistência. */
+  tax_id: string | null
+  /** Dados estruturados da consulta ao documento (CNPJ BrasilAPI; CPF placeholder). */
+  document_enrichment: ClienteDocumentEnrichment | null
   tipo: ClienteTipo
   whatsapp: string | null
   telefone: string | null
@@ -55,6 +62,8 @@ export type Orcamento = {
   status: OrcamentoStatus
   data_orcamento: string
   follow_up_at: string | null
+  /** Preenchido quando status = perdido; default no servidor «Não informado». */
+  lost_reason: string | null
   created_at: string
   updated_at: string
 }
@@ -64,7 +73,7 @@ export type Interacao = {
   user_id: string
   cliente_id: string
   orcamento_id: string | null
-  canal: string
+  canal: InteracaoCanal
   anotacao: string
   data_contato: string
   created_at: string

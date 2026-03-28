@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Interacao } from '@/types/database'
+import type { InteracaoCanalUsuario } from '@/lib/interacaoCanal'
 
 export type InteracaoRow = Interacao & { clientes: { nome: string } | null }
 
@@ -38,7 +39,7 @@ export async function createInteracao(
   userId: string,
   row: {
     cliente_id: string
-    canal: string
+    canal: InteracaoCanalUsuario
     anotacao: string
     data_contato?: string
     orcamento_id?: string | null
