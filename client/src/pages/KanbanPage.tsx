@@ -12,7 +12,7 @@ import { Phone, Send, Moon, CheckCircle, XCircle, Search, LayoutGrid, Table2 } f
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
-import { useOrcamentos, ORCAMENTO_STATUS_ORDER } from '@/hooks/useCrm'
+import { useOrcamentosKanban, ORCAMENTO_STATUS_ORDER } from '@/hooks/useCrm'
 import { useOrcamentoStatusTransitions } from '@/hooks/useOrcamentoStatusTransitions'
 import { filterOrcamentosByQuery } from '@/lib/orcamentosSearch'
 import OrcamentoDetailModal from '@/components/OrcamentoDetailModal'
@@ -23,6 +23,7 @@ import DormindoFollowUpDialog from '@/components/kanban/DormindoFollowUpDialog'
 import PerdidoLostReasonDialog from '@/components/kanban/PerdidoLostReasonDialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Link } from 'react-router-dom'
 import { groupOrcamentosByCliente } from '@/lib/kanbanGroup'
 import { KANBAN_VIEW_KEY } from '@/lib/storageKeys'
 import { useViewportMaxMd } from '@/hooks/useViewportMaxMd'
@@ -30,6 +31,8 @@ import type { OrcamentoRow } from '@/api/crm'
 import type { OrcamentoStatus } from '@/types/database'
 
 type ViewMode = 'kanban' | 'table'
+
+const EMPTY_KANBAN_ROWS: OrcamentoRow[] = []
 
 const STATUS_ICON: Record<OrcamentoStatus, ElementType> = {
   novo_contato: Phone,
@@ -61,7 +64,17 @@ export default function KanbanPage() {
   const isMobileKanban = useViewportMaxMd()
   const { user } = useAuth()
   const { activeOrganizationId } = useOrganization()
-  const { data: rows = [], isLoading } = useOrcamentos(user, activeOrganizationId)
+  const {
+    data: kanbanLoad,
+    isLoading,
+    isError: kanbanError,
+    error: kanbanQueryError,
+  } = useOrcamentosKanban(user, activeOrganizationId)
+  const rows = useMemo(() => {
+    if (!kanbanLoad) return EMPTY_KANBAN_ROWS
+    return kanbanLoad.rows
+  }, [kanbanLoad])
+  const kanbanTruncated = kanbanLoad?.truncated === true
   const {
     savingId,
     moveError,
@@ -139,6 +152,20 @@ export default function KanbanPage() {
     attemptStatusChange(dragged, newStatus)
   }
 
+  if (kanbanError) {
+    const msg = kanbanQueryError instanceof Error ? kanbanQueryError.message : 'Erro ao carregar orçamentos.'
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-3 sm:px-4 sm:py-4 md:px-6">
+        <div
+          className="mb-3 shrink-0 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          role="alert"
+        >
+          {msg}
+        </div>
+      </div>
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-3 sm:px-4 sm:py-4 md:px-6">
@@ -201,6 +228,19 @@ export default function KanbanPage() {
           >
             Fechar
           </button>
+        </div>
+      )}
+
+      {kanbanTruncated && (
+        <div
+          className="mb-3 shrink-0 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100"
+          role="status"
+        >
+          A mostrar os orçamentos mais recentes (limite de segurança). Para ver ou filtrar todos, use{' '}
+          <Link to="/orcamentos" className="font-medium underline underline-offset-2">
+            Orçamentos
+          </Link>
+          .
         </div>
       )}
 

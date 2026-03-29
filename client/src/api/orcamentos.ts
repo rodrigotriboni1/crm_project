@@ -15,6 +15,18 @@ export type OrcamentoRow = Orcamento & {
 /** Tamanho de página ao carregar orçamentos (evita uma única resposta gigante). */
 export const ORCAMENTOS_PAGE_SIZE = 300
 
+/**
+ * Limite de linhas no Kanban (evita carregar milhares de orçamentos no browser).
+ * Se existirem mais, o utilizador vê aviso e pode usar a lista de Orçamentos (paginada).
+ */
+export const KANBAN_ORCAMENTOS_MAX = 600
+
+export type OrcamentosKanbanLoad = {
+  rows: OrcamentoRow[]
+  /** Há mais orçamentos na organização além de `rows`. */
+  truncated: boolean
+}
+
 const ORCAMENTOS_LIST_SELECT = '*, clientes(nome), produtos(nome, codigo, categoria)'
 
 /**
@@ -38,6 +50,31 @@ export async function listOrcamentosPage(
     .range(offset, offset + limit - 1)
   if (error) throw error
   return (data ?? []) as OrcamentoRow[]
+}
+
+/**
+ * Orçamentos recentes para o Kanban, com teto explícito e indicação se a lista foi cortada.
+ */
+export async function fetchOrcamentosForKanban(
+  sb: SupabaseClient,
+  userId: string,
+  organizationId: string,
+  maxRows: number = KANBAN_ORCAMENTOS_MAX
+): Promise<OrcamentosKanbanLoad> {
+  const cap = Math.min(Math.max(maxRows, 1), 2000)
+  const rows: OrcamentoRow[] = []
+  let offset = 0
+  while (rows.length < cap) {
+    const limit = Math.min(ORCAMENTOS_PAGE_SIZE, cap - rows.length)
+    const chunk = await listOrcamentosPage(sb, userId, organizationId, { offset, limit })
+    rows.push(...chunk)
+    if (chunk.length < limit) {
+      return { rows, truncated: false }
+    }
+    offset += chunk.length
+  }
+  const peek = await listOrcamentosPage(sb, userId, organizationId, { offset, limit: 1 })
+  return { rows, truncated: peek.length > 0 }
 }
 
 /**
