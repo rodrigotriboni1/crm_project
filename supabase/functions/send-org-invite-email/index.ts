@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
         detail = await resendRes.text()
       }
       console.error('Resend error:', resendRes.status, detail)
-      return json(502, { ok: false, error: 'resend_failed', detail })
+      return json(502, { ok: false, error: 'resend_failed' })
     }
 
     return json(200, { ok: true })
