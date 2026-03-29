@@ -7,6 +7,7 @@ import SetupPage from '@/pages/SetupPage'
 import LoginPage from '@/pages/LoginPage'
 import DashboardPage from '@/pages/DashboardPage'
 import ClientesPage from '@/pages/ClientesPage'
+import ClientesPlanilhaPage from '@/pages/ClientesPlanilhaPage'
 import ClienteDetailPage from '@/pages/ClienteDetailPage'
 import OrcamentosPage from '@/pages/OrcamentosPage'
 import ProdutosPage from '@/pages/ProdutosPage'
@@ -35,6 +36,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="kanban" element={<KanbanPage />} />
           <Route path="clientes" element={<ClientesPage />} />
+          <Route path="clientes/planilha" element={<ClientesPlanilhaPage />} />
           <Route path="clientes/:id" element={<ClienteDetailPage />} />
           <Route path="orcamentos" element={<OrcamentosPage />} />
           <Route path="produtos" element={<ProdutosPage />} />

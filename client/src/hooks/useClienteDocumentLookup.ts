@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { isValidCnpjDigits, isValidCpfDigits } from '@/lib/brCpfCnpj'
 import { fetchBrasilApiCnpj, toClienteDocumentEnrichment } from '@/lib/brasilApiCnpj'
 import type { ClienteDocumentEnrichment, ClienteDocumentEnrichmentCnpj } from '@/types/clienteDocumentEnrichment'
 
@@ -17,7 +18,7 @@ export function useClienteDocumentLookup(taxDigits: string, debounceMs = DEFAULT
   useEffect(() => {
     let cancelled = false
     const t = window.setTimeout(() => {
-      if (taxDigits.length === 14) {
+      if (taxDigits.length === 14 && isValidCnpjDigits(taxDigits)) {
         setCpfPending(false)
         setLoading(true)
         setError(null)
@@ -35,7 +36,7 @@ export function useClienteDocumentLookup(taxDigits: string, debounceMs = DEFAULT
             if (!cancelled) setLoading(false)
           }
         })()
-      } else if (taxDigits.length === 11) {
+      } else if (taxDigits.length === 11 && isValidCpfDigits(taxDigits)) {
         setCnpjData(null)
         setLoading(false)
         setError(null)

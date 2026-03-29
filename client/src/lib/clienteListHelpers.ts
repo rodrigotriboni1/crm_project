@@ -1,6 +1,6 @@
 import { digitsOnly, formatCpfCnpj, formatFieldValueForDisplay } from '@/lib/formatters'
 import { clienteListPhoneDisplayField } from '@/lib/fields/clienteFormFields'
-import type { ClienteListItem } from '@/types/database'
+import type { ClienteListItem, ClienteUpdate } from '@/types/database'
 
 export type ClienteTipoFilter = 'todos' | 'novo' | 'recompra'
 export type ClientePhoneFilter = 'todos' | 'com' | 'sem'
@@ -65,7 +65,8 @@ export function clienteMatchesSearch(c: ClienteListItem, qRaw: string): boolean 
   const qDigits = digitsOnly(qRaw)
   if (c.nome.toLowerCase().includes(s)) return true
   if (c.produtos_habituais && c.produtos_habituais.toLowerCase().includes(s)) return true
-  if (c.tax_id && qDigits.length >= 3 && c.tax_id.includes(qDigits)) return true
+  const taxDigits = c.tax_id ? digitsOnly(c.tax_id) : ''
+  if (taxDigits && qDigits.length >= 3 && taxDigits.includes(qDigits)) return true
   const w = c.whatsapp ? digitsOnly(c.whatsapp) : ''
   const t = c.telefone ? digitsOnly(c.telefone) : ''
   if (qDigits.length >= 4 && (w.includes(qDigits) || t.includes(qDigits))) return true
@@ -128,4 +129,21 @@ export function clientesListKpis(list: ClienteListItem[]) {
     semContato30,
     pctTel,
   }
+}
+
+/** Patches `{ ativo }` só para fichas cuja seleção precisa mesmo mudar de estado. */
+export function clientesBulkAtivoPatches(
+  selectedIds: ReadonlySet<string>,
+  all: ClienteListItem[],
+  ativo: boolean
+): { id: string; patch: ClienteUpdate }[] {
+  const byId = new Map(all.map((row) => [row.id, row] as const))
+  const out: { id: string; patch: ClienteUpdate }[] = []
+  for (const id of selectedIds) {
+    const row = byId.get(id)
+    if (row != null && row.ativo !== ativo) {
+      out.push({ id, patch: { ativo } })
+    }
+  }
+  return out
 }

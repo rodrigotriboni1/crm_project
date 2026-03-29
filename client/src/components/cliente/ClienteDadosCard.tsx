@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { UseMutationResult } from '@tanstack/react-query'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { EntityActiveBadge, FormStack, SectionCard } from '@/components/library'
 import { UiComponent } from '@/components/standards'
 import DocumentEnrichmentPanel from '@/components/cliente/DocumentEnrichmentPanel'
 import { useClienteDocumentLookup } from '@/hooks/useClienteDocumentLookup'
+import { isValidCnpjDigits, isValidCpfDigits } from '@/lib/brCpfCnpj'
 import { digitsOnly } from '@/lib/formatters'
 import { clienteDetailCardFields } from '@/lib/fields/clienteFormFields'
-import { normalizeClienteTaxId } from '@/lib/taxId'
+import { describeClienteTaxIdInputError, normalizeClienteTaxId } from '@/lib/taxId'
+import type { FieldDefinition } from '@/types/fields'
 import type { Cliente, ClienteTipo, ClienteUpdate } from '@/types/database'
 
 type Props = {
@@ -14,41 +16,62 @@ type Props = {
   update: UseMutationResult<Cliente, Error, ClienteUpdate, unknown>
 }
 
+function withPending(field: FieldDefinition, pending: boolean): FieldDefinition {
+  return pending ? { ...field, disabled: true } : field
+}
+
 export default function ClienteDadosCard({ cliente, update }: Props) {
-  const [nomeLocal, setNomeLocal] = useState('')
-  const [produtosLocal, setProdutosLocal] = useState('')
-  const [obsLocal, setObsLocal] = useState('')
-  const [whatsappDigits, setWhatsappDigits] = useState('')
-  const [telefoneDigits, setTelefoneDigits] = useState('')
-  const [taxDigits, setTaxDigits] = useState('')
+  const saving = update.isPending
+
+  const [nomeLocal, setNomeLocal] = useState(cliente.nome)
+  const [produtosLocal, setProdutosLocal] = useState(cliente.produtos_habituais ?? '')
+  const [obsLocal, setObsLocal] = useState(cliente.observacoes ?? '')
+  const [whatsappDigits, setWhatsappDigits] = useState(() => digitsOnly(cliente.whatsapp ?? ''))
+  const [telefoneDigits, setTelefoneDigits] = useState(() => digitsOnly(cliente.telefone ?? ''))
+  const [taxDigits, setTaxDigits] = useState(() => digitsOnly(cliente.tax_id ?? ''))
+  const [taxFieldError, setTaxFieldError] = useState<string | null>(null)
 
   useEffect(() => {
     setTaxDigits(digitsOnly(cliente.tax_id ?? ''))
-  }, [cliente.id, cliente.tax_id])
-
-  useEffect(() => {
     setWhatsappDigits(digitsOnly(cliente.whatsapp ?? ''))
-  }, [cliente.id, cliente.whatsapp])
-
-  useEffect(() => {
     setTelefoneDigits(digitsOnly(cliente.telefone ?? ''))
-  }, [cliente.id, cliente.telefone])
-
-  useEffect(() => {
     setNomeLocal(cliente.nome)
     setProdutosLocal(cliente.produtos_habituais ?? '')
     setObsLocal(cliente.observacoes ?? '')
-  }, [cliente.id, cliente.nome, cliente.produtos_habituais, cliente.observacoes])
+    setTaxFieldError(null)
+  }, [
+    cliente.id,
+    cliente.tax_id,
+    cliente.whatsapp,
+    cliente.telefone,
+    cliente.nome,
+    cliente.produtos_habituais,
+    cliente.observacoes,
+  ])
 
   const savedTaxDigits = useMemo(() => digitsOnly(cliente.tax_id ?? ''), [cliente.tax_id])
   const taxDirty = taxDigits !== savedTaxDigits
+
+  const validCnpjDraft = taxDigits.length === 14 && isValidCnpjDigits(taxDigits)
+  const validCpfDraft = taxDigits.length === 11 && isValidCpfDigits(taxDigits)
+  const showLiveEnrichmentPanel = taxDirty && (validCnpjDraft || validCpfDraft)
+
   const { cnpjData, cpfPending, loading, error } = useClienteDocumentLookup(taxDigits)
 
-  const saveField = (patch: ClienteUpdate) => {
-    void update.mutateAsync(patch)
-  }
+  const saveField = useCallback(
+    (patch: ClienteUpdate) => {
+      void update.mutateAsync(patch)
+    },
+    [update]
+  )
 
   const saveTaxIdAndEnrichment = () => {
+    const err = describeClienteTaxIdInputError(taxDigits)
+    if (err) {
+      setTaxFieldError(err)
+      return
+    }
+    setTaxFieldError(null)
     const next = normalizeClienteTaxId(taxDigits)
     const prev = normalizeClienteTaxId(cliente.tax_id ?? '')
     if (next === prev) return
@@ -63,81 +86,111 @@ export default function ClienteDadosCard({ cliente, update }: Props) {
     saveField(patch)
   }
 
+  const onTaxDigitsChange = (v: string) => {
+    setTaxFieldError(null)
+    setTaxDigits(v)
+  }
+
+  const updateErrorMessage = useMemo(() => {
+    if (!update.isError || !update.error) return null
+    const msg = (update.error as Error).message
+    if (msg.toLowerCase().includes('duplicate')) return 'Já existe outro cliente com este CPF/CNPJ.'
+    return msg
+  }, [update.isError, update.error])
+
+  const f = useMemo(
+    () => ({
+      taxId: withPending(clienteDetailCardFields.taxId, saving),
+      nome: withPending(clienteDetailCardFields.nome, saving),
+      tipo: withPending(clienteDetailCardFields.tipo, saving),
+      whatsapp: withPending(clienteDetailCardFields.whatsapp, saving),
+      telefone: withPending(clienteDetailCardFields.telefone, saving),
+      produtos: withPending(clienteDetailCardFields.produtos, saving),
+      obs: withPending(clienteDetailCardFields.obs, saving),
+      estadoFicha: withPending(clienteDetailCardFields.estadoFicha, saving),
+    }),
+    [saving]
+  )
+
   return (
-    <Card className="border shadow-none">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Dados do cliente
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-2">
-        <div className="sm:col-span-2">
+    <SectionCard
+      title="Dados do cliente"
+      description="As alterações guardam-se ao sair de cada campo (Tab ou clique fora), exceto tipo e estado da ficha que aplicam logo."
+    >
+      <FormStack className="gap-5">
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Documento</p>
           <UiComponent
-            field={clienteDetailCardFields.taxId}
+            field={f.taxId}
             value={taxDigits}
-            onChange={setTaxDigits}
+            onChange={onTaxDigitsChange}
             onControlBlur={() => saveTaxIdAndEnrichment()}
+            error={taxFieldError ?? undefined}
           />
-        </div>
-        {taxDirty && (taxDigits.length === 11 || taxDigits.length === 14) ? (
-          <div className="sm:col-span-2">
+          {showLiveEnrichmentPanel ? (
             <DocumentEnrichmentPanel
               enrichment={
-                taxDigits.length === 14
-                  ? cnpjData
-                  : taxDigits.length === 11 && cpfPending
-                    ? { kind: 'cpf', source: 'pending' }
-                    : null
+                validCnpjDraft ? cnpjData : validCpfDraft && cpfPending ? { kind: 'cpf', source: 'pending' } : null
               }
-              loading={taxDigits.length === 14 && loading}
-              lookupError={taxDigits.length === 14 ? error : null}
+              loading={validCnpjDraft && loading}
+              lookupError={validCnpjDraft ? error : null}
             />
-          </div>
-        ) : cliente.document_enrichment ? (
-          <div className="sm:col-span-2">
+          ) : !taxDirty && cliente.document_enrichment ? (
             <DocumentEnrichmentPanel enrichment={cliente.document_enrichment} />
-          </div>
-        ) : null}
-        <div className="sm:col-span-2">
+          ) : null}
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Identificação</p>
           <UiComponent
-            field={clienteDetailCardFields.nome}
+            field={f.nome}
             value={nomeLocal}
             onChange={setNomeLocal}
             onControlBlur={() => {
               if (nomeLocal !== cliente.nome) saveField({ nome: nomeLocal })
             }}
           />
+          <div className="max-w-md">
+            <UiComponent
+              field={f.tipo}
+              value={cliente.tipo}
+              onChange={(v) => saveField({ tipo: v as ClienteTipo })}
+            />
+          </div>
         </div>
-        <UiComponent
-          field={clienteDetailCardFields.tipo}
-          value={cliente.tipo}
-          onChange={(v) => saveField({ tipo: v as ClienteTipo })}
-        />
-        <UiComponent
-          field={clienteDetailCardFields.whatsapp}
-          value={whatsappDigits}
-          onChange={setWhatsappDigits}
-          onControlBlur={() => {
-            const next = whatsappDigits || null
-            const prev = cliente.whatsapp ? digitsOnly(cliente.whatsapp) : null
-            const prevNorm = prev === '' ? null : prev
-            if (next !== prevNorm) saveField({ whatsapp: next })
-          }}
-        />
-        <UiComponent
-          field={clienteDetailCardFields.telefone}
-          value={telefoneDigits}
-          onChange={setTelefoneDigits}
-          onControlBlur={() => {
-            const next = telefoneDigits || null
-            const prev = cliente.telefone ? digitsOnly(cliente.telefone) : null
-            const prevNorm = prev === '' ? null : prev
-            if (next !== prevNorm) saveField({ telefone: next })
-          }}
-        />
-        <div className="sm:col-span-2">
+
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contacto</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <UiComponent
+              field={f.whatsapp}
+              value={whatsappDigits}
+              onChange={setWhatsappDigits}
+              onControlBlur={() => {
+                const next = whatsappDigits || null
+                const prev = cliente.whatsapp ? digitsOnly(cliente.whatsapp) : null
+                const prevNorm = prev === '' ? null : prev
+                if (next !== prevNorm) saveField({ whatsapp: next })
+              }}
+            />
+            <UiComponent
+              field={f.telefone}
+              value={telefoneDigits}
+              onChange={setTelefoneDigits}
+              onControlBlur={() => {
+                const next = telefoneDigits || null
+                const prev = cliente.telefone ? digitsOnly(cliente.telefone) : null
+                const prevNorm = prev === '' ? null : prev
+                if (next !== prevNorm) saveField({ telefone: next })
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Notas</p>
           <UiComponent
-            field={clienteDetailCardFields.produtos}
+            field={f.produtos}
             value={produtosLocal}
             onChange={setProdutosLocal}
             onControlBlur={() => {
@@ -146,10 +199,8 @@ export default function ClienteDadosCard({ cliente, update }: Props) {
               if (next !== (prev ?? '')) saveField({ produtos_habituais: next })
             }}
           />
-        </div>
-        <div className="sm:col-span-2">
           <UiComponent
-            field={clienteDetailCardFields.obs}
+            field={f.obs}
             value={obsLocal}
             onChange={setObsLocal}
             onControlBlur={() => {
@@ -159,17 +210,25 @@ export default function ClienteDadosCard({ cliente, update }: Props) {
             }}
           />
         </div>
-        <div className="sm:col-span-2">
+
+        <div className="space-y-3 border-t border-[#d4d2c8] pt-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estado da ficha</p>
+            <EntityActiveBadge active={cliente.ativo} activeLabel="Ativo" inactiveLabel="Arquivado" />
+          </div>
           <UiComponent
-            field={clienteDetailCardFields.estadoFicha}
+            field={f.estadoFicha}
             value={cliente.ativo ? '1' : '0'}
             onChange={(v) => saveField({ ativo: v === '1' })}
           />
         </div>
-        {update.isError && (
-          <p className="text-sm text-red-600 sm:col-span-2">{(update.error as Error).message}</p>
+
+        {updateErrorMessage && (
+          <p className="text-sm text-red-600" role="alert">
+            {updateErrorMessage}
+          </p>
         )}
-      </CardContent>
-    </Card>
+      </FormStack>
+    </SectionCard>
   )
 }

@@ -175,6 +175,31 @@ export function useUpdateCliente(user: User | null, id: string) {
   })
 }
 
+const BULK_CLIENTE_CONCURRENCY = 6
+
+/** Vários `updateCliente` em paralelo (com limite) — edição em massa na planilha. */
+export function useBulkPatchClientes(user: User | null) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (items: { id: string; patch: ClienteUpdate }[]) => {
+      const { sb, uid } = requireClient(user)
+      for (let i = 0; i < items.length; i += BULK_CLIENTE_CONCURRENCY) {
+        const chunk = items.slice(i, i + BULK_CLIENTE_CONCURRENCY)
+        await Promise.all(chunk.map(({ id, patch }) => updateCliente(sb, uid, id, patch)))
+      }
+    },
+    onSuccess: (_data, items) => {
+      if (!user) return
+      void qc.invalidateQueries({ queryKey: qk.clientes(user.id) })
+      void qc.invalidateQueries({ queryKey: qk.dashboard(user.id) })
+      const ids = new Set(items.map((x) => x.id))
+      for (const id of ids) {
+        void qc.invalidateQueries({ queryKey: qk.cliente(user.id, id) })
+      }
+    },
+  })
+}
+
 export function useCreateOrcamento(user: User | null) {
   const qc = useQueryClient()
   return useMutation({

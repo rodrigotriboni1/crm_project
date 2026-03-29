@@ -54,7 +54,8 @@ export const clienteDetailCardFields = {
     kind: 'document',
     documentVariant: 'cpf_cnpj',
     label: 'CPF / CNPJ',
-    placeholder: 'Opcional',
+    placeholder: 'Opcional — CNPJ com 14 dígitos válidos consulta a Receita',
+    description: 'CPF (11) ou CNPJ (14) com dígitos verificadores válidos.',
     optional: true,
   } satisfies FieldDefinition,
   nome: {

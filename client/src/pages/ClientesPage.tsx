@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Users } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
-import { useClientes } from '@/hooks/useCrm'
+import { useBulkPatchClientes, useClientes } from '@/hooks/useCrm'
 import { Button } from '@/components/ui/button'
 import {
   EmptyState,
@@ -18,6 +18,7 @@ import AvatarCircle from '@/components/AvatarCircle'
 import NovoClienteDialog from '@/components/cliente/NovoClienteDialog'
 import ImportarClientesDialog from '@/components/cliente/ImportarClientesDialog'
 import {
+  clientesBulkAtivoPatches,
   clientesListKpis,
   filterAndSortClientes,
   clientePhoneLine,
@@ -35,6 +36,10 @@ export default function ClientesPage() {
   const { user } = useAuth()
   useGenericAssistantDock('Clientes')
   const { data: clientes = [], isLoading } = useClientes(user)
+  const bulkAtivo = useBulkPatchClientes(user)
+  const selectAllRef = useRef<HTMLInputElement>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [bulkError, setBulkError] = useState<string | null>(null)
   const [q, setQ] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
@@ -56,6 +61,70 @@ export default function ClientesPage() {
       }),
     [clientes, q, tipoFilter, phoneFilter, sort, archiveFilter]
   )
+
+  const allFilteredSelected =
+    filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id))
+  const someFilteredSelected =
+    filtered.length > 0 && filtered.some((c) => selectedIds.has(c.id)) && !allFilteredSelected
+
+  useEffect(() => {
+    const el = selectAllRef.current
+    if (el) el.indeterminate = someFilteredSelected
+  }, [someFilteredSelected, allFilteredSelected])
+
+  const toActivate = useMemo(
+    () => clientesBulkAtivoPatches(selectedIds, clientes, true),
+    [selectedIds, clientes]
+  )
+  const toArchive = useMemo(
+    () => clientesBulkAtivoPatches(selectedIds, clientes, false),
+    [selectedIds, clientes]
+  )
+
+  const toggleSelect = (id: string) => {
+    setBulkError(null)
+    setSelectedIds((prev) => {
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+  }
+
+  const selectAllFiltered = () => {
+    setBulkError(null)
+    setSelectedIds((prev) => {
+      const n = new Set(prev)
+      for (const c of filtered) n.add(c.id)
+      return n
+    })
+  }
+
+  const clearFilteredSelection = () => {
+    setBulkError(null)
+    setSelectedIds((prev) => {
+      const n = new Set(prev)
+      for (const c of filtered) n.delete(c.id)
+      return n
+    })
+  }
+
+  const clearAllSelection = () => {
+    setBulkError(null)
+    setSelectedIds(new Set())
+  }
+
+  const runBulkAtivo = (ativo: boolean) => {
+    const items = clientesBulkAtivoPatches(selectedIds, clientes, ativo)
+    if (items.length === 0) return
+    setBulkError(null)
+    bulkAtivo.mutate(items, {
+      onSuccess: () => setSelectedIds(new Set()),
+      onError: (e) => {
+        setBulkError(e instanceof Error ? e.message : 'Não foi possível atualizar.')
+      },
+    })
+  }
 
   return (
     <PageContainer max="lg" className="space-y-4">
@@ -133,6 +202,9 @@ export default function ClientesPage() {
         }
         end={
           <>
+            <Button type="button" variant="outline" size="sm" asChild>
+              <Link to="/clientes/planilha">Vista em planilha</Link>
+            </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               Importar planilha
             </Button>
@@ -142,6 +214,47 @@ export default function ClientesPage() {
       />
 
       <ImportarClientesDialog user={user} open={importOpen} onOpenChange={setImportOpen} />
+
+      {selectedIds.size > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-[#d4d2c8] bg-brand-surface/50 px-3 py-2"
+          role="region"
+          aria-label="Acções em massa no estado da ficha"
+        >
+          <span className="text-sm text-brand-dark">
+            {selectedIds.size} selecionado{selectedIds.size !== 1 ? 's' : ''}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={bulkAtivo.isPending || toActivate.length === 0}
+            title={toActivate.length === 0 ? 'Os selecionados já estão ativos' : undefined}
+            onClick={() => runBulkAtivo(true)}
+          >
+            {bulkAtivo.isPending ? 'A atualizar…' : `Ativar${toActivate.length ? ` (${toActivate.length})` : ''}`}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={bulkAtivo.isPending || toArchive.length === 0}
+            title={toArchive.length === 0 ? 'Os selecionados já estão arquivados' : undefined}
+            onClick={() => runBulkAtivo(false)}
+          >
+            {bulkAtivo.isPending ? 'A atualizar…' : `Arquivar${toArchive.length ? ` (${toArchive.length})` : ''}`}
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={clearAllSelection} disabled={bulkAtivo.isPending}>
+            Limpar seleção
+          </Button>
+        </div>
+      )}
+
+      {bulkError && (
+        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+          {bulkError}
+        </p>
+      )}
 
       {isLoading ? (
         <div className="h-48 animate-pulse rounded-lg bg-muted/60" />
@@ -168,39 +281,75 @@ export default function ClientesPage() {
               }
             />
           ) : (
-            filtered.map((c) => (
-              <Link
-                key={c.id}
-                to={`/clientes/${c.id}`}
-                className="flex cursor-pointer items-start gap-3 rounded-lg p-3 transition-colors hover:bg-muted/50"
-              >
-                <AvatarCircle name={c.nome} size="md" className="mt-0.5 shrink-0" />
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <p className="truncate text-sm font-medium">{c.nome}</p>
-                  <p className="truncate text-xs text-muted-foreground">{clientePhoneLine(c)}</p>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                    {clienteTaxDisplay(c) && (
-                      <span className="font-mono text-foreground/80">{clienteTaxDisplay(c)}</span>
-                    )}
-                    {clienteTaxDisplay(c) && <span aria-hidden>·</span>}
-                    <span>{formatUltimoContatoLabel(c.ultimo_contato)}</span>
-                  </div>
-                </div>
-                <div className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
-                  <EntityActiveBadge active={c.ativo} activeLabel="Ativo" inactiveLabel="Arquivado" />
-                  <span
-                    className={cn(
-                      'rounded-full border px-2 py-0.5 text-[11px] font-medium',
-                      c.tipo === 'recompra'
-                        ? 'border-green-200 bg-green-50 text-green-700'
-                        : 'border-blue-200 bg-blue-50 text-blue-700'
-                    )}
+            <>
+              {filtered.length > 0 && (
+                <div className="mb-1 flex items-center gap-2 border-b border-[#d4d2c8] px-2 pb-2">
+                  <input
+                    ref={selectAllRef}
+                    id="clientes-select-all-filtered"
+                    type="checkbox"
+                    className="size-4 shrink-0 rounded border border-[#d4d2c8] accent-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                    checked={allFilteredSelected}
+                    onChange={() => {
+                      if (allFilteredSelected) clearFilteredSelection()
+                      else selectAllFiltered()
+                    }}
+                    aria-label={`Selecionar todos os ${filtered.length} resultados do filtro actual`}
+                  />
+                  <label
+                    htmlFor="clientes-select-all-filtered"
+                    className="cursor-pointer select-none text-xs text-muted-foreground"
                   >
-                    {c.tipo === 'recompra' ? 'Recompra' : 'Novo'}
-                  </span>
+                    Todos neste filtro ({filtered.length})
+                  </label>
                 </div>
-              </Link>
-            ))
+              )}
+              {filtered.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-muted/50"
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-2.5 size-4 shrink-0 rounded border border-[#d4d2c8] accent-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                    checked={selectedIds.has(c.id)}
+                    onChange={() => toggleSelect(c.id)}
+                    aria-label={`Selecionar ${c.nome}`}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <Link
+                    to={`/clientes/${c.id}`}
+                    className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 rounded-md p-1 pr-2"
+                  >
+                    <AvatarCircle name={c.nome} size="md" className="mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <p className="truncate text-sm font-medium">{c.nome}</p>
+                      <p className="truncate text-xs text-muted-foreground">{clientePhoneLine(c)}</p>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                        {clienteTaxDisplay(c) && (
+                          <span className="font-mono text-foreground/80">{clienteTaxDisplay(c)}</span>
+                        )}
+                        {clienteTaxDisplay(c) && <span aria-hidden>·</span>}
+                        <span>{formatUltimoContatoLabel(c.ultimo_contato)}</span>
+                      </div>
+                    </div>
+                    <div className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
+                      <EntityActiveBadge active={c.ativo} activeLabel="Ativo" inactiveLabel="Arquivado" />
+                      <span
+                        className={cn(
+                          'rounded-full border px-2 py-0.5 text-[11px] font-medium',
+                          c.tipo === 'recompra'
+                            ? 'border-green-200 bg-green-50 text-green-700'
+                            : 'border-blue-200 bg-blue-50 text-blue-700'
+                        )}
+                      >
+                        {c.tipo === 'recompra' ? 'Recompra' : 'Novo'}
+                      </span>
+                    </div>
+                  </Link>
+                </div>
+              ))}
+            </>
           )}
         </SectionCard>
       )}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   clienteMatchesSearch,
+  clientesBulkAtivoPatches,
   clientesListKpis,
   filterAndSortClientes,
   formatUltimoContatoLabel,
@@ -36,6 +37,10 @@ describe('clienteMatchesSearch', () => {
   })
   it('matches tax_id digits', () => {
     expect(clienteMatchesSearch(c({ tax_id: '12345678901234' }), '567890')).toBe(true)
+  })
+  it('matches tax_id when stored with punctuation (digits-only compare)', () => {
+    expect(clienteMatchesSearch(c({ tax_id: '390.533.447-05' }), '390533')).toBe(true)
+    expect(clienteMatchesSearch(c({ tax_id: '11.222.333/0001-81' }), '11222333')).toBe(true)
   })
   it('matches produtos_habituais', () => {
     expect(clienteMatchesSearch(c({ produtos_habituais: 'caixas kraft' }), 'kraft')).toBe(true)
@@ -86,5 +91,17 @@ describe('formatUltimoContatoLabel', () => {
 describe('isSemContactoLongo', () => {
   it('true when null', () => {
     expect(isSemContactoLongo(null, 30)).toBe(true)
+  })
+})
+
+describe('clientesBulkAtivoPatches', () => {
+  it('omits rows that already match target ativo', () => {
+    const list = [c({ id: 'a', ativo: false }), c({ id: 'b', ativo: true })]
+    expect(clientesBulkAtivoPatches(new Set(['a', 'b']), list, true)).toEqual([
+      { id: 'a', patch: { ativo: true } },
+    ])
+    expect(clientesBulkAtivoPatches(new Set(['a', 'b']), list, false)).toEqual([
+      { id: 'b', patch: { ativo: false } },
+    ])
   })
 })

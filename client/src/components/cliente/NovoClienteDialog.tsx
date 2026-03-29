@@ -16,7 +16,7 @@ import { FormStack } from '@/components/library'
 import DocumentEnrichmentPanel from '@/components/cliente/DocumentEnrichmentPanel'
 import { digitsOnly } from '@/lib/formatters'
 import { novoClienteFormFields } from '@/lib/fields/clienteFormFields'
-import { normalizeClienteTaxId } from '@/lib/taxId'
+import { describeClienteTaxIdInputError, normalizeClienteTaxId } from '@/lib/taxId'
 import type { ClienteTipo } from '@/types/database'
 
 type Props = {
@@ -66,7 +66,10 @@ export default function NovoClienteDialog({ user, open, onOpenChange }: Props) {
     lastFilledCnpj.current = ''
   }
 
+  const taxIdError = describeClienteTaxIdInputError(taxIdDisplay)
+
   const salvar = async () => {
+    if (describeClienteTaxIdInputError(taxIdDisplay)) return
     const taxNorm = normalizeClienteTaxId(taxIdDisplay)
     await create.mutateAsync({
       nome,
@@ -98,6 +101,7 @@ export default function NovoClienteDialog({ user, open, onOpenChange }: Props) {
         </DialogHeader>
         <FormStack>
           <UiComponent field={novoClienteFormFields.taxId} value={taxIdDisplay} onChange={setTaxIdDisplay} />
+          {taxIdError && <p className="text-sm text-red-600">{taxIdError}</p>}
           {showLivePanel && (
             <DocumentEnrichmentPanel
               enrichment={
@@ -134,7 +138,7 @@ export default function NovoClienteDialog({ user, open, onOpenChange }: Props) {
             </Button>
             <Button
               type="button"
-              disabled={!nome.trim() || create.isPending}
+              disabled={!nome.trim() || create.isPending || Boolean(taxIdError)}
               onClick={() => void salvar()}
             >
               Salvar cliente
