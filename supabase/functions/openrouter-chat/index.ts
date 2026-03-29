@@ -92,7 +92,8 @@ Deno.serve(async (req) => {
 
     const apiKey = Deno.env.get('OPENROUTER_API_KEY')
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'OPENROUTER_API_KEY not configured on server' }), {
+      console.error('openrouter-chat: OPENROUTER_API_KEY not configured')
+      return new Response(JSON.stringify({ error: 'Assistant service is not configured.' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -119,7 +120,8 @@ Deno.serve(async (req) => {
       } catch {
         detail = await res.text()
       }
-      return new Response(JSON.stringify({ error: detail || `OpenRouter ${res.status}` }), {
+      console.error('openrouter-chat: upstream error', res.status, detail)
+      return new Response(JSON.stringify({ error: 'Assistant request failed. Please try again.' }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -140,8 +142,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    return new Response(JSON.stringify({ error: msg }), {
+    console.error('openrouter-chat:', e)
+    return new Response(JSON.stringify({ error: 'Request failed. Please try again.' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
