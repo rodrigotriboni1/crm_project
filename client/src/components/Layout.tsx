@@ -13,11 +13,13 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ExternalLink,
+  UserPlus,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { Button } from '@/components/ui/button'
 import NovoOrcamentoDialog from '@/components/NovoOrcamentoDialog'
+import OrganizationMembersDialog from '@/components/OrganizationMembersDialog'
 import {
   LEGACY_SIDEBAR_COLLAPSED_KEY,
   SIDEBAR_COLLAPSED_KEY,
@@ -99,6 +101,7 @@ export default function Layout() {
   const { user, signOut } = useAuth()
   const { organizations, activeOrganizationId, setActiveOrganizationId } = useOrganization()
   const [novoOrcamentoOpen, setNovoOrcamentoOpen] = useState(false)
+  const [teamDialogOpen, setTeamDialogOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed)
 
   const toggleSidebar = useCallback(() => {
@@ -115,6 +118,9 @@ export default function Layout() {
   }, [])
 
   const collapsed = sidebarCollapsed
+
+  const activeOrg = organizations.find((o) => o.id === activeOrganizationId)
+  const activeOrgOwner = activeOrg?.role === 'owner'
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-light">
@@ -163,6 +169,21 @@ export default function Layout() {
                   </option>
                 ))}
               </SelectNative>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={cn('mt-2 h-8 w-full gap-1.5 text-xs', collapsed && 'px-1')}
+                onClick={() => setTeamDialogOpen(true)}
+                title="Membros da organização"
+              >
+                {activeOrgOwner ? (
+                  <UserPlus className="h-3.5 w-3.5 shrink-0" />
+                ) : (
+                  <Users className="h-3.5 w-3.5 shrink-0" />
+                )}
+                {!collapsed && <span className="truncate">Equipa</span>}
+              </Button>
             </div>
           )}
           <Button
@@ -257,6 +278,16 @@ export default function Layout() {
         open={novoOrcamentoOpen}
         onOpenChange={setNovoOrcamentoOpen}
       />
+
+      {activeOrganizationId && activeOrg && (
+        <OrganizationMembersDialog
+          open={teamDialogOpen}
+          onOpenChange={setTeamDialogOpen}
+          organizationId={activeOrganizationId}
+          organizationName={activeOrg.name}
+          canInvite={activeOrgOwner}
+        />
+      )}
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <AssistantDockProvider>
