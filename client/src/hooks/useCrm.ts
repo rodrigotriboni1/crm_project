@@ -17,7 +17,7 @@ import {
   listClientesComUltimoContato,
   INTERACOES_PAGE_SIZE,
   listInteracoesPage,
-  listOrcamentos,
+  fetchOrcamentosForKanban,
   listOrcamentosByCliente,
   listOrcamentosPage,
   listProdutos,
@@ -168,18 +168,24 @@ export function useCliente(user: User | null, organizationId: string | null, id:
   })
 }
 
-export function useOrcamentos(user: User | null, organizationId: string | null) {
+/**
+ * Orçamentos recentes para o Kanban (teto em `KANBAN_ORCAMENTOS_MAX`); evita carregar toda a org.
+ */
+export function useOrcamentosKanban(user: User | null, organizationId: string | null) {
   return useQuery({
-    queryKey: user && organizationId ? qk.orcamentos(user.id, organizationId) : ['orcamentos', 'none'],
+    queryKey:
+      user && organizationId
+        ? ([...qk.orcamentos(user.id, organizationId), 'kanban'] as const)
+        : (['orcamentos', 'kanban', 'none'] as const),
     queryFn: () => {
       const { sb, uid, orgId } = requireClient(user, organizationId)
-      return listOrcamentos(sb, uid, orgId)
+      return fetchOrcamentosForKanban(sb, uid, orgId)
     },
     enabled: Boolean(supabase && user && organizationId),
   })
 }
 
-/** Orçamentos em páginas (lista / tabela); Kanban continua a usar `useOrcamentos`. */
+/** Orçamentos em páginas (lista / tabela). */
 export function useOrcamentosInfinite(user: User | null, organizationId: string | null) {
   return useInfiniteQuery({
     queryKey:
@@ -280,7 +286,8 @@ function invalidateOrcamentoRelated(
   organizationId: string,
   clienteId?: string
 ) {
-  void qc.invalidateQueries({ queryKey: qk.orcamentos(userId, organizationId) })
+  /** Inclui `kanban`, `infinite`, etc. (prefix match é o default do TanStack Query). */
+  void qc.invalidateQueries({ queryKey: qk.orcamentos(userId, organizationId), exact: false })
   void qc.invalidateQueries({ queryKey: qk.dashboard(userId, organizationId) })
   void qc.invalidateQueries({ queryKey: qk.clientes(userId, organizationId) })
   if (clienteId) {
@@ -387,7 +394,7 @@ export function useUpdateProduto(user: User | null, organizationId: string | nul
     onSuccess: () => {
       if (user && organizationId) {
         void qc.invalidateQueries({ queryKey: qk.produtos(user.id, organizationId) })
-        void qc.invalidateQueries({ queryKey: qk.orcamentos(user.id, organizationId) })
+        void qc.invalidateQueries({ queryKey: qk.orcamentos(user.id, organizationId), exact: false })
         void qc.invalidateQueries({ queryKey: qk.dashboard(user.id, organizationId) })
       }
     },

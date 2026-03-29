@@ -1,25 +1,26 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Loader2, Trash2, UserPlus } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
-import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PageContainer, SectionCard } from '@/components/library'
-import {
-  addTeamMemberByEmail,
-  createTeam,
-  deleteTeam,
-  listTeamMembers,
-  listTeams,
-  removeTeamMember,
-  type TeamMemberRow,
-  type TeamRow,
-} from '@/api/teams'
-import { listOrganizationAuditLog, type AuditLogRow } from '@/api/organizationGovernance'
+import type { TeamMemberRow, TeamRow } from '@/api/teams'
+import type { AuditLogRow } from '@/api/organizationGovernance'
 import { cn } from '@/lib/utils'
+import {
+  useAddTeamMemberMutation,
+  useCreateTeamMutation,
+  useDeleteTeamMutation,
+  useEquipeAuditLog,
+  useEquipeTeamMembers,
+  useEquipeTeams,
+  useRemoveTeamMemberMutation,
+} from '@/hooks/useEquipe'
+
+const EMPTY_TEAMS: TeamRow[] = []
 
 function auditActionLabel(action: string): string {
   switch (action) {
@@ -38,159 +39,100 @@ function auditActionLabel(action: string): string {
   }
 }
 
+function createTeamErrorMessage(error: string): string {
+  if (error === 'not_owner') return 'Só o proprietário pode criar equipas.'
+  return 'Não foi possível criar a equipa.'
+}
+
+function deleteTeamErrorMessage(error: string): string {
+  if (error === 'not_owner') return 'Só o proprietário pode eliminar equipas.'
+  return 'Não foi possível eliminar.'
+}
+
+const addMemberMessages: Record<string, string> = {
+  not_owner: 'Só o proprietário pode adicionar membros à equipa.',
+  invalid_email: 'E-mail inválido.',
+  user_not_found: 'Utilizador não encontrado — precisa de conta no sistema.',
+  not_org_member: 'A pessoa tem de pertencer primeiro à organização.',
+  already_in_team: 'Já está nesta equipa.',
+}
+
 export default function EquipePage() {
   const { user } = useAuth()
   const { activeOrganizationId, organizations } = useOrganization()
   const activeOrg = organizations.find((o) => o.id === activeOrganizationId)
   const isOwner = activeOrg?.role === 'owner'
 
-  const [teams, setTeams] = useState<TeamRow[]>([])
-  const [teamsLoading, setTeamsLoading] = useState(true)
-  const [teamsError, setTeamsError] = useState<string | null>(null)
-
+  const teamsQ = useEquipeTeams(user, activeOrganizationId)
+  const teams = teamsQ.data ?? EMPTY_TEAMS
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
-  const [members, setMembers] = useState<TeamMemberRow[]>([])
-  const [membersLoading, setMembersLoading] = useState(false)
-
   const [newTeamName, setNewTeamName] = useState('')
-  const [createBusy, setCreateBusy] = useState(false)
-
   const [addEmail, setAddEmail] = useState('')
-  const [addBusy, setAddBusy] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
-  const [audit, setAudit] = useState<AuditLogRow[]>([])
-  const [auditLoading, setAuditLoading] = useState(false)
-  const [auditError, setAuditError] = useState<string | null>(null)
+  const membersQ = useEquipeTeamMembers(user, selectedTeamId)
+  const members: TeamMemberRow[] = membersQ.data ?? []
 
-  const loadTeams = useCallback(async () => {
-    if (!supabase || !activeOrganizationId) {
-      setTeams([])
-      setTeamsLoading(false)
-      return
-    }
-    setTeamsLoading(true)
-    setTeamsError(null)
-    try {
-      const rows = await listTeams(supabase, activeOrganizationId)
-      setTeams(rows)
-      setSelectedTeamId((cur) => {
-        if (cur && rows.some((t) => t.id === cur)) return cur
-        return rows[0]?.id ?? null
-      })
-    } catch {
-      setTeamsError('Não foi possível carregar as equipas.')
-      setTeams([])
-    } finally {
-      setTeamsLoading(false)
-    }
-  }, [activeOrganizationId])
+  const auditQ = useEquipeAuditLog(user, activeOrganizationId, isOwner)
+  const audit: AuditLogRow[] = auditQ.data ?? []
 
-  const loadMembers = useCallback(async (teamId: string | null) => {
-    if (!supabase || !teamId) {
-      setMembers([])
-      return
-    }
-    setMembersLoading(true)
-    try {
-      const rows = await listTeamMembers(supabase, teamId)
-      setMembers(rows)
-    } catch {
-      setMembers([])
-    } finally {
-      setMembersLoading(false)
-    }
-  }, [])
-
-  const loadAudit = useCallback(async () => {
-    if (!supabase || !activeOrganizationId || !isOwner) {
-      setAudit([])
-      return
-    }
-    setAuditLoading(true)
-    setAuditError(null)
-    try {
-      const rows = await listOrganizationAuditLog(supabase, activeOrganizationId, 100)
-      setAudit(rows)
-    } catch {
-      setAuditError('Não foi possível carregar o registo de auditoria.')
-      setAudit([])
-    } finally {
-      setAuditLoading(false)
-    }
-  }, [activeOrganizationId, isOwner])
+  const createTeamM = useCreateTeamMutation(user, activeOrganizationId)
+  const deleteTeamM = useDeleteTeamMutation(user, activeOrganizationId)
+  const addMemberM = useAddTeamMemberMutation(user, activeOrganizationId)
+  const removeMemberM = useRemoveTeamMemberMutation(user, activeOrganizationId)
 
   useEffect(() => {
-    void loadTeams()
-  }, [loadTeams])
-
-  useEffect(() => {
-    void loadMembers(selectedTeamId)
-  }, [selectedTeamId, loadMembers])
-
-  useEffect(() => {
-    void loadAudit()
-  }, [loadAudit])
+    if (!teams.length) {
+      setSelectedTeamId(null)
+      return
+    }
+    setSelectedTeamId((cur) => {
+      if (cur && teams.some((t) => t.id === cur)) return cur
+      return teams[0]?.id ?? null
+    })
+  }, [teams])
 
   const onCreateTeam = async () => {
-    if (!supabase || !activeOrganizationId || !newTeamName.trim()) return
-    setCreateBusy(true)
-    const r = await createTeam(supabase, activeOrganizationId, newTeamName)
-    setCreateBusy(false)
+    if (!newTeamName.trim()) return
+    setActionError(null)
+    const r = await createTeamM.mutateAsync(newTeamName)
     if (r.ok) {
       setNewTeamName('')
-      await loadTeams()
       setSelectedTeamId(r.team_id)
     } else {
-      window.alert(
-        r.error === 'not_owner' ? 'Só o proprietário pode criar equipas.' : 'Não foi possível criar a equipa.'
-      )
+      setActionError(createTeamErrorMessage(r.error))
     }
   }
 
   const onDeleteTeam = async (teamId: string) => {
-    if (!supabase) return
     if (!window.confirm('Eliminar esta equipa? Os membros deixam de estar agrupados nesta equipa.')) return
-    const r = await deleteTeam(supabase, teamId)
+    setActionError(null)
+    const r = await deleteTeamM.mutateAsync(teamId)
     if (r.ok) {
-      await loadTeams()
       if (selectedTeamId === teamId) setSelectedTeamId(null)
     } else {
-      window.alert(
-        r.error === 'not_owner' ? 'Só o proprietário pode eliminar equipas.' : 'Não foi possível eliminar.'
-      )
+      setActionError(deleteTeamErrorMessage(r.error ?? 'unknown'))
     }
   }
 
   const onAddMember = async () => {
-    if (!supabase || !selectedTeamId || !addEmail.trim()) return
-    setAddBusy(true)
-    const r = await addTeamMemberByEmail(supabase, selectedTeamId, addEmail)
-    setAddBusy(false)
+    if (!selectedTeamId || !addEmail.trim()) return
+    setActionError(null)
+    const r = await addMemberM.mutateAsync({ teamId: selectedTeamId, email: addEmail })
     if (r.ok) {
       setAddEmail('')
-      await loadMembers(selectedTeamId)
-      await loadAudit()
     } else {
-      const map: Record<string, string> = {
-        not_owner: 'Só o proprietário pode adicionar membros à equipa.',
-        invalid_email: 'E-mail inválido.',
-        user_not_found: 'Utilizador não encontrado — precisa de conta no sistema.',
-        not_org_member: 'A pessoa tem de pertencer primeiro à organização.',
-        already_in_team: 'Já está nesta equipa.',
-      }
-      window.alert(map[r.error] ?? 'Não foi possível adicionar.')
+      setActionError(addMemberMessages[r.error] ?? 'Não foi possível adicionar.')
     }
   }
 
   const onRemoveMember = async (memberUserId: string) => {
-    if (!supabase || !selectedTeamId) return
+    if (!selectedTeamId) return
     if (!window.confirm('Remover este membro da equipa?')) return
-    const r = await removeTeamMember(supabase, selectedTeamId, memberUserId)
-    if (r.ok) {
-      await loadMembers(selectedTeamId)
-      await loadAudit()
-    } else {
-      window.alert(r.error === 'not_owner' ? 'Só o proprietário pode remover.' : 'Não foi possível remover.')
+    setActionError(null)
+    const r = await removeMemberM.mutateAsync({ teamId: selectedTeamId, memberUserId })
+    if (!r.ok) {
+      setActionError(r.error === 'not_owner' ? 'Só o proprietário pode remover.' : 'Não foi possível remover.')
     }
   }
 
@@ -202,6 +144,12 @@ export default function EquipePage() {
     )
   }
 
+  const teamsLoading = teamsQ.isLoading
+  const teamsError =
+    teamsQ.isError && teamsQ.error instanceof Error ? teamsQ.error.message : teamsQ.isError
+      ? 'Não foi possível carregar as equipas.'
+      : null
+
   return (
     <PageContainer max="lg" className="space-y-4">
       <p className="text-sm text-muted-foreground">
@@ -209,6 +157,18 @@ export default function EquipePage() {
           Voltar ao dashboard
         </Link>
       </p>
+
+      {actionError && (
+        <div
+          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          role="alert"
+        >
+          {actionError}
+          <button type="button" className="ml-2 underline" onClick={() => setActionError(null)}>
+            Fechar
+          </button>
+        </div>
+      )}
 
       <SectionCard
         title="Equipas"
@@ -258,8 +218,12 @@ export default function EquipePage() {
                 maxLength={120}
               />
             </div>
-            <Button type="button" onClick={() => void onCreateTeam()} disabled={createBusy || !newTeamName.trim()}>
-              {createBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Criar'}
+            <Button
+              type="button"
+              onClick={() => void onCreateTeam()}
+              disabled={createTeamM.isPending || !newTeamName.trim()}
+            >
+              {createTeamM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Criar'}
             </Button>
           </div>
         )}
@@ -277,6 +241,7 @@ export default function EquipePage() {
                 size="sm"
                 className="text-red-700"
                 onClick={() => void onDeleteTeam(selectedTeamId)}
+                disabled={deleteTeamM.isPending}
               >
                 <Trash2 className="mr-1.5 h-4 w-4" />
                 Eliminar equipa
@@ -284,7 +249,7 @@ export default function EquipePage() {
             ) : undefined
           }
         >
-          {membersLoading ? (
+          {membersQ.isLoading ? (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> A carregar membros…
             </div>
@@ -308,6 +273,7 @@ export default function EquipePage() {
                         size="sm"
                         className="shrink-0 text-red-700"
                         onClick={() => void onRemoveMember(m.user_id)}
+                        disabled={removeMemberM.isPending}
                       >
                         Remover
                       </Button>
@@ -331,8 +297,16 @@ export default function EquipePage() {
                   autoComplete="off"
                 />
               </div>
-              <Button type="button" onClick={() => void onAddMember()} disabled={addBusy || !addEmail.trim()}>
-                {addBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+              <Button
+                type="button"
+                onClick={() => void onAddMember()}
+                disabled={addMemberM.isPending || !addEmail.trim()}
+              >
+                {addMemberM.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserPlus className="h-4 w-4" />
+                )}
                 <span className="ml-2">Adicionar</span>
               </Button>
             </div>
@@ -345,13 +319,13 @@ export default function EquipePage() {
           title="Auditoria"
           description="Alterações a membros e equipas (visível apenas para o proprietário)."
         >
-          {auditLoading ? (
+          {auditQ.isLoading ? (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> A carregar…
             </div>
-          ) : auditError ? (
+          ) : auditQ.isError ? (
             <p className="mt-4 text-sm text-red-600" role="alert">
-              {auditError}
+              Não foi possível carregar o registo de auditoria.
             </p>
           ) : audit.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sem eventos registados.</p>
@@ -382,4 +356,3 @@ export default function EquipePage() {
     </PageContainer>
   )
 }
-
