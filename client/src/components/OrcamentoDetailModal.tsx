@@ -187,7 +187,7 @@ export default function OrcamentoDetailModal({ user, orcamentoId, open, onOpenCh
                 {((apply.error ?? patchTax.error) as Error).message}
               </p>
             )}
-            <div className="flex justify-end gap-2 border-t border-[#d4d2c8] pt-4">
+            <div className="flex justify-end gap-2 border-t border-border pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Fechar
               </Button>

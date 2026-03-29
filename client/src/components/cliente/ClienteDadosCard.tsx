@@ -211,7 +211,7 @@ export default function ClienteDadosCard({ cliente, update }: Props) {
           />
         </div>
 
-        <div className="space-y-3 border-t border-[#d4d2c8] pt-4">
+        <div className="space-y-3 border-t border-border pt-4">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estado da ficha</p>
             <EntityActiveBadge active={cliente.ativo} activeLabel="Ativo" inactiveLabel="Arquivado" />

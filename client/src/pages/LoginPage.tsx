@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { UiComponent } from '@/components/standards'
 import type { FieldDefinition } from '@/types'
 import LoadingScreen from '@/components/LoadingScreen'
+import ThemeToggle from '@/components/ThemeToggle'
 
 const loginEmailField: FieldDefinition = {
   id: 'login-email',
@@ -48,17 +49,17 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen bg-brand-light">
-      <div className="relative hidden w-[42%] shrink-0 flex-col justify-between bg-brand-dark p-10 text-brand-light lg:flex">
+      <div className="relative hidden w-[42%] shrink-0 flex-col justify-between bg-[#141413] p-10 text-[#faf9f5] lg:flex">
         <div>
           <p className="font-sans text-sm font-medium uppercase tracking-[0.2em] text-brand-orange">EmbalaFlow</p>
           <h1 className="mt-6 max-w-sm font-sans text-3xl font-semibold leading-tight tracking-tight">
             Relacione clientes e orçamentos com clareza.
           </h1>
-          <p className="mt-4 max-w-sm font-serif text-sm leading-relaxed text-brand-mid">
+          <p className="mt-4 max-w-sm font-serif text-sm leading-relaxed text-[#b0aea5]">
             Interface pensada para o dia a dia comercial em embalagens — sem ruído visual.
           </p>
         </div>
-        <p className="font-serif text-xs text-brand-mid/80">Acesso seguro via Supabase Auth.</p>
+        <p className="font-serif text-xs text-[#b0aea5]/90">Acesso seguro via Supabase Auth.</p>
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.07]"
           style={{
@@ -67,8 +68,11 @@ export default function LoginPage() {
           aria-hidden
         />
       </div>
-      <div className="flex flex-1 items-center justify-center px-4 py-6 sm:p-6 md:p-10">
-        <Card className="w-full max-w-md border-[#d4d2c8] shadow-[0_12px_40px_rgba(20,20,19,0.06)]">
+      <div className="relative flex flex-1 items-center justify-center px-4 py-6 sm:p-6 md:p-10">
+        <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
+          <ThemeToggle inline className="px-2" />
+        </div>
+        <Card className="w-full max-w-md border-border shadow-lg">
           <div className="h-1 rounded-t-lg bg-brand-orange" aria-hidden />
           <CardHeader className="pt-6">
             <CardTitle className="text-xl">Entrar</CardTitle>

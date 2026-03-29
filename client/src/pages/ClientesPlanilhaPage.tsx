@@ -98,7 +98,7 @@ export default function ClientesPlanilhaPage() {
                 Lista
               </Link>
             </Button>
-            <div className="flex items-center gap-2 border-l border-[#d4d2c8] pl-3">
+            <div className="flex items-center gap-2 border-l border-border pl-3">
               <Sheet className="size-5 text-brand-mid" aria-hidden />
               <h1 className="font-sans text-base font-semibold text-brand-dark">Clientes em planilha</h1>
             </div>

@@ -39,7 +39,7 @@ export default function KanbanColumn({
   return (
     <div
       className={cn(
-        'flex min-h-0 min-w-[min(260px,calc(100vw-2.5rem))] shrink-0 flex-col rounded-lg border border-[#d4d2c8] border-t-4 bg-white/80 sm:min-w-[220px] xl:min-w-0 xl:max-w-none xl:flex-1',
+        'flex min-h-0 min-w-[min(260px,calc(100vw-2.5rem))] shrink-0 flex-col rounded-lg border border-border border-t-4 bg-card/80 sm:min-w-[220px] xl:min-w-0 xl:max-w-none xl:flex-1',
         STATUS_COLUMN_TOP[status]
       )}
     >

@@ -35,12 +35,12 @@ export default function KanbanTableView({
   onStatusChange,
 }: Props) {
   return (
-    <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-[#d4d2c8] bg-white">
+    <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-card">
       <div className="min-w-[820px]">
         <div
           className={cn(
             grid,
-            'border-b border-[#d4d2c8] bg-muted/30 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground'
+            'border-b border-border bg-muted/30 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground'
           )}
         >
           <span>Cliente</span>

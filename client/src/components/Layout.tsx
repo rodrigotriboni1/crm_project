@@ -23,6 +23,7 @@ import {
 } from '@/lib/storageKeys'
 import { AssistantDockProvider } from '@/contexts/AssistantDockContext'
 import LayoutAssistantRail from '@/components/LayoutAssistantRail'
+import ThemeToggle from '@/components/ThemeToggle'
 import { cn } from '@/lib/utils'
 
 function readSidebarCollapsed(): boolean {
@@ -74,13 +75,13 @@ export default function Layout() {
       <aside
         id="app-sidebar"
         className={cn(
-          'flex shrink-0 flex-col border-r border-[#d4d2c8] bg-white transition-[width] duration-200 ease-out',
+          'flex shrink-0 flex-col border-r border-border bg-sidebar transition-[width] duration-200 ease-out',
           collapsed ? 'w-16' : 'w-52'
         )}
       >
         <div
           className={cn(
-            'flex items-center border-b border-[#d4d2c8] py-3',
+            'flex items-center border-b border-border py-3',
             collapsed ? 'flex-col gap-2 px-2' : 'gap-2 px-3'
           )}
         >
@@ -135,7 +136,7 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className={cn('border-t border-[#d4d2c8] py-2', collapsed ? 'px-1.5' : 'px-2')}>
+        <div className={cn('border-t border-border py-2', collapsed ? 'px-1.5' : 'px-2')}>
           <Button
             type="button"
             size="sm"
@@ -166,7 +167,8 @@ export default function Layout() {
           )}
         </div>
 
-        <div className={cn('border-t border-[#d4d2c8] p-2', collapsed && 'px-1.5')}>
+        <div className={cn('space-y-1 border-t border-border p-2', collapsed && 'px-1.5')}>
+          <ThemeToggle collapsed={collapsed} />
           <Button
             variant="ghost"
             size="sm"

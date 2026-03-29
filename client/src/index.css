@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode (`.dark` em `html`) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Anthropic-aligned brand tokens + Poppins (headings) / Lora (body) */
 @theme {
   --font-sans: "Poppins", Arial, system-ui, sans-serif;
@@ -19,13 +22,39 @@
   --color-muted-foreground: #5c5a52;
   --color-border: #d4d2c8;
   --color-ring: var(--color-brand-blue);
+  --color-card: #ffffff;
+  --color-sidebar: #ffffff;
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.625rem;
 }
 
+/* Modo escuro: inverter fundo/texto e superfícies */
+html.dark {
+  --color-brand-light: #141413;
+  --color-brand-dark: #ebeae6;
+  --color-brand-surface: #242422;
+  --color-brand-mid: #8f8d86;
+  --color-brand-orange: #e08a6e;
+  --color-brand-blue: #7aa8d4;
+  --color-brand-green: #8fa672;
+
+  --color-background: var(--color-brand-light);
+  --color-foreground: var(--color-brand-dark);
+  --color-muted: var(--color-brand-surface);
+  --color-muted-foreground: #a8a69e;
+  --color-border: #353431;
+  --color-ring: var(--color-brand-blue);
+  --color-card: #1c1c1a;
+  --color-sidebar: #1a1a19;
+}
+
 html {
   color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {

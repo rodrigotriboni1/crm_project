@@ -49,14 +49,14 @@ export default function LayoutAssistantRail() {
   return (
     <aside
       className={cn(
-        'flex shrink-0 flex-col border-l border-[#d4d2c8] bg-white transition-[width] duration-200 ease-out',
+        'flex shrink-0 flex-col border-l border-border bg-sidebar transition-[width] duration-200 ease-out',
         collapsed ? 'w-[52px]' : 'w-[min(480px,92vw)] max-w-[520px]'
       )}
       aria-label="Assistente de IA"
     >
       <div
         className={cn(
-          'flex shrink-0 items-center border-b border-[#d4d2c8]',
+          'flex shrink-0 items-center border-b border-border',
           collapsed ? 'flex-col gap-1 py-2' : 'justify-between gap-2 px-2 py-1.5'
         )}
       >

@@ -217,7 +217,7 @@ export default function ClientesPage() {
 
       {selectedIds.size > 0 && (
         <div
-          className="flex flex-wrap items-center gap-2 rounded-lg border border-[#d4d2c8] bg-brand-surface/50 px-3 py-2"
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-brand-surface/50 px-3 py-2"
           role="region"
           aria-label="Acções em massa no estado da ficha"
         >
@@ -283,12 +283,12 @@ export default function ClientesPage() {
           ) : (
             <>
               {filtered.length > 0 && (
-                <div className="mb-1 flex items-center gap-2 border-b border-[#d4d2c8] px-2 pb-2">
+                <div className="mb-1 flex items-center gap-2 border-b border-border px-2 pb-2">
                   <input
                     ref={selectAllRef}
                     id="clientes-select-all-filtered"
                     type="checkbox"
-                    className="size-4 shrink-0 rounded border border-[#d4d2c8] accent-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                    className="size-4 shrink-0 rounded border border-border accent-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
                     checked={allFilteredSelected}
                     onChange={() => {
                       if (allFilteredSelected) clearFilteredSelection()
@@ -311,7 +311,7 @@ export default function ClientesPage() {
                 >
                   <input
                     type="checkbox"
-                    className="mt-2.5 size-4 shrink-0 rounded border border-[#d4d2c8] accent-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                    className="mt-2.5 size-4 shrink-0 rounded border border-border accent-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
                     checked={selectedIds.has(c.id)}
                     onChange={() => toggleSelect(c.id)}
                     aria-label={`Selecionar ${c.nome}`}

@@ -3,6 +3,9 @@ export const APP_STORAGE_PREFIX = 'embala_'
 
 export const SIDEBAR_COLLAPSED_KEY = `${APP_STORAGE_PREFIX}sidebar-collapsed`
 
+/** `light` | `dark` — preferência de tema (classe `.dark` em `document.documentElement`). */
+export const THEME_KEY = `${APP_STORAGE_PREFIX}theme`
+
 export const KANBAN_VIEW_KEY = `${APP_STORAGE_PREFIX}kanban_view`
 
 /** Chave legada (typo) — lida uma vez para migração. */

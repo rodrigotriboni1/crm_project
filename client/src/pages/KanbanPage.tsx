@@ -163,7 +163,7 @@ export default function KanbanPage() {
             aria-label="Filtrar cartões do Kanban"
           />
         </div>
-        <div className="flex shrink-0 gap-1 rounded-lg border border-[#d4d2c8] bg-muted/20 p-0.5">
+        <div className="flex shrink-0 gap-1 rounded-lg border border-border bg-muted/20 p-0.5">
           <Button
             type="button"
             variant={view === 'kanban' ? 'secondary' : 'ghost'}
