@@ -14,6 +14,7 @@ import {
   ChevronsRight,
   ExternalLink,
   UserPlus,
+  Users2,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
@@ -48,6 +49,7 @@ const nav = [
   { to: '/relatorios', label: 'Relatórios', icon: BarChart3 },
   { to: '/produtos', label: 'Produtos', icon: Tags },
   { to: '/clientes', label: 'Clientes', icon: Users },
+  { to: '/organizacao/equipe', label: 'Equipa', icon: Users2 },
 ]
 
 const externalNovoOrcamentoUrl =

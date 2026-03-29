@@ -8,14 +8,13 @@ export const INTERACOES_PAGE_SIZE = 40
 
 export async function listInteracoes(
   sb: SupabaseClient,
-  userId: string,
+  _userId: string,
   organizationId: string,
   clienteId: string
 ): Promise<Interacao[]> {
   const { data, error } = await sb
     .from('interacoes')
     .select('*')
-    .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .eq('cliente_id', clienteId)
     .order('data_contato', { ascending: false })
@@ -26,7 +25,7 @@ export async function listInteracoes(
 /** Página de interacções (mais recentes primeiro). */
 export async function listInteracoesPage(
   sb: SupabaseClient,
-  userId: string,
+  _userId: string,
   organizationId: string,
   clienteId: string,
   opts: { limit?: number; offset?: number }
@@ -36,7 +35,6 @@ export async function listInteracoesPage(
   const { data, error } = await sb
     .from('interacoes')
     .select('*')
-    .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .eq('cliente_id', clienteId)
     .order('data_contato', { ascending: false })
@@ -47,14 +45,13 @@ export async function listInteracoesPage(
 
 export async function listRecentInteracoes(
   sb: SupabaseClient,
-  userId: string,
+  _userId: string,
   organizationId: string,
   limit = 10
 ): Promise<InteracaoRow[]> {
   const { data, error } = await sb
     .from('interacoes')
     .select('*, clientes(nome)')
-    .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .order('data_contato', { ascending: false })
     .limit(limit)

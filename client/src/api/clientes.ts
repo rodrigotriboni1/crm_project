@@ -44,6 +44,7 @@ function mapRpcRowsToClienteListItem(rows: Record<string, unknown>[]): ClienteLi
     return {
       id: r.id as string,
       user_id: r.user_id as string,
+      assigned_user_id: (r.assigned_user_id as string) ?? (r.user_id as string),
       organization_id: (r.organization_id as string) ?? '',
       nome: r.nome as string,
       tipo: r.tipo as Cliente['tipo'],
@@ -65,14 +66,13 @@ function mapRpcRowsToClienteListItem(rows: Record<string, unknown>[]): ClienteLi
 
 export async function listClientes(
   sb: SupabaseClient,
-  userId: string,
+  _userId: string,
   organizationId: string,
   opts?: { ativosApenas?: boolean }
 ): Promise<Cliente[]> {
   let q = sb
     .from('clientes')
     .select('*')
-    .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .order('nome')
   if (opts?.ativosApenas) {
@@ -234,14 +234,13 @@ export async function importClientesBatch(
 
 export async function getCliente(
   sb: SupabaseClient,
-  userId: string,
+  _userId: string,
   organizationId: string,
   id: string
 ): Promise<Cliente | null> {
   const { data, error } = await sb
     .from('clientes')
     .select('*')
-    .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .eq('id', id)
     .maybeSingle()
@@ -271,6 +270,7 @@ export async function createCliente(
     .from('clientes')
     .insert({
       user_id: userId,
+      assigned_user_id: userId,
       organization_id: organizationId,
       nome: row.nome,
       tipo: row.tipo ?? 'novo',
@@ -292,7 +292,7 @@ export async function createCliente(
 
 export async function updateCliente(
   sb: SupabaseClient,
-  userId: string,
+  _userId: string,
   organizationId: string,
   id: string,
   patch: ClienteUpdate
@@ -304,7 +304,6 @@ export async function updateCliente(
   const { data, error } = await sb
     .from('clientes')
     .update(patchNorm)
-    .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .eq('id', id)
     .select()

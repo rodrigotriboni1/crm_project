@@ -14,6 +14,7 @@ import OrcamentosPage from '@/pages/OrcamentosPage'
 import ProdutosPage from '@/pages/ProdutosPage'
 import KanbanPage from '@/pages/KanbanPage'
 import RelatoriosPage from '@/pages/RelatoriosPage'
+import EquipePage from '@/pages/EquipePage'
 
 const ClientesPlanilhaPage = lazy(() => import('@/pages/ClientesPlanilhaPage'))
 
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="orcamentos" element={<OrcamentosPage />} />
           <Route path="produtos" element={<ProdutosPage />} />
           <Route path="relatorios" element={<RelatoriosPage />} />
+          <Route path="organizacao/equipe" element={<EquipePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

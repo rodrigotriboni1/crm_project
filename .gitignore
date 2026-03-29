@@ -3,3 +3,9 @@ client/node_modules/
 client/dist/
 .env
 client/.env
+
+# Cursor MCP migration payloads / cache (do not commit; governance)
+.cursor/mcp_chunk_*.json
+.cursor/_mcp_*.json
+.cursor/_next_mcp.json
+.mcp_mig*.json

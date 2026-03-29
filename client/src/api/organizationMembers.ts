@@ -5,6 +5,7 @@ export type OrganizationMemberRow = {
   email: string | null
   full_name: string | null
   role: 'owner' | 'member'
+  data_scope: 'organization' | 'own'
 }
 
 export async function listOrganizationMembers(
@@ -24,6 +25,7 @@ export async function listOrganizationMembers(
       email: r.email != null ? String(r.email) : null,
       full_name: r.full_name != null ? String(r.full_name) : null,
       role: r.role === 'owner' ? 'owner' : 'member',
+      data_scope: r.data_scope === 'own' ? 'own' : 'organization',
     }
   })
 }

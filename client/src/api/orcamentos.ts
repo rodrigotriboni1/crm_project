@@ -23,7 +23,7 @@ const ORCAMENTOS_LIST_SELECT = '*, clientes(nome), produtos(nome, codigo, catego
  */
 export async function listOrcamentosPage(
   sb: SupabaseClient,
-  userId: string,
+  _userId: string,
   organizationId: string,
   opts: { limit?: number; offset?: number }
 ): Promise<OrcamentoRow[]> {
@@ -32,7 +32,6 @@ export async function listOrcamentosPage(
   const { data, error } = await sb
     .from('orcamentos')
     .select(ORCAMENTOS_LIST_SELECT)
-    .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
@@ -65,14 +64,13 @@ export async function listOrcamentos(
 
 export async function listOrcamentosByCliente(
   sb: SupabaseClient,
-  userId: string,
+  _userId: string,
   organizationId: string,
   clienteId: string
 ): Promise<OrcamentoRow[]> {
   const { data, error } = await sb
     .from('orcamentos')
     .select('*, produtos(nome, codigo, categoria)')
-    .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .eq('cliente_id', clienteId)
     .order('created_at', { ascending: false })
@@ -82,14 +80,13 @@ export async function listOrcamentosByCliente(
 
 export async function getOrcamento(
   sb: SupabaseClient,
-  userId: string,
+  _userId: string,
   organizationId: string,
   id: string
 ): Promise<OrcamentoRow | null> {
   const { data, error } = await sb
     .from('orcamentos')
     .select('*, clientes(nome), produtos(nome, codigo, categoria)')
-    .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .eq('id', id)
     .maybeSingle()
@@ -134,7 +131,7 @@ export async function createOrcamento(
 
 export async function patchOrcamento(
   sb: SupabaseClient,
-  userId: string,
+  _userId: string,
   organizationId: string,
   id: string,
   patch: {
@@ -146,7 +143,6 @@ export async function patchOrcamento(
   const { error } = await sb
     .from('orcamentos')
     .update(patch)
-    .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .eq('id', id)
   if (error) throw error

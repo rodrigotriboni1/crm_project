@@ -3,14 +3,13 @@ import type { Produto, ProdutoUpdate } from '@/types/database'
 
 export async function listProdutos(
   sb: SupabaseClient,
-  userId: string,
+  _userId: string,
   organizationId: string,
   opts?: { ativosApenas?: boolean }
 ): Promise<Produto[]> {
   let q = sb
     .from('produtos')
     .select('*')
-    .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .order('nome')
   if (opts?.ativosApenas) {
@@ -56,7 +55,7 @@ export async function createProduto(
 
 export async function updateProduto(
   sb: SupabaseClient,
-  userId: string,
+  _userId: string,
   organizationId: string,
   id: string,
   patch: ProdutoUpdate
@@ -64,7 +63,6 @@ export async function updateProduto(
   const { error } = await sb
     .from('produtos')
     .update(patch)
-    .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .eq('id', id)
   if (error) throw error

@@ -12,7 +12,11 @@ import {
   sendInviteEmailErrorMessage,
   sendOrganizationInviteEmail,
 } from '@/api/organizationInvites'
+import { Link } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+import { SelectNative } from '@/components/ui/select-native'
+import { removeOrganizationMember, updateMemberDataScope } from '@/api/organizationGovernance'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -49,6 +53,7 @@ export default function OrganizationMembersDialog({
   organizationName,
   canInvite,
 }: Props) {
+  const { user } = useAuth()
   const [members, setMembers] = useState<OrganizationMemberRow[]>([])
   const [invites, setInvites] = useState<OrganizationInviteRow[]>([])
   const [loading, setLoading] = useState(false)
@@ -67,6 +72,8 @@ export default function OrganizationMembersDialog({
   const [sendEmailRowBusy, setSendEmailRowBusy] = useState<string | null>(null)
   const [revokeBusyId, setRevokeBusyId] = useState<string | null>(null)
   const [linkBusyEmail, setLinkBusyEmail] = useState<string | null>(null)
+  const [scopeBusy, setScopeBusy] = useState<string | null>(null)
+  const [removeBusy, setRemoveBusy] = useState<string | null>(null)
 
   const loadMembers = useCallback(async () => {
     if (!supabase || !organizationId) return
@@ -261,6 +268,12 @@ export default function OrganizationMembersDialog({
         <DialogHeader>
           <DialogTitle className="pr-8">Equipe — {organizationName}</DialogTitle>
         </DialogHeader>
+        <p className="text-xs text-muted-foreground">
+          <Link to="/organizacao/equipe" className="font-medium text-brand-orange underline-offset-2 hover:underline">
+            Gestão completa da equipe (times e auditoria)
+          </Link>
+        </p>
+
 
         {canInvite && (
           <div className="space-y-3 border-b border-border pb-4">
@@ -429,15 +442,78 @@ export default function OrganizationMembersDialog({
             {members.map((m) => (
               <li
                 key={m.user_id}
-                className="flex flex-col rounded-md border border-border bg-card px-3 py-2"
+                className="flex flex-col gap-2 rounded-md border border-border bg-card px-3 py-2"
               >
                 <span className="font-medium text-brand-dark">
                   {m.full_name?.trim() || m.email || m.user_id.slice(0, 8) + '…'}
                 </span>
                 {m.email && <span className="text-xs text-muted-foreground">{m.email}</span>}
-                <span className="mt-1 text-[11px] uppercase text-brand-mid">
+                <span className="text-[11px] uppercase text-brand-mid">
                   {m.role === 'owner' ? 'Proprietário' : 'Membro'}
+                  {m.role !== 'owner' && (
+                    <span className="ml-2 normal-case text-muted-foreground">
+                      · visão: {m.data_scope === 'own' ? 'só próprios registos' : 'toda a organização'}
+                    </span>
+                  )}
                 </span>
+                {canInvite && m.role !== 'owner' && user && m.user_id !== user.id && (
+                  <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
+                    <SelectNative
+                      className="h-8 max-w-[14rem] text-xs"
+                      value={m.data_scope}
+                      disabled={scopeBusy === m.user_id}
+                      aria-label={"Escopo de dados para " + (m.email ?? m.user_id)}
+                      onChange={async (e) => {
+                        const v = e.target.value as 'organization' | 'own'
+                        if (!supabase || v === m.data_scope) return
+                        setScopeBusy(m.user_id)
+                        const r = await updateMemberDataScope(supabase, organizationId, m.user_id, v)
+                        setScopeBusy(null)
+                        if (r.ok) await loadMembers()
+                      }}
+                    >
+                      <option value="organization">Ver toda a organização</option>
+                      <option value="own">Só próprios clientes/orçamentos</option>
+                    </SelectNative>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-red-700"
+                      disabled={removeBusy === m.user_id}
+                      onClick={async () => {
+                        if (!supabase) return
+                        const ok = window.confirm(
+                          'Remover este membro da organização? Indique na caixa seguinte o e-mail de outro membro para reatribuir fichas (ou cancele e reatribua manualmente na página Equipe).'
+                        )
+                        if (!ok) return
+                        const re = window.prompt('E-mail do membro que recebe as fichas (vazio = não reatribuir):', '')
+                        if (re === null) return
+                        let reassignId: string | null = null
+                        if (re.trim()) {
+                          const emailNorm = re.trim().toLowerCase()
+                          const target = members.find(
+                            (x) =>
+                              x.user_id !== m.user_id &&
+                              (x.email ?? '').toLowerCase() === emailNorm
+                          )
+                          if (!target) {
+                            window.alert('E-mail não encontrado na lista de membros (não pode ser o próprio membro a remover).')
+                            return
+                          }
+                          reassignId = target.user_id
+                        }
+                        setRemoveBusy(m.user_id)
+                        const r = await removeOrganizationMember(supabase, organizationId, m.user_id, reassignId)
+                        setRemoveBusy(null)
+                        if (r.ok) await loadMembers()
+                        else window.alert(r.error ?? 'Não foi possível remover.')
+                      }}
+                    >
+                      {removeBusy === m.user_id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Remover'}
+                    </Button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

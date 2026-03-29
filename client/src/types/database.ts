@@ -13,6 +13,8 @@ export type OrcamentoStatus =
 export type Produto = {
   id: string
   user_id: string
+  /** Responsável comercial (carteira); na criação = criador. */
+  assigned_user_id: string
   organization_id: string
   nome: string
   codigo: string | null
@@ -32,6 +34,8 @@ export type ProdutoUpdate = Partial<
 export type Cliente = {
   id: string
   user_id: string
+  /** Responsável comercial (carteira); alinhado a RLS de visibilidade. */
+  assigned_user_id: string
   organization_id: string
   nome: string
   /** CPF (11) ou CNPJ (14) — apenas dígitos na persistência. */

@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useOrganization } from '@/contexts/OrganizationContext'
+import { supabase } from '@/lib/supabase'
+import { listOrganizationMembers, type OrganizationMemberRow } from '@/api/organizationMembers'
+import { SelectNative } from '@/components/ui/select-native'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { EntityActiveBadge, FormStack, SectionCard } from '@/components/library'
 import { UiComponent } from '@/components/standards'
@@ -30,6 +34,9 @@ export default function ClienteDadosCard({ cliente, update }: Props) {
   const [telefoneDigits, setTelefoneDigits] = useState(() => digitsOnly(cliente.telefone ?? ''))
   const [taxDigits, setTaxDigits] = useState(() => digitsOnly(cliente.tax_id ?? ''))
   const [taxFieldError, setTaxFieldError] = useState<string | null>(null)
+  const { activeOrganizationId, organizations } = useOrganization()
+  const isOrgOwner = organizations.find((o) => o.id === activeOrganizationId)?.role === 'owner'
+  const [assignMembers, setAssignMembers] = useState<OrganizationMemberRow[]>([])
 
   useEffect(() => {
     setTaxDigits(digitsOnly(cliente.tax_id ?? ''))
@@ -48,6 +55,20 @@ export default function ClienteDadosCard({ cliente, update }: Props) {
     cliente.produtos_habituais,
     cliente.observacoes,
   ])
+
+  useEffect(() => {
+    if (!supabase || !activeOrganizationId || !isOrgOwner) {
+      setAssignMembers([])
+      return
+    }
+    let cancelled = false
+    void listOrganizationMembers(supabase, activeOrganizationId).then((rows) => {
+      if (!cancelled) setAssignMembers(rows)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [activeOrganizationId, isOrgOwner])
 
   const savedTaxDigits = useMemo(() => digitsOnly(cliente.tax_id ?? ''), [cliente.tax_id])
   const taxDirty = taxDigits !== savedTaxDigits
@@ -210,6 +231,29 @@ export default function ClienteDadosCard({ cliente, update }: Props) {
             }}
           />
         </div>
+
+        {isOrgOwner && (
+        <div className="space-y-3 border-t border-border pt-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Responsável</p>
+          <p className="text-xs text-muted-foreground">Quem trata esta ficha (apenas o proprietário pode alterar).</p>
+          <SelectNative
+            className="max-w-md"
+            value={cliente.assigned_user_id}
+            disabled={saving}
+            aria-label="Responsável comercial"
+            onChange={(e) => {
+              const v = e.target.value
+              if (v && v !== cliente.assigned_user_id) saveField({ assigned_user_id: v })
+            }}
+          >
+            {assignMembers.map((m) => (
+              <option key={m.user_id} value={m.user_id}>
+                {m.full_name?.trim() || m.email || m.user_id.slice(0, 8) + "…"}
+              </option>
+            ))}
+          </SelectNative>
+        </div>
+        )}
 
         <div className="space-y-3 border-t border-border pt-4">
           <div className="flex flex-wrap items-center gap-2">

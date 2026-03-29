@@ -15,6 +15,7 @@ export type OrganizationSummary = {
   id: string
   name: string
   role: 'owner' | 'member'
+  dataScope: 'organization' | 'own'
 }
 
 type OrganizationCtx = {
@@ -31,6 +32,7 @@ const Ctx = createContext<OrganizationCtx | null>(null)
 type MemberRow = {
   organization_id: string
   role: string
+  data_scope?: string
   organizations: { id: string; name: string } | { id: string; name: string }[] | null
 }
 
@@ -46,6 +48,14 @@ function readStoredOrgId(userId: string): string | null {
 function writeStoredOrgId(userId: string, orgId: string) {
   try {
     localStorage.setItem(activeOrganizationStorageKey(userId), orgId)
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearStoredOrgId(userId: string) {
+  try {
+    localStorage.removeItem(activeOrganizationStorageKey(userId))
   } catch {
     /* ignore */
   }
@@ -67,12 +77,13 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     const { data, error } = await supabase
       .from('organization_members')
-      .select('organization_id, role, organizations ( id, name )')
+      .select('organization_id, role, data_scope, organizations ( id, name )')
       .eq('user_id', user.id)
     if (error) {
       console.error(error)
       setOrganizations([])
       setActiveState(null)
+      if (user.id) clearStoredOrgId(user.id)
       setLoading(false)
       return
     }
@@ -82,7 +93,8 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       const org = Array.isArray(r.organizations) ? r.organizations[0] : r.organizations
       if (!org?.id) continue
       const role = r.role === 'owner' ? 'owner' : 'member'
-      mapped.push({ id: org.id, name: org.name?.trim() ? org.name : 'Organização', role })
+      const dataScope = r.data_scope === 'own' ? 'own' : 'organization'
+      mapped.push({ id: org.id, name: org.name?.trim() ? org.name : 'Organização', role, dataScope })
     }
     mapped.sort((a, b) => a.name.localeCompare(b.name, 'pt'))
     setOrganizations(mapped)
@@ -91,6 +103,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     const next = validStored ?? mapped[0]?.id ?? null
     setActiveState(next)
     if (next && user.id) writeStoredOrgId(user.id, next)
+    else if (user.id) clearStoredOrgId(user.id)
     setLoading(false)
   }, [user])
 

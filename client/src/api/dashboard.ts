@@ -76,25 +76,21 @@ export async function fetchDashboard(
     sb
       .from('clientes')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
       .eq('organization_id', organizationId)
       .eq('ativo', true),
     sb
       .from('orcamentos')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
       .eq('organization_id', organizationId)
       .in('status', ['novo_contato', 'orcamento_enviado']),
     sb
       .from('orcamentos')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
       .eq('organization_id', organizationId)
       .eq('status', 'dormindo'),
     sb
       .from('clientes')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
       .eq('organization_id', organizationId)
       .eq('ativo', true)
       .gte('created_at', monthStart)
@@ -102,7 +98,6 @@ export async function fetchDashboard(
     sb
       .from('orcamentos')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
       .eq('organization_id', organizationId)
       .eq('status', 'ganho')
       .gte('updated_at', monthStart)
@@ -110,13 +105,11 @@ export async function fetchDashboard(
     sb
       .from('orcamentos')
       .select('valor')
-      .eq('user_id', userId)
       .eq('organization_id', organizationId)
       .in('status', ['novo_contato', 'orcamento_enviado']),
     sb
       .from('orcamentos')
       .select('*, clientes(nome), produtos(nome, codigo, categoria)')
-      .eq('user_id', userId)
       .eq('organization_id', organizationId)
       .not('follow_up_at', 'is', null)
       .lte('follow_up_at', followUpWindowEnd)
