@@ -31,7 +31,7 @@ export default function ClienteQuickActionBar({
         className
       )}
       style={{
-        bottom: 'calc(3.75rem + max(0px, env(safe-area-inset-bottom)))',
+        bottom: 'calc(3.75rem + max(0.25rem, env(safe-area-inset-bottom, 0px)))',
       }}
       role="toolbar"
       aria-label="Ações rápidas do cliente"

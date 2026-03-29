@@ -1,0 +1,12 @@
+---
+description: UI/UX EmbalaFlow CRM — sem títulos de página redundantes
+globs: client/src/**/*.tsx
+alwaysApply: false
+---
+
+# EmbalaFlow CRM — hierarquia de ecrã
+
+- **Não** adicionar `PageHeader` (nem blocos equivalentes) com o **mesmo nome que o item da sidebar** (Dashboard, Clientes, Kanban, Orçamentos, Produtos, Relatórios, Equipa) nem **subtítulos tipo slogan** que só descrevem o óbvio («Resumo da operação…», «Pesquise e filtre…»). A navegação já contextualiza; o utilizador quer dados e acções.
+- Começar o corpo da página pelo que importa: KPIs, barra de ferramentas, tabela, filtros, ou `SectionCard` com título **de secção** quando agrupa conteúdo editável.
+- Texto explicativo longo: colocar na **descrição de um `SectionCard`** ou num empty state, não como título de página genérico.
+- **Excepção**: detalhe de registo (ex. nome do cliente no topo) — aí o título é **dado de negócio**, não rótulo de menu.

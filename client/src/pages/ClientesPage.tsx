@@ -55,6 +55,16 @@ export default function ClientesPage() {
   const [phoneFilter, setPhoneFilter] = useState<ClientePhoneFilter>('todos')
   const [archiveFilter, setArchiveFilter] = useState<ClienteArchiveFilter>('ativos')
   const [sort, setSort] = useState<ClienteSort>('nome_asc')
+  const [filtersOpen, setFiltersOpen] = useState(false)
+
+  const activeFilterCount = useMemo(() => {
+    let n = 0
+    if (archiveFilter !== 'ativos') n += 1
+    if (tipoFilter !== 'todos') n += 1
+    if (phoneFilter !== 'todos') n += 1
+    if (sort !== 'nome_asc') n += 1
+    return n
+  }, [archiveFilter, tipoFilter, phoneFilter, sort])
 
   const kpisDisplay = kpis ?? {
     ativos: 0,
@@ -172,47 +182,70 @@ export default function ClientesPage() {
               placeholder="Nome, CPF/CNPJ, telefone ou produtos habituais…"
             />
             <div className="flex flex-wrap items-center gap-2">
-              <SelectNative
-                className="h-9 w-auto min-w-[8rem] text-xs"
-                value={archiveFilter}
-                onChange={(e) => setArchiveFilter(e.target.value as ClienteArchiveFilter)}
-                aria-label="Fichas ativas ou arquivadas"
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => setFiltersOpen((o) => !o)}
+                aria-expanded={filtersOpen}
+                aria-controls="clientes-filtros-panel"
               >
-                <option value="ativos">Só ativos</option>
-                <option value="arquivados">Só arquivados</option>
-                <option value="todos">Todos</option>
-              </SelectNative>
-              <SelectNative
-                className="h-9 w-auto min-w-[7.5rem] text-xs"
-                value={tipoFilter}
-                onChange={(e) => setTipoFilter(e.target.value as ClienteTipoFilter)}
-                aria-label="Filtrar por tipo"
-              >
-                <option value="todos">Todos os tipos</option>
-                <option value="novo">Só novos</option>
-                <option value="recompra">Só recompra</option>
-              </SelectNative>
-              <SelectNative
-                className="h-9 w-auto min-w-[7.5rem] text-xs"
-                value={phoneFilter}
-                onChange={(e) => setPhoneFilter(e.target.value as ClientePhoneFilter)}
-                aria-label="Filtrar por telefone"
-              >
-                <option value="todos">Telefone: todos</option>
-                <option value="com">Com telefone</option>
-                <option value="sem">Sem telefone</option>
-              </SelectNative>
-              <SelectNative
-                className="h-9 w-auto min-w-[10rem] text-xs"
-                value={sort}
-                onChange={(e) => setSort(e.target.value as ClienteSort)}
-                aria-label="Ordenar"
-              >
-                <option value="nome_asc">Nome (A–Z)</option>
-                <option value="ultimo_desc">Último contacto</option>
-                <option value="criado_desc">Mais recentes</option>
-              </SelectNative>
+                {filtersOpen ? 'Ocultar filtros' : 'Filtros'}
+                {activeFilterCount > 0 ? (
+                  <span className="ml-1.5 rounded-full bg-brand-orange/15 px-1.5 text-xs font-medium text-brand-orange">
+                    {activeFilterCount}
+                  </span>
+                ) : null}
+              </Button>
             </div>
+            {filtersOpen ? (
+              <div
+                id="clientes-filtros-panel"
+                className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 p-3"
+              >
+                <SelectNative
+                  className="h-9 w-auto min-w-[8rem] text-xs"
+                  value={archiveFilter}
+                  onChange={(e) => setArchiveFilter(e.target.value as ClienteArchiveFilter)}
+                  aria-label="Fichas ativas ou arquivadas"
+                >
+                  <option value="ativos">Só ativos</option>
+                  <option value="arquivados">Só arquivados</option>
+                  <option value="todos">Todos</option>
+                </SelectNative>
+                <SelectNative
+                  className="h-9 w-auto min-w-[7.5rem] text-xs"
+                  value={tipoFilter}
+                  onChange={(e) => setTipoFilter(e.target.value as ClienteTipoFilter)}
+                  aria-label="Filtrar por tipo"
+                >
+                  <option value="todos">Todos os tipos</option>
+                  <option value="novo">Só novos</option>
+                  <option value="recompra">Só recompra</option>
+                </SelectNative>
+                <SelectNative
+                  className="h-9 w-auto min-w-[7.5rem] text-xs"
+                  value={phoneFilter}
+                  onChange={(e) => setPhoneFilter(e.target.value as ClientePhoneFilter)}
+                  aria-label="Filtrar por telefone"
+                >
+                  <option value="todos">Telefone: todos</option>
+                  <option value="com">Com telefone</option>
+                  <option value="sem">Sem telefone</option>
+                </SelectNative>
+                <SelectNative
+                  className="h-9 w-auto min-w-[10rem] text-xs"
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as ClienteSort)}
+                  aria-label="Ordenar"
+                >
+                  <option value="nome_asc">Nome (A–Z)</option>
+                  <option value="ultimo_desc">Último contacto</option>
+                  <option value="criado_desc">Mais recentes</option>
+                </SelectNative>
+              </div>
+            ) : null}
           </div>
         }
         end={
@@ -223,10 +256,14 @@ export default function ClientesPage() {
             <Button type="button" variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               Importar planilha
             </Button>
-            <NovoClienteDialog user={user} open={dialogOpen} onOpenChange={setDialogOpen} />
+            <Button type="button" size="sm" onClick={() => setDialogOpen(true)}>
+              Novo cliente
+            </Button>
           </>
         }
       />
+
+      <NovoClienteDialog user={user} open={dialogOpen} onOpenChange={setDialogOpen} />
 
       {q.trim() && hasNextPage && (
         <p className="text-xs text-muted-foreground">

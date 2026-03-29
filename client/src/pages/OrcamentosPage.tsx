@@ -13,6 +13,7 @@ import {
 import { filterOrcamentosByQuery } from '@/lib/orcamentosSearch'
 import OrcamentoDetailModal from '@/components/OrcamentoDetailModal'
 import KanbanTableView from '@/components/kanban/KanbanTableView'
+import { PageContainer } from '@/components/library'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -46,7 +47,7 @@ export default function OrcamentosPage() {
   )
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-4 sm:p-6">
+    <PageContainer max="xl" className="space-y-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2">
           {(['todos', ...ORCAMENTO_STATUS_ORDER] as FilterKey[]).map((key) => (
@@ -128,6 +129,6 @@ export default function OrcamentosPage() {
           </Button>
         </div>
       )}
-    </div>
+    </PageContainer>
   )
 }

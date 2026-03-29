@@ -9,6 +9,7 @@ import AvatarCircle from '@/components/AvatarCircle'
 import type { OrcamentoRow } from '@/api/crm'
 import type { OrcamentoStatus } from '@/types/database'
 import { cn } from '@/lib/utils'
+import { digitsOnly, formatCpfCnpj } from '@/lib/formatters'
 import { formatOrcamentoDisplayNum } from '@/lib/orcamentoDisplayNum'
 import { ORCAMENTO_STATUS_ORDER, orcamentoStatusLabel } from '@/lib/orcamentoStatusUi'
 
@@ -30,15 +31,22 @@ function isSoon(o: OrcamentoRow): boolean {
   return diff >= 0 && diff <= 3
 }
 
+function formatDocLine(tax: string | null | undefined): string | null {
+  const t = tax?.trim()
+  if (!t) return null
+  const d = digitsOnly(t)
+  if (d.length === 11 || d.length === 14) return formatCpfCnpj(d)
+  return null
+}
+
 function CardMetaLine({ o }: { o: OrcamentoRow }) {
-  const tax = o.tax_id?.trim()
+  const doc = formatDocLine(o.tax_id)
   return (
-    <div className="mt-2 space-y-0.5 border-t border-border/60 pt-1.5 font-mono text-[9px] leading-tight text-muted-foreground">
+    <div className="mt-2 space-y-0.5 border-t border-border/60 pt-2 text-xs leading-snug text-muted-foreground">
       <p>
-        <span className="font-sans font-semibold text-foreground/80">Nº</span>{' '}
-        {formatOrcamentoDisplayNum(o.display_num ?? 0)}
+        Orçamento n.º <span className="font-medium text-foreground/90">{formatOrcamentoDisplayNum(o.display_num ?? 0)}</span>
       </p>
-      <p>taxId: {tax || '—'}</p>
+      {doc ? <p>{doc}</p> : null}
     </div>
   )
 }
@@ -73,11 +81,11 @@ export function KanbanCardBody({
         <div className="flex items-start gap-2">
           <AvatarCircle name={nome} />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold leading-snug">{nome}</p>
-            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{o.produto_descricao || '—'}</p>
+            <p className="text-sm font-semibold leading-snug">{nome}</p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{o.produto_descricao || '—'}</p>
             <Link
               to={`/clientes/${o.cliente_id}`}
-              className="mt-1 inline-flex items-center gap-0.5 text-[10px] font-medium text-brand-orange hover:underline"
+              className="mt-1 inline-flex items-center gap-0.5 text-xs font-medium text-brand-orange hover:underline"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
@@ -91,17 +99,17 @@ export function KanbanCardBody({
             {o.valor ? `R$ ${Number(o.valor).toLocaleString('pt-BR')}` : '—'}
           </p>
           {overdue && (
-            <span className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-600">
+            <span className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-600">
               {o.follow_up_at ? fmt(o.follow_up_at) : ''} ⚠
             </span>
           )}
           {!overdue && soon && (
-            <span className="rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
+            <span className="rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">
               Em breve
             </span>
           )}
           {!overdue && !soon && o.follow_up_at && (
-            <span className="text-[10px] text-muted-foreground">{fmt(o.follow_up_at)}</span>
+            <span className="text-xs text-muted-foreground">{fmt(o.follow_up_at)}</span>
           )}
         </div>
         {showIds ? <CardMetaLine o={o} /> : null}

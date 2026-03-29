@@ -19,8 +19,7 @@ const items: readonly {
 export default function MobileBottomNav() {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-sidebar/95 backdrop-blur-sm md:hidden"
-      style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-sidebar/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-sm md:hidden"
       aria-label="Navegação principal (mobile)"
     >
       {items.map(({ to, label, icon: Icon, end }) => (
@@ -30,7 +29,7 @@ export default function MobileBottomNav() {
           end={Boolean(end)}
           className={({ isActive }) =>
             cn(
-              'flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 pt-1 text-[10px] font-medium',
+              'flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium leading-tight',
               isActive ? 'text-brand-orange' : 'text-brand-mid'
             )
           }

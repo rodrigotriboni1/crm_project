@@ -55,8 +55,8 @@ export default function LayoutAssistantRail() {
   return (
     <aside
       className={cn(
-        'flex shrink-0 flex-col border-l border-border bg-sidebar transition-[width] duration-200 ease-out',
-        collapsed ? 'w-[52px]' : 'w-[min(480px,92vw)] max-w-[520px]'
+        'flex shrink-0 flex-col border-l border-dashed border-border/70 bg-muted/20 transition-[width] duration-200 ease-out dark:bg-muted/10',
+        collapsed ? 'w-[52px]' : 'w-[min(360px,42vw)] max-w-[400px]'
       )}
       aria-label="Assistente de IA"
     >
@@ -86,7 +86,9 @@ export default function LayoutAssistantRail() {
           </>
         ) : (
           <>
-            <span className="min-w-0 truncate pl-1 text-xs font-medium text-brand-dark">IA</span>
+            <span className="min-w-0 truncate pl-1 text-xs font-medium text-muted-foreground">
+              Assistente
+            </span>
             <Button
               type="button"
               variant="ghost"

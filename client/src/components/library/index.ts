@@ -1,4 +1,5 @@
 export { PageContainer, type PageContainerProps, type PageContainerMax } from './PageContainer'
+export { PageHeader, type PageHeaderProps } from './PageHeader'
 export { ToolbarRow, type ToolbarRowProps } from './ToolbarRow'
 export { FormStack, type FormStackProps } from './FormStack'
 export { EmptyState, type EmptyStateProps } from './EmptyState'

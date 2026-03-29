@@ -50,24 +50,30 @@ export default function ClienteDetailPage() {
   if (!cliente) return <p className="px-4 py-4 text-sm text-muted-foreground sm:p-6">Cliente não encontrado.</p>
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-4 max-md:pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] sm:p-6">
+    <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-4 max-md:pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] sm:p-6">
       <ClienteDetailHeader cliente={cliente} />
-      <ClienteDadosCard cliente={cliente} update={update} />
-      <ClienteOrcamentosSection
-        clienteId={id}
-        orcamentos={orcamentos}
-        produtosCatalogo={produtosCatalogo}
-        createOrc={createOrc}
-      />
-      <ClienteInteracoesSection
-        interacoes={interacoes}
-        createInt={createInt}
-        hasMore={Boolean(interacoesQ.hasNextPage)}
-        loadingMore={interacoesQ.isFetchingNextPage}
-        onLoadMore={() => void interacoesQ.fetchNextPage()}
-        registerDialogOpen={registerContatoOpen}
-        onRegisterDialogOpenChange={setRegisterContatoOpen}
-      />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
+        <div className="min-w-0 space-y-5">
+          <ClienteDadosCard cliente={cliente} update={update} />
+          <ClienteOrcamentosSection
+            clienteId={id}
+            orcamentos={orcamentos}
+            produtosCatalogo={produtosCatalogo}
+            createOrc={createOrc}
+          />
+        </div>
+        <div className="min-w-0 lg:sticky lg:top-4 lg:self-start">
+          <ClienteInteracoesSection
+            interacoes={interacoes}
+            createInt={createInt}
+            hasMore={Boolean(interacoesQ.hasNextPage)}
+            loadingMore={interacoesQ.isFetchingNextPage}
+            onLoadMore={() => void interacoesQ.fetchNextPage()}
+            registerDialogOpen={registerContatoOpen}
+            onRegisterDialogOpenChange={setRegisterContatoOpen}
+          />
+        </div>
+      </div>
       <ClienteQuickActionBar
         telefone={cliente.telefone}
         whatsapp={cliente.whatsapp}

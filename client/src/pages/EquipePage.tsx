@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PageContainer, SectionCard } from '@/components/library'
 import {
   addTeamMemberByEmail,
   createTeam,
@@ -202,24 +203,17 @@ export default function EquipePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-6 sm:p-8">
-      <header className="space-y-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Organização</p>
-        <h1 className="font-sans text-2xl font-semibold text-brand-dark">Equipa</h1>
-        <p className="max-w-xl text-sm text-brand-mid">
-          Equipas agrupam membros para organização interna. A visibilidade de clientes e orçamentos continua a ser definida
-          pelo <strong className="font-medium text-brand-dark">âmbito de dados</strong> de cada membro (definição no diálogo
-          Equipe da barra lateral).
-        </p>
-        <p className="text-sm">
-          <Link to="/" className="font-medium text-brand-orange underline-offset-2 hover:underline">
-            Voltar ao dashboard
-          </Link>
-        </p>
-      </header>
+    <PageContainer max="lg" className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        <Link to="/" className="font-medium text-brand-orange underline-offset-2 hover:underline">
+          Voltar ao dashboard
+        </Link>
+      </p>
 
-      <section className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
-        <h2 className="font-sans text-lg font-semibold text-brand-dark">Equipas</h2>
+      <SectionCard
+        title="Equipas"
+        description="Equipas agrupam membros para organização interna. A visibilidade de clientes e orçamentos define-se pelo âmbito de dados de cada membro (diálogo Equipe na barra lateral)."
+      >
         {teamsLoading ? (
           <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> A carregar…
@@ -269,20 +263,14 @@ export default function EquipePage() {
             </Button>
           </div>
         )}
-      </section>
+      </SectionCard>
 
       {selectedTeamId && (
-        <section className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="font-sans text-lg font-semibold text-brand-dark">
-                Membros — {teams.find((t) => t.id === selectedTeamId)?.name ?? 'Equipa'}
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Apenas utilizadores que já pertencem à organização podem ser adicionados.
-              </p>
-            </div>
-            {isOwner && (
+        <SectionCard
+          title={`Membros — ${teams.find((t) => t.id === selectedTeamId)?.name ?? 'Equipa'}`}
+          description="Apenas utilizadores que já pertencem à organização podem ser adicionados."
+          action={
+            isOwner ? (
               <Button
                 type="button"
                 variant="outline"
@@ -293,9 +281,9 @@ export default function EquipePage() {
                 <Trash2 className="mr-1.5 h-4 w-4" />
                 Eliminar equipa
               </Button>
-            )}
-          </div>
-
+            ) : undefined
+          }
+        >
           {membersLoading ? (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> A carregar membros…
@@ -349,15 +337,14 @@ export default function EquipePage() {
               </Button>
             </div>
           )}
-        </section>
+        </SectionCard>
       )}
 
       {isOwner && (
-        <section className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
-          <h2 className="font-sans text-lg font-semibold text-brand-dark">Auditoria</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Alterações a membros e equipas (visível apenas para o proprietário).
-          </p>
+        <SectionCard
+          title="Auditoria"
+          description="Alterações a membros e equipas (visível apenas para o proprietário)."
+        >
           {auditLoading ? (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> A carregar…
@@ -367,38 +354,32 @@ export default function EquipePage() {
               {auditError}
             </p>
           ) : audit.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">Sem eventos registados.</p>
+            <p className="text-sm text-muted-foreground">Sem eventos registados.</p>
           ) : (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[28rem] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border text-xs uppercase text-muted-foreground">
-                    <th className="py-2 pr-3 font-medium">Quando</th>
-                    <th className="py-2 pr-3 font-medium">Acção</th>
-                    <th className="py-2 pr-3 font-medium">Actor</th>
-                    <th className="py-2 font-medium">Detalhe</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {audit.map((row) => (
-                    <tr key={row.id} className="border-b border-border/80">
-                      <td className="py-2 pr-3 align-top text-muted-foreground">
-                        {row.created_at ? new Date(row.created_at).toLocaleString() : '—'}
-                      </td>
-                      <td className="py-2 pr-3 align-top">{auditActionLabel(row.action)}</td>
-                      <td className="py-2 pr-3 align-top text-muted-foreground">{row.actor_email ?? '—'}</td>
-                      <td className="py-2 align-top font-mono text-xs text-muted-foreground">
-                        {row.detail != null ? JSON.stringify(row.detail) : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ul className="relative mt-2 space-y-4 border-l border-border pl-4">
+              {audit.map((row) => (
+                <li key={row.id} className="relative">
+                  <span
+                    className="absolute -left-[calc(1rem+5px)] top-1.5 h-2.5 w-2.5 rounded-full border border-border bg-card ring-2 ring-card"
+                    aria-hidden
+                  />
+                  <time className="block text-xs text-muted-foreground">
+                    {row.created_at ? new Date(row.created_at).toLocaleString() : '—'}
+                  </time>
+                  <p className="text-sm font-medium text-brand-dark">{auditActionLabel(row.action)}</p>
+                  <p className="text-xs text-muted-foreground">{row.actor_email ?? '—'}</p>
+                  {row.detail != null && (
+                    <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
+                      {JSON.stringify(row.detail)}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
           )}
-        </section>
+        </SectionCard>
       )}
-    </div>
+    </PageContainer>
   )
 }
 

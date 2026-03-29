@@ -3,10 +3,19 @@
 /* Class-based dark mode (`.dark` em `html`) */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Anthropic-aligned brand tokens + Poppins (headings) / Lora (body) */
+/* Brand tokens + Poppins end-to-end (UI operacional B2B; Lora disponível para .font-serif / prosa) */
 @theme {
   --font-sans: "Poppins", Arial, system-ui, sans-serif;
   --font-serif: "Lora", Georgia, "Times New Roman", serif;
+
+  /* Escala tipográfica de referência: meta 12–13, corpo 14, destaque 16–18, título página 20–24 */
+  --text-ui-meta: 0.75rem;
+  --text-ui-sm: 0.8125rem;
+  --text-ui-body: 0.875rem;
+  --text-ui-md: 1rem;
+  --text-ui-lg: 1.125rem;
+  --text-ui-title: 1.25rem;
+  --text-ui-display: 1.5rem;
 
   --color-brand-dark: #141413;
   --color-brand-light: #faf9f5;
@@ -60,10 +69,18 @@ html.dark {
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
+  font-size: var(--text-ui-body);
+  font-weight: 400;
+  line-height: 1.5;
   background: var(--color-brand-light);
   color: var(--color-brand-dark);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Prosa longa / marketing: usar explicitamente */
+.font-serif-prose {
+  font-family: var(--font-serif);
 }
 
 #root {

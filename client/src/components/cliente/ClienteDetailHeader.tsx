@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { EntityActiveBadge } from '@/components/library'
+import { EntityActiveBadge, PageHeader } from '@/components/library'
 import { clienteTipoLabel } from '@/hooks/useCrm'
 import type { Cliente } from '@/types/database'
 
@@ -10,19 +10,24 @@ type Props = {
 
 export default function ClienteDetailHeader({ cliente }: Props) {
   return (
-    <div>
+    <div className="space-y-3">
       <Link
         to="/clientes"
-        className="mb-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        <ArrowLeft className="h-3.5 w-3.5" />
+        <ArrowLeft className="h-4 w-4" />
         Clientes
       </Link>
-      <div className="flex flex-wrap items-start gap-2">
-        <h2 className="text-lg font-semibold">{cliente.nome}</h2>
-        {!cliente.ativo && <EntityActiveBadge active={false} inactiveLabel="Arquivado" className="mt-0.5" />}
-      </div>
-      <p className="text-xs text-muted-foreground">{clienteTipoLabel(cliente.tipo)}</p>
+      <PageHeader
+        className="border-b-0 pb-0"
+        title={cliente.nome}
+        description={clienteTipoLabel(cliente.tipo)}
+        actions={
+          !cliente.ativo ? (
+            <EntityActiveBadge active={false} inactiveLabel="Arquivado" />
+          ) : undefined
+        }
+      />
     </div>
   )
 }
