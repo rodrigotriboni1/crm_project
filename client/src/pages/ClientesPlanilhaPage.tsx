@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, Sheet } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
-import { useBulkPatchClientes, useClientes } from '@/hooks/useCrm'
+import { useBulkPatchClientes, useClientesForPlanilha } from '@/hooks/useCrm'
 import { Button } from '@/components/ui/button'
 import { PageContainer, SearchField, ToolbarRow } from '@/components/library'
 import { SelectNative } from '@/components/ui/select-native'
@@ -25,7 +25,7 @@ function mergedForValidation(base: ClienteListItem, draft: ClienteUpdate): Clien
 export default function ClientesPlanilhaPage() {
   const { user } = useAuth()
   useGenericAssistantDock('Clientes · Planilha')
-  const { data: clientes = [], isLoading } = useClientes(user)
+  const { data: clientes = [], isLoading } = useClientesForPlanilha(user)
   const bulk = useBulkPatchClientes(user)
 
   const [q, setQ] = useState('')

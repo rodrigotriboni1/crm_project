@@ -4,14 +4,15 @@ import { Search } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
 import {
-  useOrcamentos,
-  useClientes,
+  useOrcamentosInfinite,
+  useClientesKpis,
   orcamentoStatusLabel,
   ORCAMENTO_STATUS_ORDER,
 } from '@/hooks/useCrm'
 import { filterOrcamentosByQuery } from '@/lib/orcamentosSearch'
 import OrcamentoDetailModal from '@/components/OrcamentoDetailModal'
 import KanbanTableView from '@/components/kanban/KanbanTableView'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import type { OrcamentoStatus } from '@/types/database'
@@ -21,8 +22,12 @@ type FilterKey = 'todos' | OrcamentoStatus
 export default function OrcamentosPage() {
   const { user } = useAuth()
   useGenericAssistantDock('Orçamentos')
-  const { data: orcamentos = [], isLoading } = useOrcamentos(user)
-  const { data: clientes = [] } = useClientes(user)
+  const orcQ = useOrcamentosInfinite(user)
+  const orcamentos = useMemo(() => orcQ.data?.pages.flat() ?? [], [orcQ.data])
+  const isLoading = orcQ.isLoading
+  const { data: clientesKpis } = useClientesKpis(user)
+  const hasClientes =
+    (clientesKpis?.ativos ?? 0) + (clientesKpis?.arquivados ?? 0) > 0
 
   const [filter, setFilter] = useState<FilterKey>('todos')
   const [modalId, setModalId] = useState<string | null>(null)
@@ -76,7 +81,7 @@ export default function OrcamentosPage() {
         </div>
       </div>
 
-      {clientes.length === 0 && (
+      {!hasClientes && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Cadastre um cliente antes de criar orçamentos. Use <strong>Novo orçamento</strong> na barra
           lateral ou{' '}
@@ -104,6 +109,23 @@ export default function OrcamentosPage() {
         open={modalId !== null}
         onOpenChange={(op) => !op && setModalId(null)}
       />
+
+      {orcQ.hasNextPage && (
+        <div className="flex flex-col items-center gap-2 py-4">
+          <p className="text-center text-xs text-muted-foreground">
+            Mostrando {orcamentos.length} orçamento(s). Há mais registos na base.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={orcQ.isFetchingNextPage}
+            onClick={() => void orcQ.fetchNextPage()}
+          >
+            {orcQ.isFetchingNextPage ? 'A carregar…' : 'Carregar mais orçamentos'}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

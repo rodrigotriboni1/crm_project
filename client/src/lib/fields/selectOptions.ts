@@ -1,4 +1,5 @@
-import { CANAIS_CONTATO, ORCAMENTO_STATUS_ORDER, orcamentoStatusLabel } from '@/hooks/useCrm'
+import { INTERACAO_CANAIS_USUARIO } from '@/lib/interacaoCanal'
+import { ORCAMENTO_STATUS_ORDER, orcamentoStatusLabel } from '@/lib/orcamentoStatusUi'
 import type { SelectOption } from '@/types/fields'
 
 export const clienteTipoOptions: SelectOption[] = [
@@ -13,7 +14,7 @@ export function orcamentoStatusOptions(): SelectOption[] {
   }))
 }
 
-export const canalContatoOptions: SelectOption[] = CANAIS_CONTATO.map((c) => ({
+export const canalContatoOptions: SelectOption[] = INTERACAO_CANAIS_USUARIO.map((c) => ({
   value: c,
   label: c,
 }))

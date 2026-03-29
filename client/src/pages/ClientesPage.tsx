@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Users } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
-import { useBulkPatchClientes, useClientes } from '@/hooks/useCrm'
+import { useBulkPatchClientes, useClientes, useClientesKpis } from '@/hooks/useCrm'
 import { Button } from '@/components/ui/button'
 import {
   EmptyState,
@@ -19,7 +19,6 @@ import NovoClienteDialog from '@/components/cliente/NovoClienteDialog'
 import ImportarClientesDialog from '@/components/cliente/ImportarClientesDialog'
 import {
   clientesBulkAtivoPatches,
-  clientesListKpis,
   filterAndSortClientes,
   clientePhoneLine,
   clienteTaxDisplay,
@@ -35,7 +34,14 @@ import { cn } from '@/lib/utils'
 export default function ClientesPage() {
   const { user } = useAuth()
   useGenericAssistantDock('Clientes')
-  const { data: clientes = [], isLoading } = useClientes(user)
+  const {
+    data: clientes = [],
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useClientes(user)
+  const { data: kpis } = useClientesKpis(user)
   const bulkAtivo = useBulkPatchClientes(user)
   const selectAllRef = useRef<HTMLInputElement>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
@@ -48,7 +54,14 @@ export default function ClientesPage() {
   const [archiveFilter, setArchiveFilter] = useState<ClienteArchiveFilter>('ativos')
   const [sort, setSort] = useState<ClienteSort>('nome_asc')
 
-  const kpis = useMemo(() => clientesListKpis(clientes), [clientes])
+  const kpisDisplay = kpis ?? {
+    ativos: 0,
+    arquivados: 0,
+    recompras: 0,
+    comTel: 0,
+    semContato30: 0,
+    pctTel: 0,
+  }
 
   const filtered = useMemo(
     () =>
@@ -131,19 +144,19 @@ export default function ClientesPage() {
       <ListPageKpiGrid
         columnsClassName="sm:grid-cols-2 lg:grid-cols-5"
         items={[
-          { label: 'Ativos', value: kpis.ativos, valueClassName: 'text-foreground' },
-          { label: 'Arquivados', value: kpis.arquivados, valueClassName: 'text-muted-foreground' },
-          { label: 'Recompra (ativos)', value: kpis.recompras, valueClassName: 'text-green-700' },
+          { label: 'Ativos', value: kpisDisplay.ativos, valueClassName: 'text-foreground' },
+          { label: 'Arquivados', value: kpisDisplay.arquivados, valueClassName: 'text-muted-foreground' },
+          { label: 'Recompra (ativos)', value: kpisDisplay.recompras, valueClassName: 'text-green-700' },
           {
             label: 'Com telefone',
             value: (
               <>
-                {kpis.comTel}
-                <span className="ml-1 text-xs font-normal text-muted-foreground">({kpis.pctTel}%)</span>
+                {kpisDisplay.comTel}
+                <span className="ml-1 text-xs font-normal text-muted-foreground">({kpisDisplay.pctTel}%)</span>
               </>
             ),
           },
-          { label: 'Sem contacto 30d', value: kpis.semContato30, valueClassName: 'text-amber-800' },
+          { label: 'Sem contacto 30d', value: kpisDisplay.semContato30, valueClassName: 'text-amber-800' },
         ]}
       />
 
@@ -213,6 +226,12 @@ export default function ClientesPage() {
         }
       />
 
+      {q.trim() && hasNextPage && (
+        <p className="text-xs text-muted-foreground">
+          A pesquisa aplica-se apenas aos clientes já carregados. Use «Carregar mais» abaixo para alargar o âmbito.
+        </p>
+      )}
+
       <ImportarClientesDialog user={user} open={importOpen} onOpenChange={setImportOpen} />
 
       {selectedIds.size > 0 && (
@@ -263,11 +282,17 @@ export default function ClientesPage() {
           {filtered.length === 0 ? (
             <EmptyState
               icon={<Users className="size-10" />}
-              title={clientes.length === 0 ? 'Ainda não há clientes' : 'Nenhum cliente corresponde aos filtros'}
+              title={
+                clientes.length === 0 && !hasNextPage
+                  ? 'Ainda não há clientes'
+                  : 'Nenhum cliente corresponde aos filtros'
+              }
               description={
-                clientes.length === 0
+                clientes.length === 0 && !hasNextPage
                   ? 'Adicione o primeiro contacto ou importe uma lista a partir de uma planilha Excel.'
-                  : 'Ajuste a pesquisa ou os filtros para ver mais resultados.'
+                  : clientes.length === 0 && hasNextPage
+                    ? 'Carregue mais clientes para poder filtrar e pesquisar no conjunto completo.'
+                    : 'Ajuste a pesquisa ou os filtros, ou carregue mais clientes se ainda não carregou todos.'
               }
               action={
                 <div className="flex flex-wrap justify-center gap-2">
@@ -352,6 +377,23 @@ export default function ClientesPage() {
             </>
           )}
         </SectionCard>
+      )}
+
+      {hasNextPage && (
+        <div className="flex flex-col items-center gap-2 py-2">
+          <p className="text-center text-xs text-muted-foreground">
+            Mostrando {clientes.length} cliente(s) carregado(s). Há mais na sua base.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isFetchingNextPage}
+            onClick={() => void fetchNextPage()}
+          >
+            {isFetchingNextPage ? 'A carregar…' : 'Carregar mais clientes'}
+          </Button>
+        </div>
       )}
     </PageContainer>
   )

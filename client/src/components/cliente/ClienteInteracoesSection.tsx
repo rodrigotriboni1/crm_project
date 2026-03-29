@@ -22,9 +22,18 @@ type CreateIntRow = Omit<Parameters<typeof createInteracao>[2], 'cliente_id'>
 type Props = {
   interacoes: Interacao[]
   createInt: UseMutationResult<Interacao, Error, CreateIntRow, unknown>
+  hasMore?: boolean
+  loadingMore?: boolean
+  onLoadMore?: () => void
 }
 
-export default function ClienteInteracoesSection({ interacoes, createInt }: Props) {
+export default function ClienteInteracoesSection({
+  interacoes,
+  createInt,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+}: Props) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [canal, setCanal] = useState<(typeof CANAIS_CONTATO)[number]>('WhatsApp')
   const [anotacao, setAnotacao] = useState('')
@@ -112,6 +121,20 @@ export default function ClienteInteracoesSection({ interacoes, createInt }: Prop
               <p className="whitespace-pre-wrap text-xs text-muted-foreground">{i.anotacao}</p>
             </div>
           ))
+        )}
+        {hasMore && onLoadMore && (
+          <div className="border-t px-6 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full text-xs"
+              disabled={loadingMore}
+              onClick={() => onLoadMore()}
+            >
+              {loadingMore ? 'A carregar…' : 'Carregar mais contactos'}
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>

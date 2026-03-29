@@ -3,7 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { FileSpreadsheet, Loader2, Sparkles } from 'lucide-react'
 import { isAssistantConfigured } from '@/api/openrouter'
-import { createCliente } from '@/api/clientes'
+import { importClientesBatch } from '@/api/clientes'
 import { suggestClienteColumnMapping } from '@/lib/clienteImportAi'
 import {
   buildMappingFromAi,
@@ -138,12 +138,15 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
 
   const nomeMapped = useMemo(() => Object.values(mapping).includes('nome'), [mapping])
 
+  const IMPORT_BATCH_SIZE = 80
+
   const runImport = async () => {
     if (!user?.id || !supabase || !active || !nomeMapped) return
     setImporting(true)
     setImportResult(null)
     const errors: { row: number; msg: string }[] = []
-    let ok = 0
+    type Job = { excelRow: number; json: Record<string, unknown> }
+    const jobs: Job[] = []
     let excelRow = 2
     for (const row of rows) {
       const cells = [...row]
@@ -159,21 +162,42 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
         excelRow++
         continue
       }
-      try {
-        await createCliente(supabase, user.id, payload)
-        ok++
-      } catch (err) {
-        const msg =
-          err instanceof Error
-            ? err.message.toLowerCase().includes('duplicate') || err.message.includes('23505')
-              ? 'Documento duplicado (CPF/CNPJ já existe).'
-              : err.message
-            : String(err)
-        errors.push({ row: excelRow, msg })
-      }
+      jobs.push({
+        excelRow,
+        json: {
+          nome: payload.nome,
+          tipo: payload.tipo ?? 'novo',
+          tax_id: payload.tax_id ?? null,
+          whatsapp: payload.whatsapp ?? null,
+          telefone: payload.telefone ?? null,
+          produtos_habituais: payload.produtos_habituais ?? null,
+          observacoes: payload.observacoes ?? null,
+        },
+      })
       excelRow++
-      await new Promise((r) => setTimeout(r, 0))
     }
+
+    let ok = 0
+    try {
+      for (let i = 0; i < jobs.length; i += IMPORT_BATCH_SIZE) {
+        const slice = jobs.slice(i, i + IMPORT_BATCH_SIZE)
+        const { inserted, errors: batchErrs } = await importClientesBatch(
+          supabase,
+          slice.map((j) => j.json)
+        )
+        ok += inserted
+        for (const e of batchErrs) {
+          const job = slice[e.index]
+          if (job) errors.push({ row: job.excelRow, msg: e.msg })
+        }
+      }
+    } catch (err) {
+      errors.push({
+        row: 0,
+        msg: err instanceof Error ? err.message : String(err),
+      })
+    }
+
     setImportResult({ ok, errors })
     setImporting(false)
     void qc.invalidateQueries({ queryKey: qk.clientes(user.id) })

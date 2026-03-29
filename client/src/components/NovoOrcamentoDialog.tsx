@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import type { User } from '@supabase/supabase-js'
-import { useClientes, useCreateOrcamento, useProdutos } from '@/hooks/useCrm'
+import { useClientesForPicker, useCreateOrcamento, useProdutos } from '@/hooks/useCrm'
 import { orcamentoStatusOptions } from '@/lib/fields'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -53,7 +53,7 @@ const followField: FieldDefinition = {
 }
 
 export default function NovoOrcamentoDialog({ user, open, onOpenChange }: Props) {
-  const { data: clientes = [] } = useClientes(user, { ativosApenas: true })
+  const { data: clientes = [] } = useClientesForPicker(user, { ativosApenas: true })
   const { data: produtosCatalogo = [] } = useProdutos(user, { ativosApenas: true })
   const create = useCreateOrcamento(user)
 

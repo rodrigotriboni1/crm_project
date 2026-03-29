@@ -113,6 +113,29 @@ export function filterAndSortClientes(
   return sorted
 }
 
+/** Resposta de `clientes_kpis_summary()` no Postgres (snake_case). */
+export type ClientesKpisRpcRow = {
+  ativos: number
+  arquivados: number
+  recompras: number
+  com_telefone: number
+  sem_contato_30: number
+}
+
+/** Converte agregados do servidor para o mesmo formato que `clientesListKpis` (UI). */
+export function clientesKpisFromRpcSummary(s: ClientesKpisRpcRow) {
+  const nAtivos = s.ativos
+  const pctTel = nAtivos ? Math.round((s.com_telefone / nAtivos) * 100) : 0
+  return {
+    ativos: nAtivos,
+    arquivados: s.arquivados,
+    recompras: s.recompras,
+    comTel: s.com_telefone,
+    semContato30: s.sem_contato_30,
+    pctTel,
+  }
+}
+
 export function clientesListKpis(list: ClienteListItem[]) {
   const ativos = list.filter((c) => clienteEstaAtivo(c))
   const arquivados = list.length - ativos.length

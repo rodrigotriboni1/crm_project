@@ -1,26 +1,34 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { User } from '@supabase/supabase-js'
 import {
   applyOrcamentoUpdate,
+  CLIENTES_PAGE_SIZE,
   createCliente,
   createInteracao,
   createOrcamento,
   createProduto,
+  fetchClientesComUltimoContatoPage,
+  fetchClientesKpisSummary,
   fetchDashboard,
   fetchReportsData,
   getCliente,
   getOrcamento,
   listClientesComUltimoContato,
-  listInteracoes,
+  INTERACOES_PAGE_SIZE,
+  listInteracoesPage,
   listOrcamentos,
   listOrcamentosByCliente,
+  listOrcamentosPage,
   listProdutos,
+  ORCAMENTOS_PAGE_SIZE,
   patchOrcamento,
   updateCliente,
   updateProduto,
 } from '@/api/crm'
 import { supabase } from '@/lib/supabase'
 import { INTERACAO_CANAIS_USUARIO } from '@/lib/interacaoCanal'
+import { ORCAMENTO_STATUS_ORDER, orcamentoStatusLabel } from '@/lib/orcamentoStatusUi'
 import { qk } from '@/lib/queryKeys'
 import type { ClienteTipo, ClienteUpdate, OrcamentoStatus, ProdutoUpdate } from '@/types/database'
 import type { ReportsDateRange } from '@/api/crm'
@@ -55,13 +63,66 @@ export function useReports(user: User | null, range: ReportsDateRange | null) {
   })
 }
 
+/** Listagem paginada (cursor); usar `useClientesForPlanilha` / `useClientesForPicker` quando precisar da lista completa. */
 export function useClientes(user: User | null, opts?: { ativosApenas?: boolean }) {
   const ativosOnly = opts?.ativosApenas === true
+  const infinite = useInfiniteQuery({
+    queryKey: user ? ([...qk.clientes(user.id), 'paged', ativosOnly] as const) : (['clientes', 'none'] as const),
+    queryFn: async ({ pageParam }) => {
+      const { sb, uid } = requireClient(user)
+      return fetchClientesComUltimoContatoPage(sb, uid, {
+        ativosApenas: ativosOnly,
+        cursor: pageParam ?? null,
+        limit: CLIENTES_PAGE_SIZE,
+      })
+    },
+    initialPageParam: null as { nome: string; id: string } | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    enabled: Boolean(supabase && user),
+  })
+  const data = useMemo(() => infinite.data?.pages.flatMap((p) => p.rows) ?? [], [infinite.data])
+  return {
+    data,
+    isLoading: infinite.isLoading,
+    isError: infinite.isError,
+    error: infinite.error,
+    fetchNextPage: infinite.fetchNextPage,
+    hasNextPage: Boolean(infinite.hasNextPage),
+    isFetchingNextPage: infinite.isFetchingNextPage,
+  }
+}
+
+export function useClientesKpis(user: User | null) {
   return useQuery({
-    queryKey: user ? ([...qk.clientes(user.id), ativosOnly ? 'ativos' : 'all'] as const) : (['clientes', 'none'] as const),
+    queryKey: user ? (['clientes', user.id, 'kpis'] as const) : (['clientes', 'kpis', 'none'] as const),
+    queryFn: () => {
+      const { sb, uid } = requireClient(user)
+      return fetchClientesKpisSummary(sb, uid)
+    },
+    enabled: Boolean(supabase && user),
+  })
+}
+
+/** Lista completa para selectores (ex.: novo orçamento). */
+export function useClientesForPicker(user: User | null, opts?: { ativosApenas?: boolean }) {
+  const ativosOnly = opts?.ativosApenas === true
+  return useQuery({
+    queryKey: user ? qk.clientesPicker(user.id, ativosOnly) : (['clientes', 'picker', 'none'] as const),
     queryFn: () => {
       const { sb, uid } = requireClient(user)
       return listClientesComUltimoContato(sb, uid, { ativosApenas: ativosOnly })
+    },
+    enabled: Boolean(supabase && user),
+  })
+}
+
+/** Lista completa para a vista em planilha (Glide). */
+export function useClientesForPlanilha(user: User | null) {
+  return useQuery({
+    queryKey: user ? ([...qk.clientes(user.id), 'planilha'] as const) : (['clientes', 'planilha', 'none'] as const),
+    queryFn: () => {
+      const { sb, uid } = requireClient(user)
+      return listClientesComUltimoContato(sb, uid, {})
     },
     enabled: Boolean(supabase && user),
   })
@@ -84,6 +145,23 @@ export function useOrcamentos(user: User | null) {
     queryFn: () => {
       const { sb, uid } = requireClient(user)
       return listOrcamentos(sb, uid)
+    },
+    enabled: Boolean(supabase && user),
+  })
+}
+
+/** Orçamentos em páginas (lista / tabela); Kanban continua a usar `useOrcamentos`. */
+export function useOrcamentosInfinite(user: User | null) {
+  return useInfiniteQuery({
+    queryKey: user ? ([...qk.orcamentos(user.id), 'infinite'] as const) : (['orcamentos', 'none', 'inf'] as const),
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const { sb, uid } = requireClient(user)
+      return listOrcamentosPage(sb, uid, { offset: pageParam, limit: ORCAMENTOS_PAGE_SIZE })
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < ORCAMENTOS_PAGE_SIZE) return undefined
+      return allPages.reduce((acc, p) => acc + p.length, 0)
     },
     enabled: Boolean(supabase && user),
   })
@@ -124,11 +202,19 @@ export function useProdutos(user: User | null, opts?: { ativosApenas?: boolean }
 }
 
 export function useInteracoes(user: User | null, clienteId: string | undefined) {
-  return useQuery({
-    queryKey: user && clienteId ? qk.interacoes(user.id, clienteId) : ['interacoes', 'none'],
-    queryFn: () => {
+  return useInfiniteQuery({
+    queryKey: user && clienteId ? ([...qk.interacoes(user.id, clienteId), 'paged'] as const) : (['interacoes', 'none'] as const),
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
       const { sb, uid } = requireClient(user)
-      return listInteracoes(sb, uid, clienteId!)
+      return listInteracoesPage(sb, uid, clienteId!, {
+        offset: pageParam,
+        limit: INTERACOES_PAGE_SIZE,
+      })
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < INTERACOES_PAGE_SIZE) return undefined
+      return allPages.reduce((acc, p) => acc + p.length, 0)
     },
     enabled: Boolean(supabase && user && clienteId),
   })
@@ -311,30 +397,7 @@ export function clienteTipoLabel(t: ClienteTipo): string {
   return t === 'recompra' ? 'Recompra' : 'Novo'
 }
 
-export function orcamentoStatusLabel(s: OrcamentoStatus): string {
-  switch (s) {
-    case 'novo_contato':
-      return 'Novo contato'
-    case 'orcamento_enviado':
-      return 'Orçamento enviado'
-    case 'dormindo':
-      return 'Dormindo'
-    case 'ganho':
-      return 'Ganho'
-    case 'perdido':
-      return 'Perdido'
-    default:
-      return s
-  }
-}
-
-export const ORCAMENTO_STATUS_ORDER: OrcamentoStatus[] = [
-  'novo_contato',
-  'orcamento_enviado',
-  'dormindo',
-  'ganho',
-  'perdido',
-]
+export { ORCAMENTO_STATUS_ORDER, orcamentoStatusLabel }
 
 /** Re-export alinhado a `interacoes.canal` (CHECK no Postgres). */
 export const CANAIS_CONTATO = INTERACAO_CANAIS_USUARIO

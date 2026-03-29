@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
@@ -20,7 +21,8 @@ export default function ClienteDetailPage() {
   const { user } = useAuth()
   useGenericAssistantDock('Cliente')
   const { data: cliente, isLoading } = useCliente(user, id)
-  const { data: interacoes = [] } = useInteracoes(user, id)
+  const interacoesQ = useInteracoes(user, id)
+  const interacoes = useMemo(() => interacoesQ.data?.pages.flat() ?? [], [interacoesQ.data])
   const { data: orcamentos = [] } = useOrcamentosByCliente(user, id)
   const update = useUpdateCliente(user, id ?? '')
   const createInt = useCreateInteracao(user, id ?? '')
@@ -48,7 +50,13 @@ export default function ClienteDetailPage() {
         produtosCatalogo={produtosCatalogo}
         createOrc={createOrc}
       />
-      <ClienteInteracoesSection interacoes={interacoes} createInt={createInt} />
+      <ClienteInteracoesSection
+        interacoes={interacoes}
+        createInt={createInt}
+        hasMore={Boolean(interacoesQ.hasNextPage)}
+        loadingMore={interacoesQ.isFetchingNextPage}
+        onLoadMore={() => void interacoesQ.fetchNextPage()}
+      />
     </div>
   )
 }

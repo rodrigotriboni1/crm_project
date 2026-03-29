@@ -1,5 +1,6 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { clientesKpisFromRpcSummary, clientesListKpis } from '@/lib/clienteListHelpers'
 import { normalizeClienteTaxId } from '@/lib/taxId'
 import type { Cliente, ClienteListItem, ClienteTipo, ClienteUpdate } from '@/types/database'
 
@@ -90,6 +91,123 @@ export async function listClientesComUltimoContato(
   }
   const rows = (data ?? []) as Record<string, unknown>[]
   return mapRpcRowsToClienteListItem(rows)
+}
+
+export const CLIENTES_PAGE_SIZE = 150
+
+export type ClientesPageCursor = { nome: string; id: string }
+
+export type FetchClientesPageResult = {
+  rows: ClienteListItem[]
+  nextCursor: ClientesPageCursor | null
+}
+
+function rowAfterCursor(c: ClienteListItem, cursor: ClientesPageCursor): boolean {
+  if (c.nome > cursor.nome) return true
+  if (c.nome < cursor.nome) return false
+  return c.id > cursor.id
+}
+
+async function fetchClientesComUltimoContatoPageLegacy(
+  sb: SupabaseClient,
+  userId: string,
+  opts: {
+    ativosApenas?: boolean
+    limit: number
+    cursor: ClientesPageCursor | null
+  }
+): Promise<FetchClientesPageResult> {
+  const all = await listClientesComUltimoContato(sb, userId, { ativosApenas: opts.ativosApenas })
+  const filtered = opts.cursor ? all.filter((c) => rowAfterCursor(c, opts.cursor!)) : all
+  const rows = filtered.slice(0, opts.limit)
+  const last = rows[rows.length - 1]
+  const nextCursor =
+    rows.length === opts.limit && last ? { nome: last.nome, id: last.id } : null
+  return { rows, nextCursor }
+}
+
+/** Uma página de clientes (cursor em nome, id); substitui carregar toda a lista na UI principal. */
+export async function fetchClientesComUltimoContatoPage(
+  sb: SupabaseClient,
+  userId: string,
+  opts: {
+    ativosApenas?: boolean
+    limit?: number
+    cursor?: ClientesPageCursor | null
+  }
+): Promise<FetchClientesPageResult> {
+  const limit = Math.min(Math.max(opts.limit ?? CLIENTES_PAGE_SIZE, 1), 500)
+  const cursor = opts.cursor ?? null
+  const { data, error } = await sb.rpc('list_clientes_com_ultimo_contato_page', {
+    p_ativos_apenas: opts.ativosApenas === true,
+    p_limit: limit,
+    p_cursor_nome: cursor?.nome ?? null,
+    p_cursor_id: cursor?.id ?? null,
+  })
+  if (error) {
+    if (isMissingListClientesRpcError(error)) {
+      return fetchClientesComUltimoContatoPageLegacy(sb, userId, {
+        ativosApenas: opts.ativosApenas,
+        limit,
+        cursor,
+      })
+    }
+    throw error
+  }
+  const rows = mapRpcRowsToClienteListItem((data ?? []) as Record<string, unknown>[])
+  const last = rows[rows.length - 1]
+  const nextCursor = rows.length === limit && last ? { nome: last.nome, id: last.id } : null
+  return { rows, nextCursor }
+}
+
+export type ClientesKpisDisplay = ReturnType<typeof clientesListKpis>
+
+/** KPIs agregados no servidor (fallback: lista completa legada). */
+export async function fetchClientesKpisSummary(
+  sb: SupabaseClient,
+  _userId: string
+): Promise<ClientesKpisDisplay> {
+  const { data, error } = await sb.rpc('clientes_kpis_summary')
+  if (error) {
+    if (isMissingListClientesRpcError(error)) {
+      const all = await listClientesComUltimoContato(sb, _userId, {})
+      return clientesListKpis(all)
+    }
+    throw error
+  }
+  const j = (data ?? {}) as Record<string, unknown>
+  return clientesKpisFromRpcSummary({
+    ativos: Number(j.ativos ?? 0),
+    arquivados: Number(j.arquivados ?? 0),
+    recompras: Number(j.recompras ?? 0),
+    com_telefone: Number(j.com_telefone ?? 0),
+    sem_contato_30: Number(j.sem_contato_30 ?? 0),
+  })
+}
+
+export type ImportClientesBatchError = { index: number; msg: string }
+
+/** Insere várias fichas num único RPC (`import_clientes_batch`). */
+export async function importClientesBatch(
+  sb: SupabaseClient,
+  items: Record<string, unknown>[]
+): Promise<{ inserted: number; errors: ImportClientesBatchError[] }> {
+  const { data, error } = await sb.rpc('import_clientes_batch', { p_rows: items })
+  if (error) {
+    if (isMissingListClientesRpcError(error)) {
+      throw new Error(
+        'Função import_clientes_batch não encontrada. Aplique as migrações Supabase mais recentes (ver docs/supabase-migration-verify.md).'
+      )
+    }
+    throw error
+  }
+  const out = (data ?? {}) as { inserted?: number; errors?: unknown }
+  const rawErrs = Array.isArray(out.errors) ? out.errors : []
+  const errors: ImportClientesBatchError[] = rawErrs.map((e) => {
+    const o = e as Record<string, unknown>
+    return { index: Number(o.index ?? 0), msg: String(o.msg ?? 'Erro desconhecido') }
+  })
+  return { inserted: Number(out.inserted ?? 0), errors }
 }
 
 export async function getCliente(sb: SupabaseClient, userId: string, id: string): Promise<Cliente | null> {

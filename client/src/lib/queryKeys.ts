@@ -3,6 +3,8 @@ export const qk = {
   dashboard: (uid: string) => ['dashboard', uid] as const,
   reports: (uid: string, start: string, end: string) => ['reports', uid, start, end] as const,
   clientes: (uid: string) => ['clientes', uid] as const,
+  /** Lista completa para planilha / selectores (não usar na listagem paginada). */
+  clientesPicker: (uid: string, ativosOnly: boolean) => ['clientes', uid, 'picker', ativosOnly] as const,
   cliente: (uid: string, id: string) => ['cliente', uid, id] as const,
   orcamentos: (uid: string) => ['orcamentos', uid] as const,
   orcamento: (uid: string, id: string) => ['orcamento', uid, id] as const,

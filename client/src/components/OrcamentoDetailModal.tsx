@@ -58,7 +58,8 @@ type Props = {
 
 export default function OrcamentoDetailModal({ user, orcamentoId, open, onOpenChange }: Props) {
   const { data: o, isLoading } = useOrcamento(user, orcamentoId ?? undefined)
-  const { data: interacoes = [] } = useInteracoes(user, o?.cliente_id)
+  const interacoesQ = useInteracoes(user, o?.cliente_id)
+  const interacoes = useMemo(() => interacoesQ.data?.pages.flat() ?? [], [interacoesQ.data])
   const apply = useApplyOrcamentoUpdate(user)
   const patchTax = usePatchOrcamento(user)
 

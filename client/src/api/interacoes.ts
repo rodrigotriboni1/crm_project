@@ -4,6 +4,8 @@ import type { InteracaoCanalUsuario } from '@/lib/interacaoCanal'
 
 export type InteracaoRow = Interacao & { clientes: { nome: string } | null }
 
+export const INTERACOES_PAGE_SIZE = 40
+
 export async function listInteracoes(
   sb: SupabaseClient,
   userId: string,
@@ -15,6 +17,26 @@ export async function listInteracoes(
     .eq('user_id', userId)
     .eq('cliente_id', clienteId)
     .order('data_contato', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as Interacao[]
+}
+
+/** Página de interacções (mais recentes primeiro). */
+export async function listInteracoesPage(
+  sb: SupabaseClient,
+  userId: string,
+  clienteId: string,
+  opts: { limit?: number; offset?: number }
+): Promise<Interacao[]> {
+  const limit = Math.min(Math.max(opts.limit ?? INTERACOES_PAGE_SIZE, 1), 200)
+  const offset = Math.max(opts.offset ?? 0, 0)
+  const { data, error } = await sb
+    .from('interacoes')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('cliente_id', clienteId)
+    .order('data_contato', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
   return (data ?? []) as Interacao[]
 }
