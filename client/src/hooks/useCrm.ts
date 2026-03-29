@@ -71,12 +71,17 @@ export function useReports(
 }
 
 /** Listagem paginada (cursor); usar `useClientesForPlanilha` / `useClientesForPicker` quando precisar da lista completa. */
-export function useClientes(user: User | null, organizationId: string | null, opts?: { ativosApenas?: boolean }) {
+export function useClientes(
+  user: User | null,
+  organizationId: string | null,
+  opts?: { ativosApenas?: boolean; search?: string }
+) {
   const ativosOnly = opts?.ativosApenas === true
+  const search = opts?.search?.trim() ?? ''
   const infinite = useInfiniteQuery({
     queryKey:
       user && organizationId
-        ? ([...qk.clientes(user.id, organizationId), 'paged', ativosOnly] as const)
+        ? ([...qk.clientes(user.id, organizationId), 'paged', ativosOnly, search] as const)
         : (['clientes', 'none'] as const),
     queryFn: async ({ pageParam }) => {
       const { sb, uid, orgId } = requireClient(user, organizationId)
@@ -84,6 +89,7 @@ export function useClientes(user: User | null, organizationId: string | null, op
         ativosApenas: ativosOnly,
         cursor: pageParam ?? null,
         limit: CLIENTES_PAGE_SIZE,
+        search: search.length > 0 ? search : undefined,
       })
     },
     initialPageParam: null as { nome: string; id: string } | null,

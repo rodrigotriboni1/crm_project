@@ -2,7 +2,7 @@ import type { CrmAssistantPanelProps } from '@/components/CrmAssistantPanel'
 
 export type AssistantVariant = 'dashboard' | 'reports' | 'generic'
 
-type StaticAssistantProps = Omit<CrmAssistantPanelProps, 'contextJson' | 'className'>
+type StaticAssistantProps = Omit<CrmAssistantPanelProps, 'contextJson' | 'className' | 'variant'>
 
 const DASHBOARD: StaticAssistantProps = {
   heading: 'Assistente',
@@ -72,5 +72,5 @@ export function buildAssistantPanelProps(
   contextJson: string
 ): Omit<CrmAssistantPanelProps, 'className'> {
   const base = BY_VARIANT[variant]
-  return { ...base, contextJson }
+  return { ...base, variant, contextJson }
 }

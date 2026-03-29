@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Bot, Loader2, MessageSquarePlus, Send, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Bot, ChevronDown, Loader2, MessageSquarePlus, Send, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -24,9 +24,15 @@ import type { AssistantStorageScope } from '@/lib/storageKeys'
 import { assistantActiveThreadKey } from '@/lib/storageKeys'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+import type { AssistantVariant } from '@/lib/assistantVariants'
+import {
+  describeAssistantScreenContext,
+  parseAssistantContextJson,
+} from '@/lib/assistantContextSummary'
 import type { AssistantChatThread, AssistantChatTurn } from '@/types/database'
 
 export type CrmAssistantPanelProps = {
+  variant: AssistantVariant
   contextJson: string
   className?: string
   heading: string
@@ -53,6 +59,7 @@ function localTurnsKey(userId: string, scope: AssistantStorageScope): string {
 }
 
 export function CrmAssistantPanel({
+  variant,
   contextJson,
   className,
   heading,
@@ -360,6 +367,11 @@ export function CrmAssistantPanel({
 
   const cloudUi = Boolean(supabase && user?.id && threadsReady)
 
+  const screenSummary = useMemo(
+    () => describeAssistantScreenContext(variant, parseAssistantContextJson(contextJson)),
+    [variant, contextJson]
+  )
+
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col border border-border bg-card', className)}>
       <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2 sm:px-4">
@@ -377,6 +389,23 @@ export function CrmAssistantPanel({
           </p>
         </div>
       </div>
+
+      <details className="group border-b border-border bg-muted/20 px-2 py-1.5 open:bg-muted/30">
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-muted-foreground marker:hidden [&::-webkit-details-marker]:hidden hover:text-foreground">
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
+          {screenSummary.summaryLabel}
+        </summary>
+        <ul className="mt-2 space-y-1.5 border-t border-border/60 pt-2 text-[11px] leading-snug text-muted-foreground">
+          {screenSummary.bullets.map((b, i) => (
+            <li key={i} className="pl-0.5">
+              {b}
+            </li>
+          ))}
+        </ul>
+        {screenSummary.footer ? (
+          <p className="mt-2 text-[10px] text-muted-foreground/90">{screenSummary.footer}</p>
+        ) : null}
+      </details>
 
       {!configured ? (
         <div className="flex-1 space-y-2 p-4 text-sm text-muted-foreground">

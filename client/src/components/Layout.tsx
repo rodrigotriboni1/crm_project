@@ -26,8 +26,10 @@ import {
   SIDEBAR_COLLAPSED_KEY,
 } from '@/lib/storageKeys'
 import { AssistantDockProvider } from '@/contexts/AssistantDockContext'
+import { ClienteImportJobProvider } from '@/contexts/ClienteImportJobContext'
 import LayoutAssistantRail from '@/components/LayoutAssistantRail'
 import MobileBottomNav from '@/components/MobileBottomNav'
+import ImportProgressBanner from '@/components/cliente/ImportProgressBanner'
 import ThemeToggle from '@/components/ThemeToggle'
 import { SelectNative } from '@/components/ui/select-native'
 import { cn } from '@/lib/utils'
@@ -314,14 +316,17 @@ export default function Layout() {
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <AssistantDockProvider>
-          <OrganizationMain>
-            <div className="flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden max-md:pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] md:pb-0">
-                <Outlet />
+          <ClienteImportJobProvider>
+            <OrganizationMain>
+              <div className="flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden max-md:pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+                  <Outlet />
+                </div>
+                <LayoutAssistantRail />
               </div>
-              <LayoutAssistantRail />
-            </div>
-          </OrganizationMain>
+              <ImportProgressBanner />
+            </OrganizationMain>
+          </ClienteImportJobProvider>
         </AssistantDockProvider>
       </main>
 

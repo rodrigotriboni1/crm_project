@@ -1,10 +1,9 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { useQueryClient } from '@tanstack/react-query'
 import { FileSpreadsheet, Loader2, Sparkles } from 'lucide-react'
 import { isAssistantConfigured } from '@/api/openrouter'
-import { importClientesBatch } from '@/api/clientes'
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { useClienteImportJob } from '@/contexts/ClienteImportJobContext'
 import { suggestClienteColumnMapping } from '@/lib/clienteImportAi'
 import {
   buildMappingFromAi,
@@ -15,8 +14,6 @@ import {
   type ColumnMapping,
   type ParsedSheet,
 } from '@/lib/importClientesExcel'
-import { supabase } from '@/lib/supabase'
-import { qk } from '@/lib/queryKeys'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { SelectNative } from '@/components/ui/select-native'
-import { cn } from '@/lib/utils'
+import type { ImportJobRowError } from '@/contexts/ClienteImportJobContext'
 
 type Props = {
   user: User | null
@@ -41,7 +38,7 @@ function initialMapping(headers: string[]): ColumnMapping {
 
 export default function ImportarClientesDialog({ user, open, onOpenChange }: Props) {
   const { activeOrganizationId } = useOrganization()
-  const qc = useQueryClient()
+  const { phase: importPhase, runImport } = useClienteImportJob()
   const [file, setFile] = useState<File | null>(null)
   const [sheets, setSheets] = useState<ParsedSheet[]>([])
   const [sheetIndex, setSheetIndex] = useState(0)
@@ -49,11 +46,8 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const [aiWarnings, setAiWarnings] = useState<string[]>([])
-  const [importing, setImporting] = useState(false)
-  const [importResult, setImportResult] = useState<{ ok: number; errors: { row: number; msg: string }[] } | null>(
-    null
-  )
   const [parseError, setParseError] = useState<string | null>(null)
+  const [localImportHint, setLocalImportHint] = useState<string | null>(null)
 
   const active = sheets[sheetIndex]
   const headers = active?.headers ?? []
@@ -68,6 +62,7 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
   )
 
   const configured = isAssistantConfigured(user)
+  const importRunning = importPhase === 'running'
 
   const reset = useCallback(() => {
     setFile(null)
@@ -77,15 +72,13 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
     setAiLoading(false)
     setAiError(null)
     setAiWarnings([])
-    setImporting(false)
-    setImportResult(null)
     setParseError(null)
+    setLocalImportHint(null)
   }, [])
 
   const onFile = async (f: File | null) => {
     setParseError(null)
-    setImportResult(null)
-    setAiWarnings([])
+    setLocalImportHint(null)
     setFile(f)
     if (!f) {
       setSheets([])
@@ -114,12 +107,13 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
     setSheetIndex(idx)
     const sh = sheets[idx]
     if (sh) setMapping(initialMapping(sh.headers))
-    setImportResult(null)
     setAiWarnings([])
+    setLocalImportHint(null)
   }
 
   const setFieldForHeader = (header: string, field: string) => {
     setMapping((prev) => ({ ...prev, [header]: field as ColumnMapping[string] }))
+    setLocalImportHint(null)
   }
 
   const runAi = async () => {
@@ -142,15 +136,12 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
 
   const nomeMapped = useMemo(() => Object.values(mapping).includes('nome'), [mapping])
 
-  const IMPORT_BATCH_SIZE = 80
+  const startBackgroundImport = () => {
+    if (!user?.id || !active || !nomeMapped || !activeOrganizationId) return
+    setLocalImportHint(null)
 
-  const runImport = async () => {
-    if (!user?.id || !supabase || !active || !nomeMapped || !activeOrganizationId) return
-    setImporting(true)
-    setImportResult(null)
-    const errors: { row: number; msg: string }[] = []
-    type Job = { excelRow: number; json: Record<string, unknown> }
-    const jobs: Job[] = []
+    const preBatchErrors: ImportJobRowError[] = []
+    const jobs: { excelRow: number; json: Record<string, unknown> }[] = []
     let excelRow = 2
     for (const row of rows) {
       const cells = [...row]
@@ -162,7 +153,7 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
       }
       const payload = rowToClientePayload(slice, headers, mapping)
       if (!payload) {
-        errors.push({ row: excelRow, msg: 'Sem nome na linha (mapeamento).' })
+        preBatchErrors.push({ row: excelRow, msg: 'Sem nome na linha (mapeamento).' })
         excelRow++
         continue
       }
@@ -181,32 +172,24 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
       excelRow++
     }
 
-    let ok = 0
-    try {
-      for (let i = 0; i < jobs.length; i += IMPORT_BATCH_SIZE) {
-        const slice = jobs.slice(i, i + IMPORT_BATCH_SIZE)
-        const { inserted, errors: batchErrs } = await importClientesBatch(
-          supabase,
-          activeOrganizationId,
-          slice.map((j) => j.json)
+    if (jobs.length === 0) {
+      if (preBatchErrors.length > 0) {
+        setLocalImportHint(
+          `Nenhuma linha válida para enviar. ${preBatchErrors.length} linha(s) sem nome — ajuste o mapeamento ou a folha.`
         )
-        ok += inserted
-        for (const e of batchErrs) {
-          const job = slice[e.index]
-          if (job) errors.push({ row: job.excelRow, msg: e.msg })
-        }
+      } else {
+        setLocalImportHint('Nenhuma linha com dados para importar.')
       }
-    } catch (err) {
-      errors.push({
-        row: 0,
-        msg: err instanceof Error ? err.message : String(err),
-      })
+      return
     }
 
-    setImportResult({ ok, errors })
-    setImporting(false)
-    void qc.invalidateQueries({ queryKey: qk.clientes(user.id, activeOrganizationId) })
-    void qc.invalidateQueries({ queryKey: qk.dashboard(user.id, activeOrganizationId) })
+    runImport({
+      userId: user.id,
+      organizationId: activeOrganizationId,
+      jobs,
+      preBatchErrors: preBatchErrors.length > 0 ? preBatchErrors : undefined,
+    })
+    onOpenChange(false)
   }
 
   const targetOpts = importTargetOptions()
@@ -225,6 +208,13 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
         </DialogHeader>
 
         <div className="space-y-4 text-sm">
+          {importRunning && (
+            <p className="rounded-md border border-brand-orange/30 bg-brand-orange/10 px-3 py-2 text-xs text-brand-dark">
+              Uma importação está em curso — acompanhe o progresso no aviso fixo no canto do ecrã. Pode fechar este
+              diálogo.
+            </p>
+          )}
+
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Ficheiro (.xlsx / .xls)</label>
             <input
@@ -266,7 +256,7 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
                   type="button"
                   variant="secondary"
                   size="sm"
-                  disabled={!configured || aiLoading || !sample.length}
+                  disabled={!configured || aiLoading || !sample.length || importRunning}
                   onClick={() => void runAi()}
                 >
                   {aiLoading ? (
@@ -303,6 +293,7 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
                         className="h-8 flex-1 text-xs sm:max-w-[14rem]"
                         value={mapping[h] ?? ''}
                         onChange={(e) => setFieldForHeader(h, e.target.value)}
+                        disabled={importRunning}
                       >
                         {targetOpts.map((o) => (
                           <option key={o.value || '_skip'} value={o.value}>
@@ -344,51 +335,28 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
                 </div>
               )}
 
+              {localImportHint && (
+                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  {localImportHint}
+                </p>
+              )}
+
               <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-2">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Fechar
                 </Button>
                 <Button
                   type="button"
-                  disabled={!nomeMapped || importing || !user}
-                  onClick={() => void runImport()}
+                  disabled={!nomeMapped || !user || importRunning}
+                  onClick={startBackgroundImport}
                 >
-                  {importing ? (
-                    <>
-                      <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                      A importar…
-                    </>
-                  ) : (
-                    'Importar todos'
-                  )}
+                  Importar em segundo plano
                 </Button>
               </div>
-
-              {importResult && (
-                <div
-                  className={cn(
-                    'rounded-md border p-3 text-xs',
-                    importResult.errors.length ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'
-                  )}
-                >
-                  <p className="font-medium text-foreground">
-                    {importResult.ok} cliente(s) criados
-                    {importResult.errors.length > 0 && ` · ${importResult.errors.length} linha(s) com erro`}
-                  </p>
-                  {importResult.errors.length > 0 && (
-                    <ul className="mt-2 max-h-32 list-inside list-disc overflow-y-auto text-red-800">
-                      {importResult.errors.slice(0, 50).map((e, idx) => (
-                        <li key={idx}>
-                          Linha {e.row}: {e.msg}
-                        </li>
-                      ))}
-                      {importResult.errors.length > 50 && (
-                        <li>… e mais {importResult.errors.length - 50} erros</li>
-                      )}
-                    </ul>
-                  )}
-                </div>
-              )}
+              <p className="text-[11px] text-muted-foreground">
+                O envio corre em lotes; pode fechar este diálogo e continuar a usar o CRM. O resultado aparece no aviso
+                fixo.
+              </p>
             </>
           )}
         </div>

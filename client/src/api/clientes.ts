@@ -1,8 +1,33 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { clientesKpisFromRpcSummary, clientesListKpis } from '@/lib/clienteListHelpers'
+import { clientesKpisFromRpcSummary, clientesListKpis, clienteMatchesSearch } from '@/lib/clienteListHelpers'
+import { digitsOnly } from '@/lib/formatters'
 import { normalizeClienteTaxId } from '@/lib/taxId'
 import type { Cliente, ClienteListItem, ClienteTipo, ClienteUpdate } from '@/types/database'
+
+function mergeClienteTextBlock(
+  existing: string | null | undefined,
+  incoming: string | null | undefined
+): string | null {
+  const n = incoming?.trim()
+  if (!n) return existing ?? null
+  const o = existing?.trim()
+  if (!o) return n
+  if (o.includes(n)) return existing ?? null
+  return `${o}\n---\n${n}`
+}
+
+function mergeClientePhone(
+  existing: string | null | undefined,
+  incoming: string | null | undefined
+): string | null {
+  const n = incoming?.trim()
+  if (!n) return existing ?? null
+  const o = existing?.trim()
+  if (!o) return n
+  if (digitsOnly(o) === digitsOnly(n)) return existing ?? null
+  return `${o} | ${n}`
+}
 
 /** PostgREST quando a função RPC ainda não existe (migração não aplicada). */
 function isMissingListClientesRpcError(error: PostgrestError): boolean {
@@ -126,12 +151,15 @@ async function fetchClientesComUltimoContatoPageLegacy(
     ativosApenas?: boolean
     limit: number
     cursor: ClientesPageCursor | null
+    search?: string
   }
 ): Promise<FetchClientesPageResult> {
   const all = await listClientesComUltimoContato(sb, userId, organizationId, {
     ativosApenas: opts.ativosApenas,
   })
-  const filtered = opts.cursor ? all.filter((c) => rowAfterCursor(c, opts.cursor!)) : all
+  const q = opts.search?.trim() ?? ''
+  const afterSearch = q ? all.filter((c) => clienteMatchesSearch(c, q)) : all
+  const filtered = opts.cursor ? afterSearch.filter((c) => rowAfterCursor(c, opts.cursor!)) : afterSearch
   const rows = filtered.slice(0, opts.limit)
   const last = rows[rows.length - 1]
   const nextCursor =
@@ -148,16 +176,20 @@ export async function fetchClientesComUltimoContatoPage(
     ativosApenas?: boolean
     limit?: number
     cursor?: ClientesPageCursor | null
+    /** Filtro no servidor (nome, CPF/CNPJ, telefone) — necessário para paginação infinita. */
+    search?: string
   }
 ): Promise<FetchClientesPageResult> {
   const limit = Math.min(Math.max(opts.limit ?? CLIENTES_PAGE_SIZE, 1), 500)
   const cursor = opts.cursor ?? null
+  const searchTrim = opts.search?.trim() ?? ''
   const { data, error } = await sb.rpc('list_clientes_com_ultimo_contato_page', {
     p_organization_id: organizationId,
     p_ativos_apenas: opts.ativosApenas === true,
     p_limit: limit,
     p_cursor_nome: cursor?.nome ?? null,
     p_cursor_id: cursor?.id ?? null,
+    p_search: searchTrim.length > 0 ? searchTrim : null,
   })
   if (error) {
     if (isMissingListClientesRpcError(error)) {
@@ -165,6 +197,7 @@ export async function fetchClientesComUltimoContatoPage(
         ativosApenas: opts.ativosApenas,
         limit,
         cursor,
+        search: searchTrim.length > 0 ? searchTrim : undefined,
       })
     }
     throw error
@@ -266,6 +299,7 @@ export async function createCliente(
     ativo?: boolean
   }
 ): Promise<Cliente> {
+  const taxNorm = normalizeClienteTaxId(row.tax_id)
   const { data, error } = await sb
     .from('clientes')
     .insert({
@@ -275,7 +309,7 @@ export async function createCliente(
       nome: row.nome,
       tipo: row.tipo ?? 'novo',
       ativo: row.ativo ?? true,
-      tax_id: normalizeClienteTaxId(row.tax_id),
+      tax_id: taxNorm,
       document_enrichment: row.document_enrichment ?? null,
       whatsapp: row.whatsapp ?? null,
       telefone: row.telefone ?? null,
@@ -286,8 +320,56 @@ export async function createCliente(
     })
     .select()
     .single()
-  if (error) throw error
+  if (error) {
+    if (error.code === '23505' && taxNorm) {
+      const merged = await mergeClienteDuplicateByTaxId(sb, userId, organizationId, taxNorm, row)
+      if (merged) return merged
+    }
+    throw error
+  }
   return data as Cliente
+}
+
+/** Funde dados na ficha existente com o mesmo CPF/CNPJ (import manual / novo cliente). */
+async function mergeClienteDuplicateByTaxId(
+  sb: SupabaseClient,
+  _userId: string,
+  organizationId: string,
+  taxId: string,
+  incoming: {
+    nome: string
+    tipo?: ClienteTipo
+    document_enrichment?: Cliente['document_enrichment']
+    whatsapp?: string
+    telefone?: string
+    produtos_habituais?: string
+    observacoes?: string
+    cor?: string
+    iniciais?: string
+  }
+): Promise<Cliente | null> {
+  const { data: existing, error: selErr } = await sb
+    .from('clientes')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .eq('tax_id', taxId)
+    .maybeSingle()
+  if (selErr || !existing) return null
+  const c = existing as Cliente
+  const patch: ClienteUpdate = {
+    nome: incoming.nome.length > (c.nome?.length ?? 0) ? incoming.nome : c.nome,
+    tipo: c.tipo === 'recompra' || incoming.tipo === 'recompra' ? 'recompra' : c.tipo,
+    whatsapp: mergeClientePhone(c.whatsapp, incoming.whatsapp),
+    telefone: mergeClientePhone(c.telefone, incoming.telefone),
+    produtos_habituais: mergeClienteTextBlock(c.produtos_habituais, incoming.produtos_habituais),
+    observacoes: mergeClienteTextBlock(c.observacoes, incoming.observacoes),
+  }
+  if (!c.document_enrichment && incoming.document_enrichment) {
+    patch.document_enrichment = incoming.document_enrichment
+  }
+  if (!(c.cor?.trim()) && incoming.cor?.trim()) patch.cor = incoming.cor
+  if (!(c.iniciais?.trim()) && incoming.iniciais?.trim()) patch.iniciais = incoming.iniciais
+  return updateCliente(sb, _userId, organizationId, c.id, patch)
 }
 
 export async function updateCliente(

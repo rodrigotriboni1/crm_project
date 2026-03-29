@@ -36,19 +36,19 @@ export default function ClientesPage() {
   const { user } = useAuth()
   const { activeOrganizationId } = useOrganization()
   useGenericAssistantDock('Clientes')
+  const [q, setQ] = useState('')
   const {
     data: clientes = [],
     isLoading,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useClientes(user, activeOrganizationId)
+  } = useClientes(user, activeOrganizationId, { search: q })
   const { data: kpis } = useClientesKpis(user, activeOrganizationId)
   const bulkAtivo = useBulkPatchClientes(user, activeOrganizationId)
   const selectAllRef = useRef<HTMLInputElement>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [bulkError, setBulkError] = useState<string | null>(null)
-  const [q, setQ] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [tipoFilter, setTipoFilter] = useState<ClienteTipoFilter>('todos')
