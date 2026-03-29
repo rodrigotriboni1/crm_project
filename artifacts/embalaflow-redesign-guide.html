@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EmbalaFlow CRM — Guia visual de redesign</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @custom-variant dark (&:where(.dark, .dark *));
+    @theme {
+      --font-sans: "Poppins", system-ui, sans-serif;
+      --font-serif: "Lora", Georgia, serif;
+      --text-ui-meta: 0.75rem;
+      --text-ui-sm: 0.8125rem;
+      --text-ui-body: 0.875rem;
+      --text-ui-md: 1rem;
+      --text-ui-lg: 1.125rem;
+      --text-ui-title: 1.25rem;
+      --text-ui-display: 1.5rem;
+    }
+  </style>
+  <style>
+    :root {
+      --brand-dark: #141413;
+      --brand-light: #faf9f5;
+      --brand-orange: #d97757;
+      --brand-blue: #6a9bcc;
+      --brand-surface: #e8e6dc;
+      --brand-mid: #b0aea5;
+      --shadow-brand-sm: 0 1px 2px rgba(20, 20, 19, 0.06);
+      --shadow-brand-md: 0 4px 12px rgba(20, 20, 19, 0.08);
+      --shadow-brand-lg: 0 12px 32px rgba(20, 20, 19, 0.1);
+      --shadow-brand-xl: 0 24px 48px rgba(20, 20, 19, 0.12);
+    }
+    .artifact.dark {
+      --brand-dark: #ebeae6;
+      --brand-light: #141413;
+      --brand-orange: #e08a6e;
+      --brand-blue: #7aa8d4;
+      --brand-surface: #242422;
+      --brand-mid: #8f8d86;
+      --shadow-brand-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+      --shadow-brand-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+      --shadow-brand-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
+      --shadow-brand-xl: 0 24px 48px rgba(0, 0, 0, 0.45);
+    }
+    .artifact {
+      font-family: var(--font-sans);
+      color: var(--brand-dark);
+      background: var(--brand-light);
+    }
+    .font-mono-tabular {
+      font-variant-numeric: tabular-nums;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    @keyframes slideInBanner {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .animate-slide-banner {
+      animation: slideInBanner 0.35s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="m-0 min-h-screen">
+  <div id="root"></div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState } = React;
+
+    const SNIPPETS = {
+      themeExtend: `/* client/src/index.css — adicionar em @theme */
+--color-brand-orange-50: #faf4f1;
+--color-brand-orange-200: #e8b5a3;
+--color-brand-orange-400: #d97757;
+--color-brand-orange-600: #b85d3f;
+--color-brand-blue-50: #eef4fa;
+--color-brand-blue-200: #a8c4e0;
+--color-brand-blue-400: #6a9bcc;
+--color-brand-blue-600: #4a7aad;
+--shadow-brand-sm: 0 1px 2px color-mix(in srgb, var(--color-brand-dark) 6%, transparent);
+--shadow-brand-md: 0 4px 12px color-mix(in srgb, var(--color-brand-dark) 8%, transparent);
+--shadow-brand-lg: 0 12px 32px color-mix(in srgb, var(--color-brand-dark) 10%, transparent);
+--shadow-brand-xl: 0 24px 48px color-mix(in srgb, var(--color-brand-dark) 12%, transparent);
+--color-success: #788c5d;
+--color-warning: #c9a227;
+--color-danger: #c45c4a;
+--color-info: var(--color-brand-blue);`,
+      kpiCard: `// Diff sugerido — wrapper do KPI
+<div className="rounded-lg border border-[var(--color-border)] bg-card p-4 shadow-[var(--shadow-brand-sm)]">
+  <div className="flex items-start justify-between gap-3">
+    <div>
+      <p className="text-[length:var(--text-ui-sm)] text-muted-foreground">Orçamentos (mês)</p>
+      <p className="text-[length:var(--text-ui-display)] font-semibold tabular-nums">42</p>
+      <span className="text-[length:var(--text-ui-meta)] text-[var(--color-brand-orange)]">+12% vs. mês anterior</span>
+    </div>
+    <Sparkline points={spark} className="text-[var(--color-brand-orange)]" />
+  </div>
+</div>`,
+      kanbanCard: `// Ocultar StatusBadge na coluna; faixa = estado da coluna
+<div className="relative overflow-hidden rounded-md border bg-card shadow-sm transition-shadow hover:shadow-[var(--shadow-brand-md)]">
+  <div className="h-1 bg-[var(--column-accent)]" aria-hidden />
+  <div className="p-3 space-y-2">
+    <div className="flex gap-2">
+      <Avatar initials="AC" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium text-[length:var(--text-ui-body)]">Acme Indústria</p>
+        <p className="flex items-center gap-1 text-[length:var(--text-ui-meta)] text-muted-foreground">
+          <Package className="size-3 shrink-0" /> Caixas kraft 300x200
+        </p>
+      </div>
+    </div>
+    <p className="font-mono text-[length:var(--text-ui-sm)]">R$ 12.450,00</p>
+    <FollowUpBadge urgency="overdue" label="Follow-up vencido" />
+  </div>
+</div>`,
+      clientRow: `// Lista compacta — 2 linhas desktop; barra lateral por tipo
+<li className="flex gap-3 rounded-md border border-transparent px-2 py-2 hover:bg-muted/60">
+  <span className="w-1 shrink-0 rounded-full bg-[var(--type-accent)]" aria-hidden />
+  <div className="min-w-0 flex-1">
+    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+      <span className="font-medium">Beta Logística</span>
+      <span className="text-[length:var(--text-ui-meta)] text-muted-foreground">SP</span>
+    </div>
+    <p className="text-[length:var(--text-ui-meta)] text-muted-foreground">
+      Último contato <ContactDot recency="fresh" /> há 3 dias
+    </p>
+  </div>
+</li>`,
+      followUpQueue: `// SectionCard ou div com dois blocos
+<section aria-labelledby="fq-overdue">
+  <h3 id="fq-overdue" className="flex items-center gap-2">
+    Vencidos <Badge variant="destructive">{count}</Badge>
+  </h3>
+  <ul className="space-y-2 rounded-lg border-2 border-red-500/40 bg-red-500/5 p-3">...</ul>
+</section>
+<section aria-labelledby="fq-upcoming" className="mt-6">...</section>`,
+      kanbanColumn: `// Cabeçalho da coluna + altura máxima
+<div className="flex max-h-[min(70vh,560px)] flex-col rounded-lg bg-muted/40">
+  <header className="shrink-0 border-b px-3 py-2">
+    <span className="font-medium">Proposta</span>
+    <span className="ml-2 tabular-nums text-muted-foreground">Σ R$ 128k</span>
+  </header>
+  <div className="min-h-0 flex-1 overflow-y-auto p-2 space-y-2">...</div>
+</div>`,
+      mobileNav: `// Bottom nav: 5º item "Mais" abre Sheet
+<nav className="fixed bottom-0 ... grid grid-cols-5">
+  <NavItem icon={Home} badge={overdueCount} />
+  ...
+  <button type="button" onClick={() => setMoreOpen(true)}>Mais</button>
+</nav>
+<Sheet open={moreOpen}>Produtos, Relatórios, Equipa</Sheet>`,
+      aiAssistant: `// FAB mobile + preview colapsado desktop
+<button type="button" className="fixed bottom-20 right-4 z-50 md:hidden ..." onClick={openAi}>
+  <Sparkles />
+</button>
+<aside className={cn(collapsed && "w-12")}>
+  {!collapsed && <LastReplyPreview text={lastReply} />}
+</aside>`,
+      formValidation: `// onBlur — sem <form submit>; usar type="button" nos CTAs
+<Input
+  aria-invalid={!!err}
+  className={cn(err && "border-destructive focus-visible:ring-destructive/30")}
+  onBlur={() => validateField("email")}
+/>
+{err && <p className="text-[length:var(--text-ui-meta)] text-destructive">{err}</p>}`,
+    };
+
+    function cn(...parts) {
+      return parts.filter(Boolean).join(" ");
+    }
+
+    function CopyBlock({ label, code }) {
+      const [done, setDone] = useState(false);
+      return (
+        <div className="mt-4 rounded-md border border-[color-mix(in_srgb,var(--brand-dark)_12%,transparent)] bg-[color-mix(in_srgb,var(--brand-surface)_40%,transparent)] p-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-[length:var(--text-ui-sm)] font-medium opacity-80">{label}</span>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(code);
+                setDone(true);
+                setTimeout(() => setDone(false), 2000);
+              }}
+              className="rounded-md bg-[var(--brand-orange)] px-3 py-1 text-[length:var(--text-ui-meta)] font-medium text-white transition hover:opacity-90"
+            >
+              {done ? "Copiado" : "Copiar"}
+            </button>
+          </div>
+          <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all text-[length:var(--text-ui-meta)] leading-relaxed opacity-90">{code}</pre>
+        </div>
+      );
+    }
+
+    function ToggleBeforeAfter({ value, onChange, className }) {
+      return (
+        <div className={cn("inline-flex rounded-lg border p-0.5 text-[length:var(--text-ui-sm)]", className)} style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 15%, transparent)" }}>
+          <button
+            type="button"
+            onClick={() => onChange("before")}
+            className={cn("rounded-md px-3 py-1.5 font-medium transition", value === "before" ? "bg-[var(--brand-dark)] text-[var(--brand-light)]" : "opacity-70 hover:opacity-100")}
+          >
+            Antes
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange("after")}
+            className={cn("rounded-md px-3 py-1.5 font-medium transition", value === "after" ? "bg-[var(--brand-orange)] text-white" : "opacity-70 hover:opacity-100")}
+          >
+            Depois
+          </button>
+        </div>
+      );
+    }
+
+    function Sparkline({ className = "" }) {
+      const pts = "0,24 12,18 24,20 36,10 48,14 60,6 72,8 84,2";
+      return (
+        <svg width="88" height="28" viewBox="0 0 88 28" className={className} aria-hidden>
+          <polyline fill="none" stroke="currentColor" strokeWidth="1.5" points={pts} />
+        </svg>
+      );
+    }
+
+    function KpiDemo({ mode }) {
+      if (mode === "before") {
+        return (
+          <div className="rounded-lg border p-4" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 12%, transparent)", background: "color-mix(in srgb, white 80%, transparent)" }}>
+            <p className="text-[length:var(--text-ui-sm)] opacity-60">Orçamentos (mês)</p>
+            <p className="text-3xl font-semibold tabular-nums">42</p>
+          </div>
+        );
+      }
+      return (
+        <div className="rounded-lg border p-4 shadow-[var(--shadow-brand-sm)]" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 12%, transparent)", background: "color-mix(in srgb, white 85%, transparent)" }}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[length:var(--text-ui-sm)] opacity-60">Orçamentos (mês)</p>
+              <p className="text-[length:var(--text-ui-display)] font-semibold tabular-nums">42</p>
+              <p className="text-[length:var(--text-ui-meta)] font-medium" style={{ color: "var(--brand-orange)" }}>+12% vs. mês anterior</p>
+            </div>
+            <div className="rounded-md bg-[color-mix(in_srgb,var(--brand-orange)_12%,transparent)] p-1" style={{ color: "var(--brand-orange)" }}>
+              <Sparkline />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function KanbanCardDemo({ mode }) {
+      const topBar = mode === "after" ? <div className="h-1 w-full bg-[var(--brand-blue)]" /> : null;
+      const shadow = mode === "after" ? "hover:shadow-[var(--shadow-brand-md)]" : "";
+      return (
+        <div className={cn("relative max-w-xs overflow-hidden rounded-md border transition-shadow", shadow)} style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 12%, transparent)", background: "color-mix(in srgb, white 90%, transparent)" }}>
+          {topBar}
+          <div className="p-3 space-y-2">
+            <div className="flex gap-2">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full text-[length:var(--text-ui-sm)] font-semibold text-white" style={{ background: "var(--brand-orange)" }}>AC</div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">Acme Indústria</p>
+                {mode === "before" && <p className="text-[length:var(--text-ui-meta)] opacity-60">Proposta enviada</p>}
+                <p className="flex items-center gap-1 text-[length:var(--text-ui-meta)] opacity-70">
+                  <span aria-hidden>📦</span> Caixas kraft 300×200 mm
+                </p>
+              </div>
+            </div>
+            <p className="font-mono-tabular text-[length:var(--text-ui-sm)] font-medium">R$ 12.450,00</p>
+            {mode === "after" ? (
+              <span className="inline-block rounded-full bg-red-500/15 px-2 py-0.5 text-[length:var(--text-ui-meta)] font-medium text-red-700 dark:text-red-300">Follow-up vencido</span>
+            ) : (
+              <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-[length:var(--text-ui-meta)] opacity-80">Proposta</span>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function ClientListDemo({ mode }) {
+      const rows = [
+        { name: "Beta Logística", loc: "SP", type: "recompra", days: 3 },
+        { name: "Gamma Embalagens", loc: "RJ", type: "novo", days: 18 },
+      ];
+      return (
+        <ul className="space-y-2">
+          {rows.map((r) => {
+            const typeColor = r.type === "novo" ? "var(--brand-blue)" : "#788c5d";
+            let dotColor = "#22c55e";
+            if (r.days > 30) dotColor = "#ef4444";
+            else if (r.days >= 7) dotColor = "#eab308";
+            return (
+              <li key={r.name} className="flex gap-3 rounded-md border px-2 py-2" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 8%, transparent)" }}>
+                {mode === "after" && <span className="w-1 shrink-0 rounded-full self-stretch" style={{ background: typeColor }} />}
+                <div className="min-w-0 flex-1">
+                  {mode === "before" ? (
+                    <>
+                      <p className="font-medium">{r.name}</p>
+                      <p className="text-[length:var(--text-ui-meta)] opacity-60">{r.loc} · {r.type}</p>
+                      <p className="text-[length:var(--text-ui-meta)] opacity-60">Último contato há {r.days} dias</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap items-baseline gap-x-2">
+                        <span className="font-medium">{r.name}</span>
+                        <span className="text-[length:var(--text-ui-meta)] opacity-60">{r.loc}</span>
+                      </div>
+                      <p className="text-[length:var(--text-ui-meta)] opacity-70">
+                        Último contato <span className="inline-block size-2 rounded-full align-middle" style={{ background: dotColor }} title="recência" /> há {r.days} dias
+                      </p>
+                    </>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      );
+    }
+
+    function SkeletonBlock({ variant }) {
+      if (variant === "kanban") {
+        return (
+          <div className="flex gap-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-40 w-36 shrink-0 space-y-2 rounded-md border p-2" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 10%, transparent)" }}>
+                <div className="h-3 w-3/4 animate-pulse rounded bg-[color-mix(in_srgb,var(--brand-mid)_35%,transparent)]" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-[color-mix(in_srgb,var(--brand-mid)_25%,transparent)]" />
+                <div className="h-16 animate-pulse rounded bg-[color-mix(in_srgb,var(--brand-mid)_20%,transparent)]" />
+              </div>
+            ))}
+          </div>
+        );
+      }
+      if (variant === "list") {
+        return (
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex gap-3 py-2">
+                <div className="size-9 shrink-0 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--brand-mid)_30%,transparent)]" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-1/3 animate-pulse rounded bg-[color-mix(in_srgb,var(--brand-mid)_30%,transparent)]" />
+                  <div className="h-3 w-2/3 animate-pulse rounded bg-[color-mix(in_srgb,var(--brand-mid)_20%,transparent)]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      return (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-lg bg-[color-mix(in_srgb,var(--brand-mid)_25%,transparent)]" />
+          ))}
+        </div>
+      );
+    }
+
+    function FollowUpQueueDemo({ mode }) {
+      if (mode === "before") {
+        return (
+          <ul className="space-y-2 rounded-lg border p-3" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 12%, transparent)" }}>
+            <li className="flex justify-between text-[length:var(--text-ui-sm)]"><span>Ligar — Acme</span><span className="opacity-60">Ontem</span></li>
+            <li className="flex justify-between text-[length:var(--text-ui-sm)]"><span>Proposta — Beta</span><span className="opacity-60">Em 5 dias</span></li>
+          </ul>
+        );
+      }
+      return (
+        <div className="space-y-6">
+          <section>
+            <h4 className="mb-2 flex items-center gap-2 text-[length:var(--text-ui-sm)] font-semibold">
+              Vencidos
+              <span className="rounded-full bg-red-500 px-2 py-0.5 text-[length:var(--text-ui-meta)] text-white">2</span>
+            </h4>
+            <ul className="space-y-2 rounded-lg border-2 border-red-500/50 bg-red-500/5 p-3">
+              <li className="flex items-center justify-between gap-2 text-[length:var(--text-ui-sm)]">
+                <span>Ligar — Acme</span>
+                <button type="button" className="shrink-0 rounded-md border px-2 py-1 text-[length:var(--text-ui-meta)] font-medium hover:bg-white/50 dark:hover:bg-black/20">Feito</button>
+              </li>
+            </ul>
+          </section>
+          <section>
+            <h4 className="mb-2 flex items-center gap-2 text-[length:var(--text-ui-sm)] font-semibold">
+              Próximos
+              <span className="rounded-full bg-[color-mix(in_srgb,var(--brand-blue)_25%,transparent)] px-2 py-0.5 text-[length:var(--text-ui-meta)]">4</span>
+            </h4>
+            <ul className="space-y-2 rounded-lg border p-3" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 12%, transparent)" }}>
+              <li className="flex items-center justify-between gap-2 text-[length:var(--text-ui-sm)]">
+                <span>Proposta — Beta</span>
+                <button type="button" className="shrink-0 rounded-md border px-2 py-1 text-[length:var(--text-ui-meta)]">Feito</button>
+              </li>
+            </ul>
+          </section>
+        </div>
+      );
+    }
+
+    function KanbanColumnDemo({ mode }) {
+      const cards = (
+        <div className="space-y-2 p-2">
+          <KanbanCardDemo mode={mode === "after" ? "after" : "before"} />
+          <div className="h-16 rounded-md border border-dashed opacity-40" />
+        </div>
+      );
+      if (mode === "before") {
+        return <div className="max-w-xs rounded-lg border" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 12%, transparent)" }}><div className="border-b px-3 py-2 font-medium">Proposta</div>{cards}</div>;
+      }
+      return (
+        <div className="flex max-h-64 max-w-xs flex-col rounded-lg bg-[color-mix(in_srgb,var(--brand-surface)_35%,transparent)]">
+          <header className="shrink-0 border-b px-3 py-2 text-[length:var(--text-ui-sm)]" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 10%, transparent)" }}>
+            <span className="font-semibold">Proposta</span>
+            <span className="ml-2 tabular-nums opacity-70">Σ R$ 128k</span>
+          </header>
+          <div className="min-h-0 flex-1 overflow-y-auto">{cards}</div>
+        </div>
+      );
+    }
+
+    function EmptyStateSvg() {
+      return (
+        <svg viewBox="0 0 120 100" className="mx-auto h-24 w-32 text-[var(--brand-orange)]" aria-hidden>
+          <rect x="20" y="25" width="80" height="55" rx="6" fill="currentColor" opacity="0.15" />
+          <path d="M35 40 L60 58 L85 38" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          <circle cx="40" cy="72" r="4" fill="currentColor" opacity="0.5" />
+        </svg>
+      );
+    }
+
+    function MicroDemo() {
+      const [formErr, setFormErr] = useState(false);
+      const [banner, setBanner] = useState(false);
+      return (
+        <div className="grid gap-8 lg:grid-cols-2">
+          <div>
+            <h3 className="mb-3 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-title)] font-semibold">Toasts (marca)</h3>
+            <div className="flex flex-wrap gap-2">
+              <div className="rounded-md border-l-4 border-l-[#788c5d] bg-[color-mix(in_srgb,#788c5d,12%,transparent)] px-3 py-2 text-[length:var(--text-ui-sm)]">Orçamento guardado.</div>
+              <div className="rounded-md border-l-4 border-l-red-500 bg-red-500/10 px-3 py-2 text-[length:var(--text-ui-sm)]">Falha ao sincronizar.</div>
+              <div className="rounded-md border-l-4 border-l-[var(--brand-blue)] bg-[color-mix(in_srgb,var(--brand-blue)_12%,transparent)] px-3 py-2 text-[length:var(--text-ui-sm)]">Novo comentário na equipa.</div>
+            </div>
+          </div>
+          <div>
+            <h3 className="mb-3 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-title)] font-semibold">Skeletons por contexto</h3>
+            <p className="mb-2 text-[length:var(--text-ui-meta)] opacity-70">Dashboard</p>
+            <SkeletonBlock variant="dashboard" />
+            <p className="mb-2 mt-4 text-[length:var(--text-ui-meta)] opacity-70">Kanban</p>
+            <SkeletonBlock variant="kanban" />
+          </div>
+          <div>
+            <h3 className="mb-3 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-title)] font-semibold">Empty state</h3>
+            <div className="rounded-lg border p-6 text-center" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 10%, transparent)" }}>
+              <EmptyStateSvg />
+              <p className="mt-2 text-[length:var(--text-ui-sm)] font-medium">Sem orçamentos neste estágio</p>
+              <button type="button" className="mt-3 rounded-md bg-[var(--brand-orange)] px-4 py-2 text-[length:var(--text-ui-sm)] font-medium text-white">Novo orçamento</button>
+            </div>
+          </div>
+          <div>
+            <h3 className="mb-3 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-title)] font-semibold">Validação (blur)</h3>
+            <label className="block text-[length:var(--text-ui-sm)] opacity-80">Email</label>
+            <input
+              type="text"
+              placeholder="nome@empresa.pt"
+              onBlur={() => setFormErr(true)}
+              className={cn(
+                "mt-1 w-full max-w-xs rounded-md border bg-transparent px-3 py-2 text-[length:var(--text-ui-sm)] outline-none focus-visible:ring-2",
+                formErr ? "border-red-500 focus-visible:ring-red-500/30" : "border-[color-mix(in_srgb,var(--brand-dark)_20%,transparent)] focus-visible:ring-[var(--brand-blue)]/40"
+              )}
+            />
+            {formErr && <p className="mt-1 text-[length:var(--text-ui-meta)] text-red-600 dark:text-red-400">Endereço inválido.</p>}
+            <p className="mt-2 text-[length:var(--text-ui-meta)] opacity-60">Clique fora do campo para simular blur.</p>
+          </div>
+          <div className="lg:col-span-2">
+            <h3 className="mb-3 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-title)] font-semibold">Ação destrutiva: banner vs. modal</h3>
+            <div className="flex flex-wrap gap-4">
+              <button type="button" onClick={() => setBanner(true)} className="rounded-md border px-3 py-2 text-[length:var(--text-ui-sm)]">Mostrar banner de confirmação</button>
+              <p className="text-[length:var(--text-ui-sm)] opacity-70">Alternativa: Dialog shadcn para casos que exigem input extra.</p>
+            </div>
+            {banner && (
+              <div className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-lg animate-slide-banner rounded-lg border-2 border-red-500/40 bg-[var(--brand-light)] p-4 shadow-[var(--shadow-brand-lg)] dark:bg-[#1c1c1a]">
+                <p className="text-[length:var(--text-ui-sm)] font-medium">Arquivar cliente &quot;Acme&quot;?</p>
+                <div className="mt-3 flex gap-2">
+                  <button type="button" className="rounded-md bg-red-600 px-3 py-1.5 text-[length:var(--text-ui-sm)] text-white" onClick={() => setBanner(false)}>Arquivar</button>
+                  <button type="button" className="rounded-md border px-3 py-1.5 text-[length:var(--text-ui-sm)]" onClick={() => setBanner(false)}>Cancelar</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function SidebarArtifactDemo() {
+      return (
+        <div className="flex h-[420px] max-w-2xl overflow-hidden rounded-lg border shadow-[var(--shadow-brand-md)]" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 12%, transparent)" }}>
+          <aside className="flex w-52 flex-col bg-[#141413] text-[#faf9f5] dark:bg-[#0f0f0e]">
+            <div className="flex items-center gap-2 border-b border-white/10 px-3 py-3">
+              <div className="size-8 rounded bg-[var(--brand-orange)]" />
+              <span className="truncate text-[length:var(--text-ui-sm)] font-semibold tracking-tight">EmbalaFlow</span>
+            </div>
+            <p className="mx-3 mt-3 rounded-md bg-white/10 px-2 py-1 text-[length:var(--text-ui-meta)]">Org: Embalagens Norte</p>
+            <nav className="mt-4 flex flex-1 flex-col gap-1 px-2 text-[length:var(--text-ui-sm)]">
+              <span className="rounded-md px-2 py-1.5 opacity-70 hover:bg-white/5">Dashboard</span>
+              <span className="rounded-md bg-[var(--brand-orange)] px-2 py-1.5 font-medium text-white">Kanban</span>
+            </nav>
+            <div className="border-t border-white/10 p-2">
+              <button type="button" className="mb-2 w-full rounded-md bg-[var(--brand-orange)] py-2 text-[length:var(--text-ui-sm)] font-semibold text-white">+ Novo orçamento</button>
+              <div className="flex items-center gap-2 px-1 py-2">
+                <div className="size-8 rounded-full bg-white/20 text-center text-[length:var(--text-ui-meta)] leading-8">M</div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[length:var(--text-ui-meta)] opacity-90">maria@empresa.pt</p>
+                </div>
+              </div>
+            </div>
+          </aside>
+          <div className="flex flex-1 items-center justify-center bg-[var(--brand-light)] text-[length:var(--text-ui-sm)] opacity-50">Área principal</div>
+        </div>
+      );
+    }
+
+    function MobileNavDemo() {
+      return (
+        <div className="relative mx-auto h-[320px] max-w-[280px] overflow-hidden rounded-xl border bg-[var(--brand-light)] shadow-inner" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 12%, transparent)" }}>
+          <div className="p-4 pb-20 text-[length:var(--text-ui-sm)] opacity-60">Conteúdo…</div>
+          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between rounded-xl bg-[#141413] px-1 py-2 text-[#faf9f5]">
+            {[
+              { label: "Início", badge: 2 },
+              { label: "Kanban", badge: null },
+              { label: "Clientes", badge: null },
+              { label: "Orç.", badge: null },
+              { label: "Mais", badge: null },
+            ].map((t) => (
+              <button key={t.label} type="button" className="relative flex flex-1 flex-col items-center gap-0.5 text-[length:var(--text-ui-meta)] opacity-90">
+                <span className="size-5 rounded bg-white/20" />
+                {t.label}
+                {t.badge != null && (
+                  <span className="absolute -right-0 -top-0 flex size-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">{t.badge}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function AiAssistantDemo() {
+      return (
+        <div className="grid gap-6 md:grid-cols-2">
+          <div>
+            <p className="mb-2 text-[length:var(--text-ui-sm)] font-medium">Mobile — FAB</p>
+            <div className="relative h-48 rounded-lg border bg-[var(--brand-light)]" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 10%, transparent)" }}>
+              <button type="button" className="absolute bottom-4 right-4 flex size-14 items-center justify-center rounded-full bg-[var(--brand-orange)] text-white shadow-[var(--shadow-brand-md)] transition hover:scale-105" aria-label="Abrir assistente">
+                ✦
+              </button>
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-[length:var(--text-ui-sm)] font-medium">Desktop — rail recolhido com preview</p>
+            <div className="flex h-48 justify-end rounded-lg border bg-[var(--brand-light)]" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 10%, transparent)" }}>
+              <aside className="flex w-14 flex-col border-l bg-[color-mix(in_srgb,var(--brand-surface)_50%,transparent)] transition-all dark:bg-[#242422]" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 10%, transparent)" }}>
+                <div className="flex flex-1 items-start justify-center pt-3 text-[var(--brand-orange)]">✦</div>
+                <div className="border-t p-1 text-[length:var(--text-ui-meta)] leading-tight opacity-80" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 10%, transparent)" }}>
+                  <span className="line-clamp-3">Última: resumo do cliente Acme…</span>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const TABS = [
+      { id: "tokens", label: "Tokens" },
+      { id: "components", label: "Componentes" },
+      { id: "layouts", label: "Layouts" },
+      { id: "typography", label: "Tipografia" },
+      { id: "roadmap", label: "Roadmap" },
+    ];
+
+    function RoadmapSection() {
+      return (
+        <div className="mx-auto max-w-5xl space-y-8">
+          <header>
+            <h1 className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-display)] font-bold tracking-tight">Roadmap de implementação</h1>
+            <p className="mt-2 max-w-2xl text-[length:var(--text-ui-body)] opacity-75">Priorização por impacto em usabilidade e esforço incremental sobre a arquitectura actual (sem alterar RLS nem storageKeys).</p>
+          </header>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              { tier: "Alta", color: "var(--brand-orange)", items: ["Fila follow-up: vencidos vs. próximos + ação Feito", "Bottom nav 5 itens + sheet Mais (Relatórios/Produtos)", "FAB assistente no mobile", "Validação inline em formulários críticos"] },
+              { tier: "Média", color: "var(--brand-blue)", items: ["KPI cards com delta + sparkline leve", "Kanban: faixa de coluna, produto destacado, remover badge redundante", "Kanban: indicador de carga por vendedor (avatar stack ou filtro rápido)", "Lista clientes compacta + indicadores recência", "Coluna: total Σ + max-height scroll"] },
+              { tier: "Baixa", color: "var(--brand-mid)", items: ["Tokens intermediários + sombras em @theme", "Skeletons por vista", "Banner slide-in vs. modal para arquivar", "Relatórios: composição visual adicional (ex. barras + linha)"] },
+            ].map((col) => (
+              <div key={col.tier} className="rounded-xl border p-5" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 12%, transparent)", borderTopWidth: 3, borderTopColor: col.color }}>
+                <h2 className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-title)] font-bold">{col.tier}</h2>
+                <ul className="mt-3 space-y-2 text-[length:var(--text-ui-sm)] opacity-90">
+                  {col.items.map((it) => (
+                    <li key={it} className="flex gap-2"><span className="text-[var(--brand-orange)]">·</span>{it}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [dark, setDark] = useState(false);
+      const [tab, setTab] = useState("tokens");
+      const [kpi, setKpi] = useState("after");
+      const [kanban, setKanban] = useState("after");
+      const [clients, setClients] = useState("after");
+      const [follow, setFollow] = useState("after");
+      const [column, setColumn] = useState("after");
+
+      const artifactClass = cn("artifact min-h-screen flex", dark && "dark");
+
+      return (
+        <div className={artifactClass}>
+          <aside className="flex w-52 shrink-0 flex-col border-r border-white/10 bg-[#141413] py-6 text-[#faf9f5]">
+            <div className="px-4 pb-6">
+              <p className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-title)] font-bold tracking-tight text-[#faf9f5]">EmbalaFlow</p>
+              <p className="mt-1 text-[length:var(--text-ui-meta)] text-white/60">Guia de redesign</p>
+            </div>
+            <nav className="flex flex-col gap-0.5 px-2">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  className={cn(
+                    "rounded-lg px-3 py-2.5 text-left text-[length:var(--text-ui-sm)] font-medium transition",
+                    tab === t.id ? "bg-[var(--brand-orange)] text-white" : "text-white/75 hover:bg-white/10 hover:text-white"
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+            <div className="mt-auto px-4 pt-8">
+              <button
+                type="button"
+                onClick={() => setDark(!dark)}
+                className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-[length:var(--text-ui-sm)] font-medium text-white/90 hover:bg-white/10"
+              >
+                {dark ? "Modo claro" : "Modo escuro"}
+              </button>
+            </div>
+          </aside>
+
+          <main className="min-w-0 flex-1 overflow-y-auto px-8 py-10 pb-24">
+            {tab === "tokens" && (
+              <div className="mx-auto max-w-5xl space-y-12">
+                <header>
+                  <h1 className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-display)] font-bold tracking-tight">Paleta e tokens</h1>
+                  <p className="mt-2 max-w-2xl text-[length:var(--text-ui-body)] opacity-75">Comparação lado a lado: baseline do projeto e extensão mínima para hierarquia e estados.</p>
+                </header>
+
+                <section className="grid gap-8 lg:grid-cols-2">
+                  <div>
+                    <h2 className="mb-4 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Cores principais</h2>
+                    <div className="overflow-x-auto rounded-lg border" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 12%, transparent)" }}>
+                      <table className="w-full text-left text-[length:var(--text-ui-sm)]">
+                        <thead>
+                          <tr className="border-b bg-[color-mix(in_srgb,var(--brand-surface)_40%,transparent)]" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 10%, transparent)" }}>
+                            <th className="p-3 font-semibold">Token</th>
+                            <th className="p-3 font-semibold">Atual</th>
+                            <th className="p-3 font-semibold">Proposta (+tons)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            ["brand-orange", "#d97757", "50 / 200 / 400* / 600"],
+                            ["brand-blue", "#6a9bcc", "50 / 200 / 400* / 600"],
+                            ["brand-dark", "#141413", "manter + opacidades para divisores"],
+                            ["brand-light", "#faf9f5", "manter + surfaces derivadas"],
+                          ].map(([name, cur, prop]) => (
+                            <tr key={name} className="border-b" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 8%, transparent)" }}>
+                              <td className="p-3 font-mono text-[length:var(--text-ui-meta)]">{name}</td>
+                              <td className="p-3"><span className="inline-block size-6 rounded border align-middle" style={{ background: cur }} /> <span className="opacity-70">{cur}</span></td>
+                              <td className="p-3 opacity-90">{prop}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div>
+                    <h2 className="mb-4 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Sombras (brand-aware)</h2>
+                    <div className="space-y-3">
+                      {[
+                        ["shadow-sm", "var(--shadow-brand-sm)"],
+                        ["shadow-md", "var(--shadow-brand-md)"],
+                        ["shadow-lg", "var(--shadow-brand-lg)"],
+                        ["shadow-xl", "var(--shadow-brand-xl)"],
+                      ].map(([label]) => (
+                        <div key={label} className="flex items-center gap-4 rounded-lg bg-[color-mix(in_srgb,white,60%,transparent)] p-4 dark:bg-[#1c1c1a]">
+                          <div
+                            className="h-14 w-24 rounded-md bg-white dark:bg-[#2a2a28]"
+                            style={{ boxShadow: `var(--shadow-brand-${label.replace("shadow-", "")})` }}
+                          />
+                          <div>
+                            <p className="font-mono text-[length:var(--text-ui-sm)]">{label}</p>
+                            <p className="text-[length:var(--text-ui-meta)] opacity-60">mix com brand-dark</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <h2 className="mb-4 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Estados semânticos</h2>
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      ["success", "#788c5d", "Confirmação / OK"],
+                      ["warning", "#c9a227", "Prazo / atenção"],
+                      ["danger", "#c45c4a", "Erro / vencido"],
+                      ["info", "var(--brand-blue)", "Ajuda / sistema"],
+                    ].map(([name, bg, desc]) => (
+                      <div key={name} className="min-w-[140px] rounded-lg border px-4 py-3 text-[length:var(--text-ui-sm)]" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 10%, transparent)", borderLeftWidth: 4, borderLeftColor: bg }}>
+                        <p className="font-semibold capitalize">{name}</p>
+                        <p className="text-[length:var(--text-ui-meta)] opacity-70">{desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <CopyBlock label="Diff sugerido (@theme em index.css)" code={SNIPPETS.themeExtend} />
+              </div>
+            )}
+
+            {tab === "components" && (
+              <div className="mx-auto max-w-5xl space-y-16">
+                <header>
+                  <h1 className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-display)] font-bold tracking-tight">Componentes</h1>
+                  <p className="mt-2 max-w-2xl text-[length:var(--text-ui-body)] opacity-75">Comparativos ao vivo; cada bloco inclui snippet copiável alinhado ao stack existente.</p>
+                </header>
+
+                <section className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
+                  <div>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                      <h2 className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Dashboard — KPI cards</h2>
+                      <ToggleBeforeAfter value={kpi} onChange={setKpi} />
+                    </div>
+                    <KpiDemo mode={kpi} />
+                    <CopyBlock label="Trecho JSX" code={SNIPPETS.kpiCard} />
+                  </div>
+                </section>
+
+                <section>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Kanban — cartão</h2>
+                    <ToggleBeforeAfter value={kanban} onChange={setKanban} />
+                  </div>
+                  <KanbanCardDemo mode={kanban} />
+                  <CopyBlock label="Trecho JSX" code={SNIPPETS.kanbanCard} />
+                </section>
+
+                <section>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Lista de clientes</h2>
+                    <ToggleBeforeAfter value={clients} onChange={setClients} />
+                  </div>
+                  <ClientListDemo mode={clients} />
+                  <p className="mt-3 text-[length:var(--text-ui-meta)] opacity-70">Skeleton: ver secção Micro-interações abaixo.</p>
+                  <CopyBlock label="Trecho JSX" code={SNIPPETS.clientRow} />
+                </section>
+
+                <section>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Fila de follow-up (Dashboard)</h2>
+                    <ToggleBeforeAfter value={follow} onChange={setFollow} />
+                  </div>
+                  <FollowUpQueueDemo mode={follow} />
+                  <CopyBlock label="Trecho JSX" code={SNIPPETS.followUpQueue} />
+                </section>
+
+                <section>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Coluna Kanban</h2>
+                    <ToggleBeforeAfter value={column} onChange={setColumn} />
+                  </div>
+                  <KanbanColumnDemo mode={column} />
+                  <CopyBlock label="Trecho JSX" code={SNIPPETS.kanbanColumn} />
+                </section>
+
+                <section className="rounded-2xl border border-[color-mix(in_srgb,var(--brand-dark)_10%,transparent)] bg-[color-mix(in_srgb,var(--brand-surface)_25%,transparent)] p-8">
+                  <h2 className="mb-6 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Micro-interações e feedback</h2>
+                  <MicroDemo />
+                </section>
+              </div>
+            )}
+
+            {tab === "layouts" && (
+              <div className="mx-auto max-w-5xl space-y-12">
+                <header>
+                  <h1 className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-display)] font-bold tracking-tight">Layouts</h1>
+                  <p className="mt-2 max-w-2xl text-[length:var(--text-ui-body)] opacity-75">Sidebar, navegação mobile e assistente — mudanças incrementais, sem alterar RLS nem storageKeys.</p>
+                </header>
+                <section>
+                  <h2 className="mb-4 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Sidebar redesenhada</h2>
+                  <SidebarArtifactDemo />
+                </section>
+                <section>
+                  <h2 className="mb-4 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Mobile — bottom nav (5 itens + sheet)</h2>
+                  <div className="flex flex-wrap gap-8">
+                    <MobileNavDemo />
+                    <div className="max-w-sm text-[length:var(--text-ui-sm)] opacity-80">
+                      <p>O item &quot;Mais&quot; abre Sheet com Produtos, Relatórios e Equipa. Badge de follow-ups vencidos no Início.</p>
+                      <CopyBlock label="Pseudo-código" code={SNIPPETS.mobileNav} />
+                    </div>
+                  </div>
+                </section>
+                <section>
+                  <h2 className="mb-4 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Assistente de IA</h2>
+                  <AiAssistantDemo />
+                  <CopyBlock label="Trecho JSX" code={SNIPPETS.aiAssistant} />
+                </section>
+              </div>
+            )}
+
+            {tab === "typography" && (
+              <div className="mx-auto max-w-5xl space-y-12">
+                <header>
+                  <h1 className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-display)] font-bold tracking-tight">Tipografia e espaçamento</h1>
+                </header>
+                <section className="overflow-x-auto rounded-lg border" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 12%, transparent)" }}>
+                  <table className="w-full text-left text-[length:var(--text-ui-sm)]">
+                    <thead>
+                      <tr className="border-b bg-[color-mix(in_srgb,var(--brand-surface)_40%,transparent)]">
+                        <th className="p-3 font-semibold">Papel</th>
+                        <th className="p-3 font-semibold">Atual (--text-ui-*)</th>
+                        <th className="p-3 font-semibold">Proposta</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ["Meta / legendas", "meta 12px", "manter; usar opacity-60 em vez de novo tamanho"],
+                        ["Secundário", "sm 13px", "+ tabular-nums em valores monetários"],
+                        ["Corpo", "body 14px", "manter como default global"],
+                        ["Destaque linha", "md 16px", "subtítulos de SectionCard"],
+                        ["Título secção", "lg 18px → title 20px", "title só para cabeçalhos de página com contexto"],
+                        ["KPI número", "display 24px", "+ cor semântica / sparkline ao lado"],
+                      ].map(([a, b, c]) => (
+                        <tr key={a} className="border-b" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 8%, transparent)" }}>
+                          <td className="p-3 font-medium">{a}</td>
+                          <td className="p-3 opacity-80">{b}</td>
+                          <td className="p-3 opacity-90">{c}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+                <section>
+                  <h2 className="mb-4 font-[family-name:var(--font-sans)] text-[length:var(--text-ui-lg)] font-semibold">Espaçamento entre secções</h2>
+                  <ul className="list-inside list-disc space-y-2 text-[length:var(--text-ui-sm)] opacity-85">
+                    <li><strong className="font-medium">gap-4 (16px):</strong> itens densos na mesma ferramenta (filtros + lista).</li>
+                    <li><strong className="font-medium">gap-6 (24px):</strong> blocos dentro do mesmo ecrã (KPI row → fila follow-up).</li>
+                    <li><strong className="font-medium">py-8 / section-padding:</strong> respiro antes de mudar &quot;assunto&quot; na página (ex.: após hero de KPIs).</li>
+                  </ul>
+                </section>
+                <section className="grid gap-6 md:grid-cols-2">
+                  <div className="rounded-lg border p-5" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 10%, transparent)" }}>
+                    <p className="mb-2 text-[length:var(--text-ui-meta)] font-semibold uppercase tracking-wide opacity-60">Poppins — UI</p>
+                    <p className="font-[family-name:var(--font-sans)] text-[length:var(--text-ui-md)]">Botões, tabelas, navegação, labels e métricas.</p>
+                  </div>
+                  <div className="rounded-lg border p-5" style={{ borderColor: "color-mix(in srgb, var(--brand-dark) 10%, transparent)" }}>
+                    <p className="mb-2 text-[length:var(--text-ui-meta)] font-semibold uppercase tracking-wide opacity-60">Lora — prosa</p>
+                    <p className="font-[family-name:var(--font-serif)] text-[length:var(--text-ui-md)] leading-relaxed">Notas longas do cliente, descrições de produto em fichas estendidas e textos do assistente quando forem leitura contínua — nunca misturar com células de tabela densa.</p>
+                  </div>
+                </section>
+
+                <p className="text-[length:var(--text-ui-sm)] opacity-70">Ver a aba <strong className="font-medium">Roadmap</strong> para priorização de entregas.</p>
+              </div>
+            )}
+
+            {tab === "roadmap" && <RoadmapSection />}
+          </main>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
