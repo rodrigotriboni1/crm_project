@@ -127,22 +127,28 @@ export default function Layout() {
       <aside
         id="app-sidebar"
         className={cn(
-          'flex shrink-0 flex-col border-r border-border bg-sidebar transition-[width] duration-200 ease-out',
+          'flex min-h-0 shrink-0 flex-col border-r border-border bg-sidebar transition-[width] duration-200 ease-out',
           collapsed ? 'w-16' : 'w-52'
         )}
       >
+        {/* Linha 1: marca + recolher (nunca misturar com o select na horizontal) */}
         <div
           className={cn(
-            'flex items-center border-b border-border py-3',
-            collapsed ? 'flex-col gap-2 px-2' : 'gap-2 px-3'
+            'flex shrink-0 items-center border-b border-border',
+            collapsed ? 'flex-col gap-2 px-2 py-3' : 'justify-between gap-2 px-3 py-3'
           )}
         >
-          <div className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden">
+          <div
+            className={cn(
+              'flex min-w-0 items-center gap-2.5 overflow-hidden',
+              collapsed ? 'flex-col' : 'flex-1'
+            )}
+          >
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-orange">
               <Box className="h-4 w-4 text-white" />
             </div>
             {!collapsed && (
-              <div className="min-w-0 overflow-hidden">
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <p className="truncate font-sans text-sm font-semibold leading-tight text-brand-dark">
                   EmbalaFlow
                 </p>
@@ -150,27 +156,6 @@ export default function Layout() {
               </div>
             )}
           </div>
-          {user && organizations.length > 0 && activeOrganizationId && (
-            <div className={cn('px-3 pb-2', collapsed && 'px-2')}>
-              <label className="sr-only" htmlFor="active-org-select">
-                Empresa activa
-              </label>
-              <SelectNative
-                id="active-org-select"
-                className={cn('h-9 text-xs', collapsed && 'px-1')}
-                value={activeOrganizationId}
-                onChange={(e) => setActiveOrganizationId(e.target.value)}
-                title="Empresa activa"
-                aria-label="Empresa activa"
-              >
-                {organizations.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </SelectNative>
-            </div>
-          )}
           <Button
             type="button"
             variant="ghost"
@@ -186,7 +171,36 @@ export default function Layout() {
           </Button>
         </div>
 
-        <nav className="flex flex-1 flex-col py-2" aria-label="Navegação principal">
+        {/* Linha 2: empresa em largura total */}
+        {user && organizations.length > 0 && activeOrganizationId && (
+          <div className={cn('shrink-0 border-b border-border', collapsed ? 'px-2 py-2' : 'px-3 py-2')}>
+            <label className="sr-only" htmlFor="active-org-select">
+              Empresa ativa
+            </label>
+            <SelectNative
+              id="active-org-select"
+              className={cn(
+                'h-9 w-full min-w-0 text-xs',
+                collapsed && 'h-8 px-1.5 text-[10px]'
+              )}
+              value={activeOrganizationId}
+              onChange={(e) => setActiveOrganizationId(e.target.value)}
+              title={organizations.find((o) => o.id === activeOrganizationId)?.name ?? 'Empresa ativa'}
+              aria-label="Empresa ativa"
+            >
+              {organizations.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name}
+                </option>
+              ))}
+            </SelectNative>
+          </div>
+        )}
+
+        <nav
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2"
+          aria-label="Navegação principal"
+        >
           {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -209,7 +223,7 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className={cn('border-t border-border py-2', collapsed ? 'px-1.5' : 'px-2')}>
+        <div className={cn('shrink-0 border-t border-border py-2', collapsed ? 'px-1.5' : 'px-2')}>
           <Button
             type="button"
             size="sm"
@@ -240,7 +254,7 @@ export default function Layout() {
           )}
         </div>
 
-        <div className={cn('space-y-1 border-t border-border p-2', collapsed && 'px-1.5')}>
+        <div className={cn('shrink-0 space-y-1 border-t border-border p-2', collapsed && 'px-1.5')}>
           <ThemeToggle collapsed={collapsed} />
           {user && organizations.length > 0 && activeOrganizationId && activeOrg && (
             <Button
