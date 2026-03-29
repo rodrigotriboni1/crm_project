@@ -272,6 +272,7 @@ export async function createCliente(
     .insert({
       user_id: userId,
       organization_id: organizationId,
+      assigned_user_id: userId,
       nome: row.nome,
       tipo: row.tipo ?? 'novo',
       ativo: row.ativo ?? true,
