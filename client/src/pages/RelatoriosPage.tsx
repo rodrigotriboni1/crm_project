@@ -169,6 +169,13 @@ export default function RelatoriosPage() {
                 columnsClassName="sm:grid-cols-2 lg:grid-cols-4"
               />
 
+              {data.orcamentosResumoTruncated && (
+                <p className="text-sm text-amber-800">
+                  A tabela de orçamentos abaixo mostra no máximo 1000 linhas; os totais e gráficos usam o período
+                  completo.
+                </p>
+              )}
+
               <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
                 <h2 className="mb-3 text-sm font-semibold text-brand-dark">Orçamentos por dia</h2>
                 {chartData.length === 0 ? (

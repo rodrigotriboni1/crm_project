@@ -5,7 +5,9 @@ export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: stri
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
+/** Só em desenvolvimento: nunca expor chave no bundle de produção. */
 export function getOpenRouterKey(): string | undefined {
+  if (!import.meta.env.DEV) return undefined
   return import.meta.env.VITE_OPENROUTER_API_KEY?.trim() || undefined
 }
 
@@ -75,12 +77,12 @@ export async function openrouterChat(
     const msg =
       data?.error ??
       error?.message ??
-      'Deploy a função openrouter-chat e defina o segredo OPENROUTER_API_KEY no projeto, ou use VITE_OPENROUTER_API_KEY em desenvolvimento.'
+      'Deploy a função openrouter-chat e defina OPENROUTER_API_KEY no projeto Supabase. Em desenvolvimento pode usar VITE_OPENROUTER_API_KEY.'
     throw new Error(msg)
   }
 
   if (viteKey) {
     return openrouterChatDirect(messages, model, viteKey)
   }
-  throw new Error('Configure Supabase ou VITE_OPENROUTER_API_KEY no .env do client.')
+  throw new Error('Configure Supabase (recomendado) ou, só em dev, VITE_OPENROUTER_API_KEY no .env do client.')
 }

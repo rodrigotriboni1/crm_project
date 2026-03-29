@@ -5,6 +5,7 @@
  * “Em aberto” no resumo = mesmos status que o dashboard: novo_contato + orcamento_enviado
  * (apenas entre orçamentos já filtrados pelo intervalo).
  */
+import type { PostgrestError } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { OrcamentoStatus } from '@/types/database'
 
@@ -82,6 +83,8 @@ export type ReportsData = {
   topClientes: ReportsTopCliente[]
   interacoesPorCanal: ReportsInteracaoCanal[]
   orcamentosResumo: ReportsOrcamentoResumo[]
+  /** Definido quando a RPC limita `orcamentosResumo` a 1000 linhas */
+  orcamentosResumoTruncated?: boolean
 }
 
 function emptyBreakdown(): ReportsStatusBreakdown {
@@ -90,6 +93,56 @@ function emptyBreakdown(): ReportsStatusBreakdown {
     o[s] = { count: 0, valorSum: 0 }
   }
   return o as ReportsStatusBreakdown
+}
+
+function mergePorStatusFromRpc(partial: Record<string, { count?: number; valorSum?: number }>): ReportsStatusBreakdown {
+  const base = emptyBreakdown()
+  for (const s of ALL_STATUS) {
+    const p = partial[s]
+    if (p && typeof p.count === 'number') {
+      base[s] = { count: p.count, valorSum: Number(p.valorSum) || 0 }
+    }
+  }
+  return base
+}
+
+function isMissingReportsRpcError(error: PostgrestError): boolean {
+  const code = error.code ?? ''
+  const msg = (error.message ?? '').toLowerCase()
+  return (
+    code === 'PGRST202' ||
+    code === '42883' ||
+    (msg.includes('function') && (msg.includes('does not exist') || msg.includes('not found'))) ||
+    msg.includes('could not find the function')
+  )
+}
+
+type ReportsRpcPayload = {
+  totalOrcamentosNoPeriodo?: number
+  valorEmAbertoNoPeriodo?: number
+  valorGanhoNoPeriodo?: number
+  porStatus?: Record<string, { count?: number; valorSum?: number }>
+  seriePorDia?: ReportsDailyBucket[]
+  topClientes?: ReportsTopCliente[]
+  interacoesPorCanal?: ReportsInteracaoCanal[]
+  orcamentosResumo?: ReportsOrcamentoResumo[]
+  orcamentosResumoTruncated?: boolean
+}
+
+function parseReportsRpcData(range: ReportsDateRange, raw: unknown): ReportsData {
+  const j = raw as ReportsRpcPayload
+  return {
+    range,
+    totalOrcamentosNoPeriodo: Number(j.totalOrcamentosNoPeriodo) || 0,
+    valorEmAbertoNoPeriodo: Number(j.valorEmAbertoNoPeriodo) || 0,
+    valorGanhoNoPeriodo: Number(j.valorGanhoNoPeriodo) || 0,
+    porStatus: mergePorStatusFromRpc(j.porStatus ?? {}),
+    seriePorDia: Array.isArray(j.seriePorDia) ? j.seriePorDia : [],
+    topClientes: Array.isArray(j.topClientes) ? j.topClientes : [],
+    interacoesPorCanal: Array.isArray(j.interacoesPorCanal) ? j.interacoesPorCanal : [],
+    orcamentosResumo: Array.isArray(j.orcamentosResumo) ? j.orcamentosResumo : [],
+    orcamentosResumoTruncated: j.orcamentosResumoTruncated === true,
+  }
 }
 
 function rangeToTimestampsIso(range: ReportsDateRange): { start: string; end: string } {
@@ -162,16 +215,11 @@ function aggregateOrcamentos(rows: ReportsOrcamentoRow[]): Omit<ReportsData, 'ra
   }
 }
 
-export async function fetchReportsData(
+async function fetchReportsDataLegacy(
   sb: SupabaseClient,
-  _userId: string,
   organizationId: string,
   range: ReportsDateRange
 ): Promise<ReportsData> {
-  if (range.start > range.end) {
-    throw new Error('Data inicial não pode ser posterior à data final.')
-  }
-
   const { start: tsStart, end: tsEnd } = rangeToTimestampsIso(range)
 
   const [{ data: orcRows, error: oe }, { data: intRows, error: ie }] = await Promise.all([
@@ -210,4 +258,34 @@ export async function fetchReportsData(
     interacoesPorCanal,
     ...agg,
   }
+}
+
+export async function fetchReportsData(
+  sb: SupabaseClient,
+  _userId: string,
+  organizationId: string,
+  range: ReportsDateRange
+): Promise<ReportsData> {
+  if (range.start > range.end) {
+    throw new Error('Data inicial não pode ser posterior à data final.')
+  }
+
+  const { data: rpcRaw, error: rpcErr } = await sb.rpc('reports_data_for_organization_range', {
+    p_organization_id: organizationId,
+    p_start: range.start,
+    p_end: range.end,
+  })
+
+  if (!rpcErr && rpcRaw != null && typeof rpcRaw === 'object') {
+    return parseReportsRpcData(range, rpcRaw)
+  }
+
+  if (rpcErr) {
+    if (isMissingReportsRpcError(rpcErr)) {
+      return fetchReportsDataLegacy(sb, organizationId, range)
+    }
+    throw rpcErr
+  }
+
+  return fetchReportsDataLegacy(sb, organizationId, range)
 }

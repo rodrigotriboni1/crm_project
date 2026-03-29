@@ -21,13 +21,21 @@ function createThenableChain(response: unknown) {
   return chain
 }
 
-function createMockSupabase(responses: unknown[]) {
+function createMockSupabase(
+  responses: unknown[],
+  opts?: { rpc?: { data: unknown; error: unknown } }
+) {
   let i = 0
   return {
     from() {
       const response = responses[i] ?? { data: null, error: new Error('unexpected query') }
       i += 1
       return createThenableChain(response) as unknown as ReturnType<SupabaseClient['from']>
+    },
+    rpc() {
+      return Promise.resolve(
+        opts?.rpc ?? { data: null, error: { code: 'PGRST202', message: 'function not found' } },
+      )
     },
   } as unknown as SupabaseClient
 }
@@ -110,5 +118,43 @@ describe('fetchReportsData', () => {
       { canal: 'telefone', count: 1 },
     ])
     expect(r.orcamentosResumo).toHaveLength(3)
+  })
+
+  it('usa RPC quando disponível', async () => {
+    const rpcPayload = {
+      totalOrcamentosNoPeriodo: 1,
+      valorEmAbertoNoPeriodo: 10,
+      valorGanhoNoPeriodo: 0,
+      porStatus: {
+        novo_contato: { count: 1, valorSum: 10 },
+      },
+      seriePorDia: [{ date: '2026-03-01', count: 1 }],
+      topClientes: [
+        {
+          clienteId: 'c1',
+          clienteNome: 'X',
+          orcamentosCount: 1,
+          valorTotal: 10,
+        },
+      ],
+      interacoesPorCanal: [{ canal: 'WhatsApp', count: 2 }],
+      orcamentosResumo: [
+        {
+          id: 'o1',
+          display_num: 1,
+          clienteNome: 'X',
+          status: 'novo_contato',
+          valor: 10,
+          data_orcamento: '2026-03-01',
+        },
+      ],
+      orcamentosResumoTruncated: false,
+    }
+    const sb = createMockSupabase([], { rpc: { data: rpcPayload, error: null } })
+    const r = await fetchReportsData(sb, 'u', 'org-1', { start: '2026-03-01', end: '2026-03-31' })
+    expect(r.totalOrcamentosNoPeriodo).toBe(1)
+    expect(r.porStatus.novo_contato.count).toBe(1)
+    expect(r.porStatus.ganho.count).toBe(0)
+    expect(r.interacoesPorCanal).toEqual([{ canal: 'WhatsApp', count: 2 }])
   })
 })
