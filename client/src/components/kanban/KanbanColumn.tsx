@@ -18,6 +18,8 @@ type Props = {
   statusColorClass: string
   savingId: string | null
   onOpenDetail: (id: string) => void
+  dragDisabled?: boolean
+  onChangeStatus?: (o: OrcamentoRow, status: OrcamentoStatus) => void
 }
 
 export default function KanbanColumn({
@@ -27,6 +29,8 @@ export default function KanbanColumn({
   statusColorClass,
   savingId,
   onOpenDetail,
+  dragDisabled = false,
+  onChangeStatus,
 }: Props) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
@@ -69,6 +73,8 @@ export default function KanbanColumn({
               columnStatus={status}
               saving={savingId === o.id}
               onOpenDetail={() => onOpenDetail(o.id)}
+              dragDisabled={dragDisabled}
+              onChangeStatus={onChangeStatus}
             />
           ))
         )}

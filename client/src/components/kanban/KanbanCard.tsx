@@ -4,11 +4,13 @@ import { ExternalLink } from 'lucide-react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { Card, CardContent } from '@/components/ui/card'
+import { SelectNative } from '@/components/ui/select-native'
 import AvatarCircle from '@/components/AvatarCircle'
 import type { OrcamentoRow } from '@/api/crm'
 import type { OrcamentoStatus } from '@/types/database'
 import { cn } from '@/lib/utils'
 import { formatOrcamentoDisplayNum } from '@/lib/orcamentoDisplayNum'
+import { ORCAMENTO_STATUS_ORDER, orcamentoStatusLabel } from '@/lib/orcamentoStatusUi'
 
 function fmt(dateStr: string) {
   const [, m, d] = dateStr.split('-')
@@ -113,14 +115,24 @@ type DraggableProps = {
   columnStatus: OrcamentoStatus
   saving?: boolean
   onOpenDetail: () => void
+  /** Em viewports estreitos: sem arrastar; selector de etapa. */
+  dragDisabled?: boolean
+  onChangeStatus?: (o: OrcamentoRow, status: OrcamentoStatus) => void
 }
 
-export function DraggableKanbanCard({ o, columnStatus, saving, onOpenDetail }: DraggableProps) {
+export function DraggableKanbanCard({
+  o,
+  columnStatus,
+  saving,
+  onOpenDetail,
+  dragDisabled = false,
+  onChangeStatus,
+}: DraggableProps) {
   const clickRef = useRef<{ x: number; y: number; t: number } | null>(null)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: o.id,
     data: { type: 'card', orcamento: o },
-    disabled: Boolean(saving),
+    disabled: Boolean(saving) || dragDisabled,
   })
 
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined
@@ -137,7 +149,7 @@ export function DraggableKanbanCard({ o, columnStatus, saving, onOpenDetail }: D
       className={cn(
         isDragging && 'opacity-40',
         saving && 'pointer-events-none opacity-60',
-        !saving && 'cursor-grab active:cursor-grabbing'
+        !saving && !dragDisabled && 'cursor-grab active:cursor-grabbing'
       )}
       {...attributes}
       {...listeners}
@@ -157,6 +169,31 @@ export function DraggableKanbanCard({ o, columnStatus, saving, onOpenDetail }: D
       }}
     >
       <KanbanCardBody o={o} columnStatus={columnStatus} />
+      {dragDisabled && onChangeStatus && (
+        <div
+          className="mt-1 border-t border-border/80 px-1 pb-1 pt-2"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <label className="sr-only" htmlFor={`kanban-status-${o.id}`}>
+            Mover etapa
+          </label>
+          <SelectNative
+            id={`kanban-status-${o.id}`}
+            className="h-10 w-full text-xs"
+            value={o.status}
+            onChange={(e) => onChangeStatus(o, e.target.value as OrcamentoStatus)}
+            disabled={Boolean(saving)}
+            aria-label="Mover para outra etapa"
+          >
+            {ORCAMENTO_STATUS_ORDER.map((st) => (
+              <option key={st} value={st}>
+                {orcamentoStatusLabel(st)}
+              </option>
+            ))}
+          </SelectNative>
+        </div>
+      )}
     </div>
   )
 }

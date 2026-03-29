@@ -308,9 +308,9 @@ export default function ClientesPage() {
               }
             />
           ) : (
-            <>
+            <div className="space-y-2 sm:space-y-0">
               {filtered.length > 0 && (
-                <div className="mb-1 flex items-center gap-2 border-b border-border px-2 pb-2">
+                <div className="mb-1 hidden items-center gap-2 border-b border-border px-2 pb-2 sm:flex">
                   <input
                     ref={selectAllRef}
                     id="clientes-select-all-filtered"
@@ -332,25 +332,54 @@ export default function ClientesPage() {
                 </div>
               )}
               {filtered.map((c) => (
-                <div
-                  key={c.id}
-                  className="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-muted/50"
-                >
-                  <input
-                    type="checkbox"
-                    className="mt-2.5 size-4 shrink-0 rounded border border-border accent-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
-                    checked={selectedIds.has(c.id)}
-                    onChange={() => toggleSelect(c.id)}
-                    aria-label={`Selecionar ${c.nome}`}
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                <div key={c.id}>
+                  <div className="hidden items-start gap-2 rounded-lg p-2 transition-colors hover:bg-muted/50 sm:flex">
+                    <input
+                      type="checkbox"
+                      className="mt-2.5 size-4 shrink-0 rounded border border-border accent-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                      checked={selectedIds.has(c.id)}
+                      onChange={() => toggleSelect(c.id)}
+                      aria-label={`Selecionar ${c.nome}`}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <Link
+                      to={`/clientes/${c.id}`}
+                      className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-start gap-3 rounded-md p-1 pr-2"
+                    >
+                      <AvatarCircle name={c.nome} size="md" className="mt-0.5 shrink-0" />
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <p className="truncate text-sm font-medium">{c.nome}</p>
+                        <p className="truncate text-xs text-muted-foreground">{clientePhoneLine(c)}</p>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                          {clienteTaxDisplay(c) && (
+                            <span className="font-mono text-foreground/80">{clienteTaxDisplay(c)}</span>
+                          )}
+                          {clienteTaxDisplay(c) && <span aria-hidden>·</span>}
+                          <span>{formatUltimoContatoLabel(c.ultimo_contato)}</span>
+                        </div>
+                      </div>
+                      <div className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
+                        <EntityActiveBadge active={c.ativo} activeLabel="Ativo" inactiveLabel="Arquivado" />
+                        <span
+                          className={cn(
+                            'rounded-full border px-2 py-0.5 text-[11px] font-medium',
+                            c.tipo === 'recompra'
+                              ? 'border-green-200 bg-green-50 text-green-700'
+                              : 'border-blue-200 bg-blue-50 text-blue-700'
+                          )}
+                        >
+                          {c.tipo === 'recompra' ? 'Recompra' : 'Novo'}
+                        </span>
+                      </div>
+                    </Link>
+                  </div>
                   <Link
                     to={`/clientes/${c.id}`}
-                    className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 rounded-md p-1 pr-2"
+                    className="flex min-h-[52px] items-center gap-3 rounded-xl border border-border/80 bg-card/40 p-3 shadow-sm transition-colors active:bg-muted/60 sm:hidden"
                   >
-                    <AvatarCircle name={c.nome} size="md" className="mt-0.5 shrink-0" />
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <p className="truncate text-sm font-medium">{c.nome}</p>
+                    <AvatarCircle name={c.nome} size="md" className="shrink-0" />
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="truncate text-sm font-semibold leading-tight">{c.nome}</p>
                       <p className="truncate text-xs text-muted-foreground">{clientePhoneLine(c)}</p>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
                         {clienteTaxDisplay(c) && (
@@ -360,7 +389,7 @@ export default function ClientesPage() {
                         <span>{formatUltimoContatoLabel(c.ultimo_contato)}</span>
                       </div>
                     </div>
-                    <div className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
+                    <div className="flex shrink-0 flex-col items-end gap-1">
                       <EntityActiveBadge active={c.ativo} activeLabel="Ativo" inactiveLabel="Arquivado" />
                       <span
                         className={cn(
@@ -376,7 +405,7 @@ export default function ClientesPage() {
                   </Link>
                 </div>
               ))}
-            </>
+            </div>
           )}
         </SectionCard>
       )}

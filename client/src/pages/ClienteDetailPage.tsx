@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
@@ -16,6 +16,7 @@ import ClienteDetailHeader from '@/components/cliente/ClienteDetailHeader'
 import ClienteDadosCard from '@/components/cliente/ClienteDadosCard'
 import ClienteOrcamentosSection from '@/components/cliente/ClienteOrcamentosSection'
 import ClienteInteracoesSection from '@/components/cliente/ClienteInteracoesSection'
+import ClienteQuickActionBar from '@/components/cliente/ClienteQuickActionBar'
 
 export default function ClienteDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -30,6 +31,12 @@ export default function ClienteDetailPage() {
   const createInt = useCreateInteracao(user, activeOrganizationId, id ?? '')
   const createOrc = useCreateOrcamento(user, activeOrganizationId)
   const { data: produtosCatalogo = [] } = useProdutos(user, activeOrganizationId, { ativosApenas: true })
+  const [registerContatoOpen, setRegisterContatoOpen] = useState(false)
+
+  const onRegistrarContato = useCallback(() => {
+    document.getElementById('historico-contatos')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setRegisterContatoOpen(true)
+  }, [])
 
   if (!id) return <p className="px-4 py-4 text-sm text-red-700 sm:p-6">Cliente inválido.</p>
   if (isLoading) {
@@ -43,7 +50,7 @@ export default function ClienteDetailPage() {
   if (!cliente) return <p className="px-4 py-4 text-sm text-muted-foreground sm:p-6">Cliente não encontrado.</p>
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-4 sm:p-6">
+    <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-4 max-md:pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] sm:p-6">
       <ClienteDetailHeader cliente={cliente} />
       <ClienteDadosCard cliente={cliente} update={update} />
       <ClienteOrcamentosSection
@@ -58,6 +65,13 @@ export default function ClienteDetailPage() {
         hasMore={Boolean(interacoesQ.hasNextPage)}
         loadingMore={interacoesQ.isFetchingNextPage}
         onLoadMore={() => void interacoesQ.fetchNextPage()}
+        registerDialogOpen={registerContatoOpen}
+        onRegisterDialogOpenChange={setRegisterContatoOpen}
+      />
+      <ClienteQuickActionBar
+        telefone={cliente.telefone}
+        whatsapp={cliente.whatsapp}
+        onRegistrarContato={onRegistrarContato}
       />
     </div>
   )

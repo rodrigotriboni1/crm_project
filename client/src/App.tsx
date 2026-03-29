@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { isSupabaseConfigured } from '@/lib/supabase'
@@ -8,12 +9,21 @@ import LoginPage from '@/pages/LoginPage'
 import JoinOrganizationPage from '@/pages/JoinOrganizationPage'
 import DashboardPage from '@/pages/DashboardPage'
 import ClientesPage from '@/pages/ClientesPage'
-import ClientesPlanilhaPage from '@/pages/ClientesPlanilhaPage'
 import ClienteDetailPage from '@/pages/ClienteDetailPage'
 import OrcamentosPage from '@/pages/OrcamentosPage'
 import ProdutosPage from '@/pages/ProdutosPage'
 import KanbanPage from '@/pages/KanbanPage'
 import RelatoriosPage from '@/pages/RelatoriosPage'
+
+const ClientesPlanilhaPage = lazy(() => import('@/pages/ClientesPlanilhaPage'))
+
+function PlanilhaRoute() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <ClientesPlanilhaPage />
+    </Suspense>
+  )
+}
 
 function ProtectedLayout() {
   const { user, loading } = useAuth()
@@ -38,7 +48,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="kanban" element={<KanbanPage />} />
           <Route path="clientes" element={<ClientesPage />} />
-          <Route path="clientes/planilha" element={<ClientesPlanilhaPage />} />
+          <Route path="clientes/planilha" element={<PlanilhaRoute />} />
           <Route path="clientes/:id" element={<ClienteDetailPage />} />
           <Route path="orcamentos" element={<OrcamentosPage />} />
           <Route path="produtos" element={<ProdutosPage />} />

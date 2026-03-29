@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { groupOrcamentosByCliente } from '@/lib/kanbanGroup'
 import { KANBAN_VIEW_KEY } from '@/lib/storageKeys'
+import { useViewportMaxMd } from '@/hooks/useViewportMaxMd'
 import type { OrcamentoRow } from '@/api/crm'
 import type { OrcamentoStatus } from '@/types/database'
 
@@ -57,6 +58,7 @@ function resolveDropStatus(overId: string | undefined, rows: OrcamentoRow[]): Or
 
 export default function KanbanPage() {
   useGenericAssistantDock('Kanban')
+  const isMobileKanban = useViewportMaxMd()
   const { user } = useAuth()
   const { activeOrganizationId } = useOrganization()
   const { data: rows = [], isLoading } = useOrcamentos(user, activeOrganizationId)
@@ -225,6 +227,8 @@ export default function KanbanPage() {
                   statusColorClass={STATUS_COLOR[status]}
                   savingId={savingId}
                   onOpenDetail={setModalId}
+                  dragDisabled={isMobileKanban}
+                  onChangeStatus={attemptStatusChange}
                 />
               )
             })}

@@ -10,10 +10,16 @@ import { cn } from '@/lib/utils'
 
 function readRailCollapsed(): boolean {
   try {
-    return localStorage.getItem(ASSISTANT_RAIL_COLLAPSED_KEY) === '1'
+    const v = localStorage.getItem(ASSISTANT_RAIL_COLLAPSED_KEY)
+    if (v !== null) return v === '1'
   } catch {
-    return false
+    /* ignore */
   }
+  // Sem preferência gravada: no telefone começa recolhido (mais espaço para o CRM).
+  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+    return true
+  }
+  return false
 }
 
 export default function LayoutAssistantRail() {
