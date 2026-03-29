@@ -8,12 +8,21 @@ import {
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
+export type SignUpOptions = {
+  /** Enviado em `raw_user_meta_data` (ex.: convite à organização). */
+  data?: Record<string, string>
+}
+
 type AuthCtx = {
   user: User | null
   session: Session | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>
+  signUp: (
+    email: string,
+    password: string,
+    opts?: SignUpOptions
+  ) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
 }
 
@@ -49,9 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null }
   }
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, opts?: SignUpOptions) => {
     if (!supabase) return { error: new Error('Supabase não configurado') }
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: opts?.data ? { data: opts.data } : undefined,
+    })
     return { error: error as Error | null }
   }
 

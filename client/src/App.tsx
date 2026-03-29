@@ -5,6 +5,7 @@ import Layout from '@/components/Layout'
 import LoadingScreen from '@/components/LoadingScreen'
 import SetupPage from '@/pages/SetupPage'
 import LoginPage from '@/pages/LoginPage'
+import JoinOrganizationPage from '@/pages/JoinOrganizationPage'
 import DashboardPage from '@/pages/DashboardPage'
 import ClientesPage from '@/pages/ClientesPage'
 import ClientesPlanilhaPage from '@/pages/ClientesPlanilhaPage'
@@ -32,6 +33,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/join" element={<JoinOrganizationPage />} />
         <Route element={<ProtectedLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="kanban" element={<KanbanPage />} />

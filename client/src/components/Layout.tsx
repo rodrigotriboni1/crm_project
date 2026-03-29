@@ -169,21 +169,6 @@ export default function Layout() {
                   </option>
                 ))}
               </SelectNative>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className={cn('mt-2 h-8 w-full gap-1.5 text-xs', collapsed && 'px-1')}
-                onClick={() => setTeamDialogOpen(true)}
-                title="Membros da organização"
-              >
-                {activeOrgOwner ? (
-                  <UserPlus className="h-3.5 w-3.5 shrink-0" />
-                ) : (
-                  <Users className="h-3.5 w-3.5 shrink-0" />
-                )}
-                {!collapsed && <span className="truncate">Equipa</span>}
-              </Button>
             </div>
           )}
           <Button
@@ -257,6 +242,26 @@ export default function Layout() {
 
         <div className={cn('space-y-1 border-t border-border p-2', collapsed && 'px-1.5')}>
           <ThemeToggle collapsed={collapsed} />
+          {user && organizations.length > 0 && activeOrganizationId && activeOrg && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={cn(
+                'w-full font-sans text-brand-mid hover:bg-brand-surface/50 hover:text-brand-dark',
+                collapsed ? 'justify-center px-0' : 'justify-start gap-2'
+              )}
+              onClick={() => setTeamDialogOpen(true)}
+              title="Membros da organização"
+            >
+              {activeOrgOwner ? (
+                <UserPlus className="h-4 w-4 shrink-0" />
+              ) : (
+                <Users className="h-4 w-4 shrink-0" />
+              )}
+              {!collapsed && <span className="truncate">Equipe</span>}
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
