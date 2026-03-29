@@ -2,7 +2,7 @@
   "name": "crm-embalagens",
   "private": true,
   "version": "1.0.0",
-  "description": "CRM Embalagens — static Parcel build from Claude artifact",
+  "description": "EmbalaFlow CRM — monorepo npm workspace (client Vite + React; Supabase migrations & Edge Functions)",
   "workspaces": [
     "client"
   ],

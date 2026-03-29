@@ -1,9 +1,33 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const CORS_ALLOW_HEADERS = 'authorization, x-client-info, apikey, content-type'
+
+function parseAllowedOrigins(): string[] {
+  const raw = Deno.env.get('ASSISTANT_CORS_ORIGINS') ?? Deno.env.get('SITE_URL') ?? ''
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+/** CORS: define `ASSISTANT_CORS_ORIGINS` ou `SITE_URL` (URLs separadas por vírgula); sem isso mantém `*` (legado). */
+function corsHeadersFor(req: Request): Record<string, string> | null {
+  const allowed = parseAllowedOrigins()
+  const base: Record<string, string> = {
+    'Access-Control-Allow-Headers': CORS_ALLOW_HEADERS,
+  }
+  if (allowed.length === 0) {
+    return { ...base, 'Access-Control-Allow-Origin': '*' }
+  }
+  const origin = req.headers.get('Origin')
+  if (origin && allowed.includes(origin)) {
+    return { ...base, 'Access-Control-Allow-Origin': origin, Vary: 'Origin' }
+  }
+  if (!origin) {
+    return { ...base, 'Access-Control-Allow-Origin': allowed[0]!, Vary: 'Origin' }
+  }
+  return null
 }
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
@@ -13,8 +37,21 @@ const OPENROUTER_RATE_MAX = 30
 const OPENROUTER_RATE_WINDOW_SEC = 3600
 
 Deno.serve(async (req) => {
+  const cors = corsHeadersFor(req)
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    if (!cors) {
+      return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    return new Response('ok', { headers: cors })
+  }
+  if (!cors) {
+    return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   try {
@@ -22,7 +59,7 @@ Deno.serve(async (req) => {
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
@@ -39,7 +76,7 @@ Deno.serve(async (req) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
@@ -54,7 +91,7 @@ Deno.serve(async (req) => {
     if (!organizationId || !uuidRe.test(organizationId)) {
       return new Response(JSON.stringify({ error: 'organizationId required (UUID)' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
@@ -66,7 +103,7 @@ Deno.serve(async (req) => {
     if (rateErr) {
       return new Response(JSON.stringify({ error: 'Rate limit check failed' }), {
         status: 503,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
     const rate = rateRaw as { allowed?: boolean; retry_after_seconds?: number } | null
@@ -75,7 +112,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Too many requests; try again later.' }), {
         status: 429,
         headers: {
-          ...corsHeaders,
+          ...cors,
           'Content-Type': 'application/json',
           'Retry-After': String(retry),
         },
@@ -86,7 +123,7 @@ Deno.serve(async (req) => {
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: 'messages required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
@@ -95,7 +132,7 @@ Deno.serve(async (req) => {
       console.error('openrouter-chat: OPENROUTER_API_KEY not configured')
       return new Response(JSON.stringify({ error: 'Assistant service is not configured.' }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
@@ -123,7 +160,7 @@ Deno.serve(async (req) => {
       console.error('openrouter-chat: upstream error', res.status, detail)
       return new Response(JSON.stringify({ error: 'Assistant request failed. Please try again.' }), {
         status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
@@ -134,18 +171,18 @@ Deno.serve(async (req) => {
     if (!content || typeof content !== 'string') {
       return new Response(JSON.stringify({ error: 'Empty model response' }), {
         status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
     return new Response(JSON.stringify({ content: content.trim() }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...cors, 'Content-Type': 'application/json' },
     })
   } catch (e) {
     console.error('openrouter-chat:', e)
     return new Response(JSON.stringify({ error: 'Request failed. Please try again.' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...cors, 'Content-Type': 'application/json' },
     })
   }
 })
