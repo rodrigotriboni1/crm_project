@@ -17,7 +17,7 @@ import { FormStack } from '@/components/library'
 import { clienteInteracaoFormFields } from '@/lib/fields/interacaoFormFields'
 import type { Interacao } from '@/types/database'
 
-type CreateIntRow = Omit<Parameters<typeof createInteracao>[2], 'cliente_id'>
+type CreateIntRow = Omit<Parameters<typeof createInteracao>[3], 'cliente_id'>
 
 type Props = {
   interacoes: Interacao[]

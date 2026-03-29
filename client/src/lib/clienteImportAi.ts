@@ -51,17 +51,21 @@ export function parseAiImportResult(raw: unknown): AiImportMappingResult {
 
 export async function suggestClienteColumnMapping(
   headers: string[],
-  sampleRows: string[][]
+  sampleRows: string[][],
+  opts?: { organizationId?: string }
 ): Promise<AiImportMappingResult> {
   const userPayload = JSON.stringify(
     { headers, sampleRows: sampleRows.slice(0, 10) },
     null,
     0
   )
-  const reply = await openrouterChat([
-    { role: 'system', content: SYSTEM },
-    { role: 'user', content: userPayload },
-  ])
+  const reply = await openrouterChat(
+    [
+      { role: 'system', content: SYSTEM },
+      { role: 'user', content: userPayload },
+    ],
+    { organizationId: opts?.organizationId }
+  )
   const parsed = extractJsonObject(reply)
   return parseAiImportResult(parsed)
 }

@@ -10,6 +10,7 @@ import {
   YAxis,
 } from 'recharts'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { ORCAMENTO_STATUS_ORDER, orcamentoStatusLabel, useReports } from '@/hooks/useCrm'
 import type { ReportsDateRange } from '@/api/crm'
 import { Button } from '@/components/ui/button'
@@ -57,12 +58,13 @@ function escapeCsvCell(s: string): string {
 
 export default function RelatoriosPage() {
   const { user } = useAuth()
+  const { activeOrganizationId } = useOrganization()
   const initial = useMemo(() => currentMonthRange(), [])
   const [draftStart, setDraftStart] = useState(initial.start)
   const [draftEnd, setDraftEnd] = useState(initial.end)
   const [applied, setApplied] = useState<ReportsDateRange>(initial)
 
-  const { data, isLoading, isError, error, isFetching } = useReports(user, applied)
+  const { data, isLoading, isError, error, isFetching } = useReports(user, activeOrganizationId, applied)
 
   const contextJson = useMemo(() => (data ? buildReportsAgentContext(data) : '{}'), [data])
   useRegisterAssistantDock('reports', contextJson)

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { User } from '@supabase/supabase-js'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { useApplyOrcamentoUpdate } from '@/hooks/useCrm'
 import type { OrcamentoRow } from '@/api/crm'
 import type { OrcamentoStatus } from '@/types/database'
@@ -8,7 +9,8 @@ import type { OrcamentoStatus } from '@/types/database'
  * Mudança de status inline (tabela/Kanban) com regra Dormindo + diálogo de follow-up.
  */
 export function useOrcamentoStatusTransitions(user: User | null) {
-  const apply = useApplyOrcamentoUpdate(user)
+  const { activeOrganizationId } = useOrganization()
+  const apply = useApplyOrcamentoUpdate(user, activeOrganizationId)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [moveError, setMoveError] = useState<string | null>(null)
   const [pendingDormindo, setPendingDormindo] = useState<OrcamentoRow | null>(null)

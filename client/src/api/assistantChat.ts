@@ -16,12 +16,14 @@ export function deriveThreadTitleFromMessage(text: string): string {
 
 export async function listAssistantThreads(
   sb: SupabaseClient,
-  userId: string
+  userId: string,
+  organizationId: string
 ): Promise<AssistantChatThread[]> {
   const { data, error } = await sb
     .from('assistant_chat_threads')
     .select('id, user_id, title, created_at, updated_at')
     .eq('user_id', userId)
+    .eq('organization_id', organizationId)
     .order('updated_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as AssistantChatThread[]
@@ -30,11 +32,12 @@ export async function listAssistantThreads(
 export async function createAssistantThread(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   title = 'Nova conversa'
 ): Promise<AssistantChatThread> {
   const { data, error } = await sb
     .from('assistant_chat_threads')
-    .insert({ user_id: userId, title })
+    .insert({ user_id: userId, organization_id: organizationId, title })
     .select('id, user_id, title, created_at, updated_at')
     .single()
   if (error) throw error

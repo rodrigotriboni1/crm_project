@@ -54,14 +54,17 @@ async function openrouterChatDirect(messages: ChatMessage[], model: string, key:
   return content.trim()
 }
 
-export async function openrouterChat(messages: ChatMessage[]): Promise<string> {
+export async function openrouterChat(
+  messages: ChatMessage[],
+  opts?: { organizationId?: string }
+): Promise<string> {
   const model = getOpenRouterModel()
   const viteKey = getOpenRouterKey()
 
   if (supabase) {
     const { data, error } = await supabase.functions.invoke<{ content?: string; error?: string }>(
       'openrouter-chat',
-      { body: { messages, model } }
+      { body: { messages, model, organizationId: opts?.organizationId } }
     )
     if (!error && data?.content && typeof data.content === 'string') {
       return data.content.trim()

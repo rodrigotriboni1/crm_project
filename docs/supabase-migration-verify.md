@@ -19,6 +19,7 @@ supabase migration list
 |----------|----------|
 | [supabase/migrations/20260331130000_scalability_indexes_rpc_rls.sql](../supabase/migrations/20260331130000_scalability_indexes_rpc_rls.sql) | Índices compostos em `orcamentos`, RPC `list_clientes_com_ultimo_contato`, RLS com `(select auth.uid())` |
 | `20260401090000_scalability_pagination_batch.sql` (ou nome gerado na pasta `migrations`) | KPIs `clientes_kpis_summary`, paginação `list_clientes_com_ultimo_contato_page`, `import_clientes_batch`, índice `interacoes` composto |
+| [supabase/migrations/20260402120000_organizations_multi_tenant.sql](../supabase/migrations/20260402120000_organizations_multi_tenant.sql) | `organizations`, `organization_id`, RLS por membro, RPCs com `p_organization_id`, `consume_openrouter_chat_rate(uuid,…)`, signup com org default |
 
 ## Verificação no SQL Editor (produção)
 
@@ -44,3 +45,4 @@ supabase migration list
 
 - Se `list_clientes_com_ultimo_contato` **não** existir, [client/src/api/clientes.ts](../client/src/api/clientes.ts) usa o legado (duas queries + merge no browser). Corrigir aplicando migrações.
 - A listagem principal de clientes usa paginação por cursor; a vista **Planilha** continua a usar a RPC completa (carregamento único).
+- Após a migração multi-tenant, as RPCs de clientes exigem o parâmetro **`p_organization_id`**; o cliente envia a org activa do contexto React.

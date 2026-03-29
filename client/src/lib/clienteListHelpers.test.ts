@@ -13,6 +13,7 @@ function c(partial: Partial<ClienteListItem>): ClienteListItem {
   return {
     id: '1',
     user_id: 'u',
+    organization_id: 'org-1',
     nome: 'ACME',
     tax_id: null,
     document_enrichment: null,

@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Sheet } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
 import { useBulkPatchClientes, useClientesForPlanilha } from '@/hooks/useCrm'
 import { Button } from '@/components/ui/button'
@@ -24,9 +25,10 @@ function mergedForValidation(base: ClienteListItem, draft: ClienteUpdate): Clien
 
 export default function ClientesPlanilhaPage() {
   const { user } = useAuth()
+  const { activeOrganizationId } = useOrganization()
   useGenericAssistantDock('Clientes · Planilha')
-  const { data: clientes = [], isLoading } = useClientesForPlanilha(user)
-  const bulk = useBulkPatchClientes(user)
+  const { data: clientes = [], isLoading } = useClientesForPlanilha(user, activeOrganizationId)
+  const bulk = useBulkPatchClientes(user, activeOrganizationId)
 
   const [q, setQ] = useState('')
   const [tipoFilter, setTipoFilter] = useState<ClienteTipoFilter>('todos')

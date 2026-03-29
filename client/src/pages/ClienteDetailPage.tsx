@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
 import {
   useCliente,
@@ -19,15 +20,16 @@ import ClienteInteracoesSection from '@/components/cliente/ClienteInteracoesSect
 export default function ClienteDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const { activeOrganizationId } = useOrganization()
   useGenericAssistantDock('Cliente')
-  const { data: cliente, isLoading } = useCliente(user, id)
-  const interacoesQ = useInteracoes(user, id)
+  const { data: cliente, isLoading } = useCliente(user, activeOrganizationId, id)
+  const interacoesQ = useInteracoes(user, activeOrganizationId, id)
   const interacoes = useMemo(() => interacoesQ.data?.pages.flat() ?? [], [interacoesQ.data])
-  const { data: orcamentos = [] } = useOrcamentosByCliente(user, id)
-  const update = useUpdateCliente(user, id ?? '')
-  const createInt = useCreateInteracao(user, id ?? '')
-  const createOrc = useCreateOrcamento(user)
-  const { data: produtosCatalogo = [] } = useProdutos(user, { ativosApenas: true })
+  const { data: orcamentos = [] } = useOrcamentosByCliente(user, activeOrganizationId, id)
+  const update = useUpdateCliente(user, activeOrganizationId, id ?? '')
+  const createInt = useCreateInteracao(user, activeOrganizationId, id ?? '')
+  const createOrc = useCreateOrcamento(user, activeOrganizationId)
+  const { data: produtosCatalogo = [] } = useProdutos(user, activeOrganizationId, { ativosApenas: true })
 
   if (!id) return <p className="px-4 py-4 text-sm text-red-700 sm:p-6">Cliente inválido.</p>
   if (isLoading) {

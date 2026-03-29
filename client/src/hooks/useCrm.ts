@@ -33,44 +33,54 @@ import { qk } from '@/lib/queryKeys'
 import type { ClienteTipo, ClienteUpdate, OrcamentoStatus, ProdutoUpdate } from '@/types/database'
 import type { ReportsDateRange } from '@/api/crm'
 
-function requireClient(user: User | null) {
+function requireClient(user: User | null, organizationId: string | null) {
   if (!supabase) throw new Error('Supabase não configurado')
   if (!user) throw new Error('Sessão necessária')
-  return { sb: supabase, uid: user.id }
+  if (!organizationId) throw new Error('Organização necessária')
+  return { sb: supabase, uid: user.id, orgId: organizationId }
 }
 
-export function useDashboard(user: User | null) {
+export function useDashboard(user: User | null, organizationId: string | null) {
   return useQuery({
-    queryKey: user ? qk.dashboard(user.id) : ['dashboard', 'none'],
+    queryKey: user && organizationId ? qk.dashboard(user.id, organizationId) : ['dashboard', 'none'],
     queryFn: () => {
-      const { sb, uid } = requireClient(user)
-      return fetchDashboard(sb, uid)
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return fetchDashboard(sb, uid, orgId)
     },
-    enabled: Boolean(supabase && user),
+    enabled: Boolean(supabase && user && organizationId),
   })
 }
 
-export function useReports(user: User | null, range: ReportsDateRange | null) {
+export function useReports(
+  user: User | null,
+  organizationId: string | null,
+  range: ReportsDateRange | null
+) {
   const key =
-    user && range ? qk.reports(user.id, range.start, range.end) : (['reports', 'none'] as const)
+    user && organizationId && range
+      ? qk.reports(user.id, organizationId, range.start, range.end)
+      : (['reports', 'none'] as const)
   return useQuery({
     queryKey: key,
     queryFn: () => {
-      const { sb, uid } = requireClient(user)
-      return fetchReportsData(sb, uid, range!)
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return fetchReportsData(sb, uid, orgId, range!)
     },
-    enabled: Boolean(supabase && user && range),
+    enabled: Boolean(supabase && user && organizationId && range),
   })
 }
 
 /** Listagem paginada (cursor); usar `useClientesForPlanilha` / `useClientesForPicker` quando precisar da lista completa. */
-export function useClientes(user: User | null, opts?: { ativosApenas?: boolean }) {
+export function useClientes(user: User | null, organizationId: string | null, opts?: { ativosApenas?: boolean }) {
   const ativosOnly = opts?.ativosApenas === true
   const infinite = useInfiniteQuery({
-    queryKey: user ? ([...qk.clientes(user.id), 'paged', ativosOnly] as const) : (['clientes', 'none'] as const),
+    queryKey:
+      user && organizationId
+        ? ([...qk.clientes(user.id, organizationId), 'paged', ativosOnly] as const)
+        : (['clientes', 'none'] as const),
     queryFn: async ({ pageParam }) => {
-      const { sb, uid } = requireClient(user)
-      return fetchClientesComUltimoContatoPage(sb, uid, {
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return fetchClientesComUltimoContatoPage(sb, uid, orgId, {
         ativosApenas: ativosOnly,
         cursor: pageParam ?? null,
         limit: CLIENTES_PAGE_SIZE,
@@ -78,7 +88,7 @@ export function useClientes(user: User | null, opts?: { ativosApenas?: boolean }
     },
     initialPageParam: null as { nome: string; id: string } | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    enabled: Boolean(supabase && user),
+    enabled: Boolean(supabase && user && organizationId),
   })
   const data = useMemo(() => infinite.data?.pages.flatMap((p) => p.rows) ?? [], [infinite.data])
   return {
@@ -92,122 +102,160 @@ export function useClientes(user: User | null, opts?: { ativosApenas?: boolean }
   }
 }
 
-export function useClientesKpis(user: User | null) {
+export function useClientesKpis(user: User | null, organizationId: string | null) {
   return useQuery({
-    queryKey: user ? (['clientes', user.id, 'kpis'] as const) : (['clientes', 'kpis', 'none'] as const),
+    queryKey:
+      user && organizationId
+        ? (['clientes', user.id, organizationId, 'kpis'] as const)
+        : (['clientes', 'kpis', 'none'] as const),
     queryFn: () => {
-      const { sb, uid } = requireClient(user)
-      return fetchClientesKpisSummary(sb, uid)
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return fetchClientesKpisSummary(sb, uid, orgId)
     },
-    enabled: Boolean(supabase && user),
+    enabled: Boolean(supabase && user && organizationId),
   })
 }
 
 /** Lista completa para selectores (ex.: novo orçamento). */
-export function useClientesForPicker(user: User | null, opts?: { ativosApenas?: boolean }) {
+export function useClientesForPicker(
+  user: User | null,
+  organizationId: string | null,
+  opts?: { ativosApenas?: boolean }
+) {
   const ativosOnly = opts?.ativosApenas === true
   return useQuery({
-    queryKey: user ? qk.clientesPicker(user.id, ativosOnly) : (['clientes', 'picker', 'none'] as const),
+    queryKey:
+      user && organizationId
+        ? qk.clientesPicker(user.id, organizationId, ativosOnly)
+        : (['clientes', 'picker', 'none'] as const),
     queryFn: () => {
-      const { sb, uid } = requireClient(user)
-      return listClientesComUltimoContato(sb, uid, { ativosApenas: ativosOnly })
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return listClientesComUltimoContato(sb, uid, orgId, { ativosApenas: ativosOnly })
     },
-    enabled: Boolean(supabase && user),
+    enabled: Boolean(supabase && user && organizationId),
   })
 }
 
 /** Lista completa para a vista em planilha (Glide). */
-export function useClientesForPlanilha(user: User | null) {
+export function useClientesForPlanilha(user: User | null, organizationId: string | null) {
   return useQuery({
-    queryKey: user ? ([...qk.clientes(user.id), 'planilha'] as const) : (['clientes', 'planilha', 'none'] as const),
+    queryKey:
+      user && organizationId
+        ? ([...qk.clientes(user.id, organizationId), 'planilha'] as const)
+        : (['clientes', 'planilha', 'none'] as const),
     queryFn: () => {
-      const { sb, uid } = requireClient(user)
-      return listClientesComUltimoContato(sb, uid, {})
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return listClientesComUltimoContato(sb, uid, orgId, {})
     },
-    enabled: Boolean(supabase && user),
+    enabled: Boolean(supabase && user && organizationId),
   })
 }
 
-export function useCliente(user: User | null, id: string | undefined) {
+export function useCliente(user: User | null, organizationId: string | null, id: string | undefined) {
   return useQuery({
-    queryKey: user && id ? qk.cliente(user.id, id) : ['cliente', 'none'],
+    queryKey: user && organizationId && id ? qk.cliente(user.id, organizationId, id) : ['cliente', 'none'],
     queryFn: () => {
-      const { sb, uid } = requireClient(user)
-      return getCliente(sb, uid, id!)
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return getCliente(sb, uid, orgId, id!)
     },
-    enabled: Boolean(supabase && user && id),
+    enabled: Boolean(supabase && user && organizationId && id),
   })
 }
 
-export function useOrcamentos(user: User | null) {
+export function useOrcamentos(user: User | null, organizationId: string | null) {
   return useQuery({
-    queryKey: user ? qk.orcamentos(user.id) : ['orcamentos', 'none'],
+    queryKey: user && organizationId ? qk.orcamentos(user.id, organizationId) : ['orcamentos', 'none'],
     queryFn: () => {
-      const { sb, uid } = requireClient(user)
-      return listOrcamentos(sb, uid)
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return listOrcamentos(sb, uid, orgId)
     },
-    enabled: Boolean(supabase && user),
+    enabled: Boolean(supabase && user && organizationId),
   })
 }
 
 /** Orçamentos em páginas (lista / tabela); Kanban continua a usar `useOrcamentos`. */
-export function useOrcamentosInfinite(user: User | null) {
+export function useOrcamentosInfinite(user: User | null, organizationId: string | null) {
   return useInfiniteQuery({
-    queryKey: user ? ([...qk.orcamentos(user.id), 'infinite'] as const) : (['orcamentos', 'none', 'inf'] as const),
+    queryKey:
+      user && organizationId
+        ? ([...qk.orcamentos(user.id, organizationId), 'infinite'] as const)
+        : (['orcamentos', 'none', 'inf'] as const),
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
-      const { sb, uid } = requireClient(user)
-      return listOrcamentosPage(sb, uid, { offset: pageParam, limit: ORCAMENTOS_PAGE_SIZE })
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return listOrcamentosPage(sb, uid, orgId, { offset: pageParam, limit: ORCAMENTOS_PAGE_SIZE })
     },
     getNextPageParam: (lastPage, allPages) => {
       if (lastPage.length < ORCAMENTOS_PAGE_SIZE) return undefined
       return allPages.reduce((acc, p) => acc + p.length, 0)
     },
-    enabled: Boolean(supabase && user),
+    enabled: Boolean(supabase && user && organizationId),
   })
 }
 
-export function useOrcamento(user: User | null, id: string | undefined) {
+export function useOrcamento(user: User | null, organizationId: string | null, id: string | undefined) {
   return useQuery({
-    queryKey: user && id ? qk.orcamento(user.id, id) : ['orcamento', 'none'],
+    queryKey:
+      user && organizationId && id ? qk.orcamento(user.id, organizationId, id) : ['orcamento', 'none'],
     queryFn: () => {
-      const { sb, uid } = requireClient(user)
-      return getOrcamento(sb, uid, id!)
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return getOrcamento(sb, uid, orgId, id!)
     },
-    enabled: Boolean(supabase && user && id),
+    enabled: Boolean(supabase && user && organizationId && id),
   })
 }
 
-export function useOrcamentosByCliente(user: User | null, clienteId: string | undefined) {
+export function useOrcamentosByCliente(
+  user: User | null,
+  organizationId: string | null,
+  clienteId: string | undefined
+) {
   return useQuery({
-    queryKey: user && clienteId ? qk.orcamentosCliente(user.id, clienteId) : ['orcamentosCliente', 'none'],
+    queryKey:
+      user && organizationId && clienteId
+        ? qk.orcamentosCliente(user.id, organizationId, clienteId)
+        : ['orcamentosCliente', 'none'],
     queryFn: () => {
-      const { sb, uid } = requireClient(user)
-      return listOrcamentosByCliente(sb, uid, clienteId!)
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return listOrcamentosByCliente(sb, uid, orgId, clienteId!)
     },
-    enabled: Boolean(supabase && user && clienteId),
+    enabled: Boolean(supabase && user && organizationId && clienteId),
   })
 }
 
-export function useProdutos(user: User | null, opts?: { ativosApenas?: boolean }) {
+export function useProdutos(
+  user: User | null,
+  organizationId: string | null,
+  opts?: { ativosApenas?: boolean }
+) {
   const ativos = opts?.ativosApenas ?? false
   return useQuery({
-    queryKey: user ? [...qk.produtos(user.id), ativos ? 'ativos' : 'todos'] : ['produtos', 'none'],
+    queryKey:
+      user && organizationId
+        ? [...qk.produtos(user.id, organizationId), ativos ? 'ativos' : 'todos']
+        : ['produtos', 'none'],
     queryFn: () => {
-      const { sb, uid } = requireClient(user)
-      return listProdutos(sb, uid, { ativosApenas: ativos })
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return listProdutos(sb, uid, orgId, { ativosApenas: ativos })
     },
-    enabled: Boolean(supabase && user),
+    enabled: Boolean(supabase && user && organizationId),
   })
 }
 
-export function useInteracoes(user: User | null, clienteId: string | undefined) {
+export function useInteracoes(
+  user: User | null,
+  organizationId: string | null,
+  clienteId: string | undefined
+) {
   return useInfiniteQuery({
-    queryKey: user && clienteId ? ([...qk.interacoes(user.id, clienteId), 'paged'] as const) : (['interacoes', 'none'] as const),
+    queryKey:
+      user && organizationId && clienteId
+        ? ([...qk.interacoes(user.id, organizationId, clienteId), 'paged'] as const)
+        : (['interacoes', 'none'] as const),
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
-      const { sb, uid } = requireClient(user)
-      return listInteracoesPage(sb, uid, clienteId!, {
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return listInteracoesPage(sb, uid, orgId, clienteId!, {
         offset: pageParam,
         limit: INTERACOES_PAGE_SIZE,
       })
@@ -216,46 +264,53 @@ export function useInteracoes(user: User | null, clienteId: string | undefined) 
       if (lastPage.length < INTERACOES_PAGE_SIZE) return undefined
       return allPages.reduce((acc, p) => acc + p.length, 0)
     },
-    enabled: Boolean(supabase && user && clienteId),
+    enabled: Boolean(supabase && user && organizationId && clienteId),
   })
 }
 
-function invalidateOrcamentoRelated(qc: ReturnType<typeof useQueryClient>, userId: string, clienteId?: string) {
-  void qc.invalidateQueries({ queryKey: qk.orcamentos(userId) })
-  void qc.invalidateQueries({ queryKey: qk.dashboard(userId) })
-  void qc.invalidateQueries({ queryKey: qk.clientes(userId) })
+function invalidateOrcamentoRelated(
+  qc: ReturnType<typeof useQueryClient>,
+  userId: string,
+  organizationId: string,
+  clienteId?: string
+) {
+  void qc.invalidateQueries({ queryKey: qk.orcamentos(userId, organizationId) })
+  void qc.invalidateQueries({ queryKey: qk.dashboard(userId, organizationId) })
+  void qc.invalidateQueries({ queryKey: qk.clientes(userId, organizationId) })
   if (clienteId) {
-    void qc.invalidateQueries({ queryKey: qk.interacoes(userId, clienteId) })
-    void qc.invalidateQueries({ queryKey: qk.orcamentosCliente(userId, clienteId) })
-    void qc.invalidateQueries({ queryKey: qk.cliente(userId, clienteId) })
+    void qc.invalidateQueries({ queryKey: qk.interacoes(userId, organizationId, clienteId) })
+    void qc.invalidateQueries({ queryKey: qk.orcamentosCliente(userId, organizationId, clienteId) })
+    void qc.invalidateQueries({ queryKey: qk.cliente(userId, organizationId, clienteId) })
   }
 }
 
-export function useCreateCliente(user: User | null) {
+export function useCreateCliente(user: User | null, organizationId: string | null) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (row: Parameters<typeof createCliente>[2]) => {
-      const { sb, uid } = requireClient(user)
-      return createCliente(sb, uid, row)
+    mutationFn: (row: Parameters<typeof createCliente>[3]) => {
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return createCliente(sb, uid, orgId, row)
     },
     onSuccess: () => {
-      if (user) void qc.invalidateQueries({ queryKey: qk.clientes(user.id) })
-      if (user) void qc.invalidateQueries({ queryKey: qk.dashboard(user.id) })
+      if (user && organizationId) {
+        void qc.invalidateQueries({ queryKey: qk.clientes(user.id, organizationId) })
+        void qc.invalidateQueries({ queryKey: qk.dashboard(user.id, organizationId) })
+      }
     },
   })
 }
 
-export function useUpdateCliente(user: User | null, id: string) {
+export function useUpdateCliente(user: User | null, organizationId: string | null, id: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (patch: ClienteUpdate) => {
-      const { sb, uid } = requireClient(user)
-      return updateCliente(sb, uid, id, patch)
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return updateCliente(sb, uid, orgId, id, patch)
     },
     onSuccess: () => {
-      if (user) {
-        void qc.invalidateQueries({ queryKey: qk.clientes(user.id) })
-        void qc.invalidateQueries({ queryKey: qk.cliente(user.id, id) })
+      if (user && organizationId) {
+        void qc.invalidateQueries({ queryKey: qk.clientes(user.id, organizationId) })
+        void qc.invalidateQueries({ queryKey: qk.cliente(user.id, organizationId, id) })
       }
     },
   })
@@ -264,72 +319,76 @@ export function useUpdateCliente(user: User | null, id: string) {
 const BULK_CLIENTE_CONCURRENCY = 6
 
 /** Vários `updateCliente` em paralelo (com limite) — edição em massa na planilha. */
-export function useBulkPatchClientes(user: User | null) {
+export function useBulkPatchClientes(user: User | null, organizationId: string | null) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (items: { id: string; patch: ClienteUpdate }[]) => {
-      const { sb, uid } = requireClient(user)
+      const { sb, uid, orgId } = requireClient(user, organizationId)
       for (let i = 0; i < items.length; i += BULK_CLIENTE_CONCURRENCY) {
         const chunk = items.slice(i, i + BULK_CLIENTE_CONCURRENCY)
-        await Promise.all(chunk.map(({ id, patch }) => updateCliente(sb, uid, id, patch)))
+        await Promise.all(chunk.map(({ id, patch }) => updateCliente(sb, uid, orgId, id, patch)))
       }
     },
     onSuccess: (_data, items) => {
-      if (!user) return
-      void qc.invalidateQueries({ queryKey: qk.clientes(user.id) })
-      void qc.invalidateQueries({ queryKey: qk.dashboard(user.id) })
+      if (!user || !organizationId) return
+      void qc.invalidateQueries({ queryKey: qk.clientes(user.id, organizationId) })
+      void qc.invalidateQueries({ queryKey: qk.dashboard(user.id, organizationId) })
       const ids = new Set(items.map((x) => x.id))
       for (const id of ids) {
-        void qc.invalidateQueries({ queryKey: qk.cliente(user.id, id) })
+        void qc.invalidateQueries({ queryKey: qk.cliente(user.id, organizationId, id) })
       }
     },
   })
 }
 
-export function useCreateOrcamento(user: User | null) {
+export function useCreateOrcamento(user: User | null, organizationId: string | null) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (row: Parameters<typeof createOrcamento>[2]) => {
-      const { sb, uid } = requireClient(user)
-      return createOrcamento(sb, uid, row)
+    mutationFn: (row: Parameters<typeof createOrcamento>[3]) => {
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return createOrcamento(sb, uid, orgId, row)
     },
     onSuccess: (_d, vars) => {
-      if (user) invalidateOrcamentoRelated(qc, user.id, vars.cliente_id)
+      if (user && organizationId) {
+        invalidateOrcamentoRelated(qc, user.id, organizationId, vars.cliente_id)
+      }
     },
   })
 }
 
-export function useCreateProduto(user: User | null) {
+export function useCreateProduto(user: User | null, organizationId: string | null) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (row: Parameters<typeof createProduto>[2]) => {
-      const { sb, uid } = requireClient(user)
-      return createProduto(sb, uid, row)
+    mutationFn: (row: Parameters<typeof createProduto>[3]) => {
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return createProduto(sb, uid, orgId, row)
     },
     onSuccess: () => {
-      if (user) void qc.invalidateQueries({ queryKey: qk.produtos(user.id) })
+      if (user && organizationId) {
+        void qc.invalidateQueries({ queryKey: qk.produtos(user.id, organizationId) })
+      }
     },
   })
 }
 
-export function useUpdateProduto(user: User | null) {
+export function useUpdateProduto(user: User | null, organizationId: string | null) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (args: { id: string; patch: ProdutoUpdate }) => {
-      const { sb, uid } = requireClient(user)
-      return updateProduto(sb, uid, args.id, args.patch)
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return updateProduto(sb, uid, orgId, args.id, args.patch)
     },
     onSuccess: () => {
-      if (user) {
-        void qc.invalidateQueries({ queryKey: qk.produtos(user.id) })
-        void qc.invalidateQueries({ queryKey: qk.orcamentos(user.id) })
-        void qc.invalidateQueries({ queryKey: qk.dashboard(user.id) })
+      if (user && organizationId) {
+        void qc.invalidateQueries({ queryKey: qk.produtos(user.id, organizationId) })
+        void qc.invalidateQueries({ queryKey: qk.orcamentos(user.id, organizationId) })
+        void qc.invalidateQueries({ queryKey: qk.dashboard(user.id, organizationId) })
       }
     },
   })
 }
 
-export function useApplyOrcamentoUpdate(user: User | null) {
+export function useApplyOrcamentoUpdate(user: User | null, organizationId: string | null) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (args: {
@@ -340,7 +399,7 @@ export function useApplyOrcamentoUpdate(user: User | null) {
       note?: string | null
       lostReason?: string | null
     }) => {
-      const { sb } = requireClient(user)
+      const { sb } = requireClient(user, organizationId)
       return applyOrcamentoUpdate(sb, {
         orcamentoId: args.orcamentoId,
         status: args.status,
@@ -350,13 +409,15 @@ export function useApplyOrcamentoUpdate(user: User | null) {
       })
     },
     onSuccess: (_d, args) => {
-      if (user) invalidateOrcamentoRelated(qc, user.id, args.clienteId)
-      if (user) void qc.invalidateQueries({ queryKey: qk.orcamento(user.id, args.orcamentoId) })
+      if (user && organizationId) {
+        invalidateOrcamentoRelated(qc, user.id, organizationId, args.clienteId)
+        void qc.invalidateQueries({ queryKey: qk.orcamento(user.id, organizationId, args.orcamentoId) })
+      }
     },
   })
 }
 
-export function usePatchOrcamento(user: User | null) {
+export function usePatchOrcamento(user: User | null, organizationId: string | null) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (args: {
@@ -364,30 +425,30 @@ export function usePatchOrcamento(user: User | null) {
       clienteId: string
       patch: { tax_id?: string | null; produto_id?: string | null; produto_descricao?: string }
     }) => {
-      const { sb, uid } = requireClient(user)
-      return patchOrcamento(sb, uid, args.id, args.patch)
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return patchOrcamento(sb, uid, orgId, args.id, args.patch)
     },
     onSuccess: (_d, args) => {
-      if (user) {
-        void qc.invalidateQueries({ queryKey: qk.orcamento(user.id, args.id) })
-        invalidateOrcamentoRelated(qc, user.id, args.clienteId)
+      if (user && organizationId) {
+        void qc.invalidateQueries({ queryKey: qk.orcamento(user.id, organizationId, args.id) })
+        invalidateOrcamentoRelated(qc, user.id, organizationId, args.clienteId)
       }
     },
   })
 }
 
-export function useCreateInteracao(user: User | null, clienteId: string) {
+export function useCreateInteracao(user: User | null, organizationId: string | null, clienteId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (row: Omit<Parameters<typeof createInteracao>[2], 'cliente_id'>) => {
-      const { sb, uid } = requireClient(user)
-      return createInteracao(sb, uid, { ...row, cliente_id: clienteId })
+    mutationFn: (row: Omit<Parameters<typeof createInteracao>[3], 'cliente_id'>) => {
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return createInteracao(sb, uid, orgId, { ...row, cliente_id: clienteId })
     },
     onSuccess: () => {
-      if (user) {
-        void qc.invalidateQueries({ queryKey: qk.interacoes(user.id, clienteId) })
-        void qc.invalidateQueries({ queryKey: qk.dashboard(user.id) })
-        void qc.invalidateQueries({ queryKey: qk.clientes(user.id) })
+      if (user && organizationId) {
+        void qc.invalidateQueries({ queryKey: qk.interacoes(user.id, organizationId, clienteId) })
+        void qc.invalidateQueries({ queryKey: qk.dashboard(user.id, organizationId) })
+        void qc.invalidateQueries({ queryKey: qk.clientes(user.id, organizationId) })
       }
     },
   })

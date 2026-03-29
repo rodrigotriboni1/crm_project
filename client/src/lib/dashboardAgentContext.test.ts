@@ -40,6 +40,7 @@ describe('buildDashboardAgentContext', () => {
         {
           id: 'o1',
           user_id: 'u',
+          organization_id: 'org-1',
           cliente_id: 'c1',
           produto_id: null,
           display_num: 1,
@@ -60,6 +61,7 @@ describe('buildDashboardAgentContext', () => {
         {
           id: 'i1',
           user_id: 'u',
+          organization_id: 'org-1',
           cliente_id: 'c1',
           orcamento_id: null,
           canal: 'WhatsApp',

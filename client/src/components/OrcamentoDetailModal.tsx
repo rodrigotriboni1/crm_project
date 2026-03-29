@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import {
   useApplyOrcamentoUpdate,
   useInteracoes,
@@ -57,11 +58,12 @@ type Props = {
 }
 
 export default function OrcamentoDetailModal({ user, orcamentoId, open, onOpenChange }: Props) {
-  const { data: o, isLoading } = useOrcamento(user, orcamentoId ?? undefined)
-  const interacoesQ = useInteracoes(user, o?.cliente_id)
+  const { activeOrganizationId } = useOrganization()
+  const { data: o, isLoading } = useOrcamento(user, activeOrganizationId, orcamentoId ?? undefined)
+  const interacoesQ = useInteracoes(user, activeOrganizationId, o?.cliente_id)
   const interacoes = useMemo(() => interacoesQ.data?.pages.flat() ?? [], [interacoesQ.data])
-  const apply = useApplyOrcamentoUpdate(user)
-  const patchTax = usePatchOrcamento(user)
+  const apply = useApplyOrcamentoUpdate(user, activeOrganizationId)
+  const patchTax = usePatchOrcamento(user, activeOrganizationId)
 
   const [status, setStatus] = useState<OrcamentoStatus>('novo_contato')
   const [followUp, setFollowUp] = useState('')

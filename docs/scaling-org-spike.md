@@ -1,34 +1,33 @@
-# Spike: organizações (B2B multi-utilizador) — rascunho
+# Organizações (multi-tenant) — implementado
 
-**Estado:** não implementado. Só avançar após “várias pessoas da mesma empresa partilham dados?” = **sim** no [scaling-assumptions-checklist.md](scaling-assumptions-checklist.md).
+**Estado:** implementado no código e na migração `20260402120000_organizations_multi_tenant.sql`. Rollout em produção só após `supabase db push` em staging e validação manual.
 
-## Objectivo
+## O que foi feito
 
-Permitir vários logins a partilharem o mesmo conjunto de clientes, orçamentos e interacções, com RLS por `organization_id` em vez de apenas `user_id`.
+- Tabelas `organizations` e `organization_members`; RLS por membro.
+- Coluna `organization_id` (NOT NULL) em `clientes`, `orcamentos`, `interacoes`, `produtos`, `assistant_chat_threads`; `openrouter_chat_rate` passou a PK por `organization_id`.
+- Backfill: uma organização por perfil existente; utilizadores só com dados de negócio sem perfil também recebem org + owner.
+- `user_id` nas linhas de negócio mantido como criador; isolamento por org + RLS.
+- RPCs com `p_organization_id` e verificação de membro: `list_clientes_com_ultimo_contato`, `list_clientes_com_ultimo_contato_page`, `clientes_kpis_summary`, `import_clientes_batch`, `consume_openrouter_chat_rate`.
+- Signup: `handle_new_user` cria org default + membro `owner` (se ainda não existir membro).
+- `create_organization(p_name)` para utilizadores sem org (UI com CTA no layout).
+- Cliente React: `OrganizationContext`, persistência da org activa em `localStorage`, selector no layout, queries e React Query keys incluem `organizationId`.
+- Edge `openrouter-chat`: corpo JSON deve incluir `organizationId` (UUID); rate limit por organização.
 
-## Modelo de dados (proposta)
+## Checklist de rollout (staging → produção)
 
-- `organizations` — `id`, `name`, `created_at`, …
-- `organization_members` — `organization_id`, `user_id`, `role` (`owner` | `member`), `created_at`, unique `(organization_id, user_id)`.
-- Tabelas de domínio (`clientes`, `orcamentos`, `interacoes`, `produtos`, …): adicionar `organization_id uuid not null references organizations(id)`, migrar a partir de `user_id` do primeiro membro (cada utilizador actual → org de uma pessoa).
+1. `supabase db push` (ou pipeline equivalente) na base de **staging**.
+2. Redeploy da Edge Function `openrouter-chat` (assinatura RPC alterada).
+3. Dois utilizadores na mesma org: confirmar dados partilhados (clientes/orçamentos).
+4. Um utilizador em duas orgs: trocar selector e confirmar isolamento de listagens e KPIs.
+5. Assistente: conversas e rate limit por org activa.
+6. Produção: janela de manutenção se necessário; monitorizar erros PostgREST/RPC após push.
 
-## RLS (esboço)
+## Referências
 
-- Políticas passam a `organization_id in (select organization_id from organization_members where user_id = (select auth.uid()))` com variantes por papel se necessário.
-- Remover ou reescrever políticas actuais baseadas só em `user_id`.
+- [supabase-migration-verify.md](supabase-migration-verify.md) — verificação de funções SQL.
+- Migração: [supabase/migrations/20260402120000_organizations_multi_tenant.sql](../supabase/migrations/20260402120000_organizations_multi_tenant.sql).
 
-## Migração de dados legados
+## Fora do âmbito actual
 
-1. Para cada `distinct user_id` em `clientes`, criar uma `organizations` e um `organization_members` (owner).
-2. Preencher `organization_id` em todas as linhas onde `user_id` corresponde ao dono da org criada.
-3. Índices compostos novos: `(organization_id, …)` espelhando os actuais `(user_id, …)`.
-
-## Riscos
-
-- Janela de manutenção ou backfill longo em bases grandes.
-- Apps móveis / tokens em cache durante a mudança de políticas.
-- Testes de regressão em todos os fluxos que hoje filtram por `user_id` no cliente.
-
-## Próximo passo de engenharia
-
-Implementar em branch isolada, ambiente de staging, sem `db push` em produção até assinatura de negócio.
+Convites por email, papéis finos (além de owner/member), billing por org, JWT custom com `org_id`.

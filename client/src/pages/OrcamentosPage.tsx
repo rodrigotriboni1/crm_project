@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
 import {
   useOrcamentosInfinite,
@@ -21,11 +22,12 @@ type FilterKey = 'todos' | OrcamentoStatus
 
 export default function OrcamentosPage() {
   const { user } = useAuth()
+  const { activeOrganizationId } = useOrganization()
   useGenericAssistantDock('Orçamentos')
-  const orcQ = useOrcamentosInfinite(user)
+  const orcQ = useOrcamentosInfinite(user, activeOrganizationId)
   const orcamentos = useMemo(() => orcQ.data?.pages.flat() ?? [], [orcQ.data])
   const isLoading = orcQ.isLoading
-  const { data: clientesKpis } = useClientesKpis(user)
+  const { data: clientesKpis } = useClientesKpis(user, activeOrganizationId)
   const hasClientes =
     (clientesKpis?.ativos ?? 0) + (clientesKpis?.arquivados ?? 0) > 0
 

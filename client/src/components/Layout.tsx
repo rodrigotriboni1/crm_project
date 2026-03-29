@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -15,6 +15,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { Button } from '@/components/ui/button'
 import NovoOrcamentoDialog from '@/components/NovoOrcamentoDialog'
 import {
@@ -24,6 +25,7 @@ import {
 import { AssistantDockProvider } from '@/contexts/AssistantDockContext'
 import LayoutAssistantRail from '@/components/LayoutAssistantRail'
 import ThemeToggle from '@/components/ThemeToggle'
+import { SelectNative } from '@/components/ui/select-native'
 import { cn } from '@/lib/utils'
 
 function readSidebarCollapsed(): boolean {
@@ -50,8 +52,52 @@ const externalNovoOrcamentoUrl =
     ? import.meta.env.VITE_NOVO_ORCAMENTO_EXTERNAL_URL.trim()
     : ''
 
+function OrganizationMain({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
+  const {
+    loading,
+    organizations,
+    activeOrganizationId,
+    createOrganization,
+  } = useOrganization()
+
+  if (!user) return <>{children}</>
+
+  if (loading) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8 text-sm text-brand-mid">
+        A carregar organizações…
+      </div>
+    )
+  }
+
+  if (organizations.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+        <p className="max-w-sm text-center text-sm text-brand-mid">
+          Não pertence a nenhuma organização. Crie uma para usar o CRM.
+        </p>
+        <Button type="button" onClick={() => void createOrganization('Organização')}>
+          Criar organização
+        </Button>
+      </div>
+    )
+  }
+
+  if (!activeOrganizationId) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8 text-sm text-brand-mid">
+        A seleccionar empresa…
+      </div>
+    )
+  }
+
+  return <>{children}</>
+}
+
 export default function Layout() {
   const { user, signOut } = useAuth()
+  const { organizations, activeOrganizationId, setActiveOrganizationId } = useOrganization()
   const [novoOrcamentoOpen, setNovoOrcamentoOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed)
 
@@ -98,6 +144,27 @@ export default function Layout() {
               </div>
             )}
           </div>
+          {user && organizations.length > 0 && activeOrganizationId && (
+            <div className={cn('px-3 pb-2', collapsed && 'px-2')}>
+              <label className="sr-only" htmlFor="active-org-select">
+                Empresa activa
+              </label>
+              <SelectNative
+                id="active-org-select"
+                className={cn('h-9 text-xs', collapsed && 'px-1')}
+                value={activeOrganizationId}
+                onChange={(e) => setActiveOrganizationId(e.target.value)}
+                title="Empresa activa"
+                aria-label="Empresa activa"
+              >
+                {organizations.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </SelectNative>
+            </div>
+          )}
           <Button
             type="button"
             variant="ghost"
@@ -193,12 +260,14 @@ export default function Layout() {
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <AssistantDockProvider>
-          <div className="flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
-              <Outlet />
+          <OrganizationMain>
+            <div className="flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
+                <Outlet />
+              </div>
+              <LayoutAssistantRail />
             </div>
-            <LayoutAssistantRail />
-          </div>
+          </OrganizationMain>
         </AssistantDockProvider>
       </main>
     </div>

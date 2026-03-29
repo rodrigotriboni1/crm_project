@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { LayoutList, Plus, Pencil, Table2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
 import { useProdutos, useCreateProduto, useUpdateProduto } from '@/hooks/useCrm'
 import { Button } from '@/components/ui/button'
@@ -147,9 +148,10 @@ function categoryLabel(p: Produto): string {
 export default function ProdutosPage() {
   useGenericAssistantDock('Produtos')
   const { user } = useAuth()
-  const { data: produtos = [], isLoading } = useProdutos(user)
-  const create = useCreateProduto(user)
-  const update = useUpdateProduto(user)
+  const { activeOrganizationId } = useOrganization()
+  const { data: produtos = [], isLoading } = useProdutos(user, activeOrganizationId)
+  const create = useCreateProduto(user, activeOrganizationId)
+  const update = useUpdateProduto(user, activeOrganizationId)
 
   const [q, setQ] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)

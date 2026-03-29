@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bell, ChevronRight, LayoutGrid, Package } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { useDashboard } from '@/hooks/useCrm'
 import { FOLLOW_UP_ALERT_WINDOW_DAYS } from '@/api/crm'
 import { Card, CardContent } from '@/components/ui/card'
@@ -56,7 +57,8 @@ function DashboardSkeleton() {
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const { data, isLoading, isError, error } = useDashboard(user)
+  const { activeOrganizationId } = useOrganization()
+  const { data, isLoading, isError, error } = useDashboard(user, activeOrganizationId)
   const [modalId, setModalId] = useState<string | null>(null)
 
   const todayIso = new Date().toISOString().slice(0, 10)

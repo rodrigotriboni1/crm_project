@@ -13,6 +13,7 @@ export type OrcamentoStatus =
 export type Produto = {
   id: string
   user_id: string
+  organization_id: string
   nome: string
   codigo: string | null
   categoria: string | null
@@ -25,12 +26,13 @@ export type Produto = {
 }
 
 export type ProdutoUpdate = Partial<
-  Omit<Produto, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+  Omit<Produto, 'id' | 'user_id' | 'organization_id' | 'created_at' | 'updated_at'>
 >
 
 export type Cliente = {
   id: string
   user_id: string
+  organization_id: string
   nome: string
   /** CPF (11) ou CNPJ (14) — apenas dígitos na persistência. */
   tax_id: string | null
@@ -52,6 +54,7 @@ export type Cliente = {
 export type Orcamento = {
   id: string
   user_id: string
+  organization_id: string
   cliente_id: string
   /** Catálogo opcional; texto exibido continua em produto_descricao. */
   produto_id: string | null
@@ -73,6 +76,7 @@ export type Orcamento = {
 export type Interacao = {
   id: string
   user_id: string
+  organization_id: string
   cliente_id: string
   orcamento_id: string | null
   canal: InteracaoCanal
@@ -82,7 +86,7 @@ export type Interacao = {
 }
 
 export type ClienteUpdate = Partial<
-  Omit<Cliente, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+  Omit<Cliente, 'id' | 'user_id' | 'organization_id' | 'created_at' | 'updated_at'>
 >
 
 export type ClienteListItem = Cliente & { ultimo_contato: string | null }
@@ -92,6 +96,7 @@ export type AssistantChatTurn = { role: 'user' | 'assistant'; content: string }
 export type AssistantChatThread = {
   id: string
   user_id: string
+  organization_id: string
   title: string
   created_at: string
   updated_at: string

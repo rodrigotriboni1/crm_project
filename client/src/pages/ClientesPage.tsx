@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Users } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
 import { useBulkPatchClientes, useClientes, useClientesKpis } from '@/hooks/useCrm'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,7 @@ import { cn } from '@/lib/utils'
 
 export default function ClientesPage() {
   const { user } = useAuth()
+  const { activeOrganizationId } = useOrganization()
   useGenericAssistantDock('Clientes')
   const {
     data: clientes = [],
@@ -40,9 +42,9 @@ export default function ClientesPage() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useClientes(user)
-  const { data: kpis } = useClientesKpis(user)
-  const bulkAtivo = useBulkPatchClientes(user)
+  } = useClientes(user, activeOrganizationId)
+  const { data: kpis } = useClientesKpis(user, activeOrganizationId)
+  const bulkAtivo = useBulkPatchClientes(user, activeOrganizationId)
   const selectAllRef = useRef<HTMLInputElement>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [bulkError, setBulkError] = useState<string | null>(null)

@@ -15,8 +15,20 @@ export type AssistantStorageScope = 'dashboard' | 'reports' | 'generic'
 
 export const ASSISTANT_RAIL_COLLAPSED_KEY = `${APP_STORAGE_PREFIX}assistant_rail_collapsed`
 
-export function assistantActiveThreadKey(userId: string, scope: AssistantStorageScope = 'dashboard'): string {
-  if (scope === 'reports') return `${APP_STORAGE_PREFIX}assistant_active_thread_reports_${userId}`
-  if (scope === 'generic') return `${APP_STORAGE_PREFIX}assistant_active_thread_generic_${userId}`
-  return `${APP_STORAGE_PREFIX}assistant_active_thread_${userId}`
+/** Última organização activa por utilizador (multi-tenant). */
+export function activeOrganizationStorageKey(userId: string): string {
+  return `${APP_STORAGE_PREFIX}active_org_${userId}`
+}
+
+export function assistantActiveThreadKey(
+  userId: string,
+  scope: AssistantStorageScope = 'dashboard',
+  organizationId?: string
+): string {
+  const org = organizationId ?? 'legacy'
+  if (scope === 'reports')
+    return `${APP_STORAGE_PREFIX}assistant_active_thread_reports_${org}_${userId}`
+  if (scope === 'generic')
+    return `${APP_STORAGE_PREFIX}assistant_active_thread_generic_${org}_${userId}`
+  return `${APP_STORAGE_PREFIX}assistant_active_thread_${org}_${userId}`
 }

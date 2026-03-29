@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { Plus } from 'lucide-react'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { useCreateCliente } from '@/hooks/useCrm'
 import { useClienteDocumentLookup } from '@/hooks/useClienteDocumentLookup'
 import { Button } from '@/components/ui/button'
@@ -26,7 +27,8 @@ type Props = {
 }
 
 export default function NovoClienteDialog({ user, open, onOpenChange }: Props) {
-  const create = useCreateCliente(user)
+  const { activeOrganizationId } = useOrganization()
+  const create = useCreateCliente(user, activeOrganizationId)
   const [taxIdDisplay, setTaxIdDisplay] = useState('')
   const [nome, setNome] = useState('')
   const [tipo, setTipo] = useState<ClienteTipo>('novo')

@@ -5,6 +5,7 @@ import type { OrcamentoRow } from '@/api/crm'
 function row(partial: Partial<OrcamentoRow> & Pick<OrcamentoRow, 'id' | 'cliente_id'>): OrcamentoRow {
   return {
     user_id: 'u1',
+    organization_id: 'org-1',
     produto_id: null,
     display_num: 42,
     tax_id: '12.345.678/0001-90',

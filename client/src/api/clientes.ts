@@ -20,13 +20,14 @@ function isMissingListClientesRpcError(error: PostgrestError): boolean {
 async function listClientesComUltimoContatoLegacy(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   opts?: { ativosApenas?: boolean }
 ): Promise<ClienteListItem[]> {
-  const clientes = await listClientes(sb, userId, opts)
+  const clientes = await listClientes(sb, userId, organizationId, opts)
   const { data: ints, error } = await sb
     .from('interacoes')
     .select('cliente_id, data_contato')
-    .eq('user_id', userId)
+    .eq('organization_id', organizationId)
     .order('data_contato', { ascending: false })
   if (error) throw error
   const first = new Map<string, string>()
@@ -43,6 +44,7 @@ function mapRpcRowsToClienteListItem(rows: Record<string, unknown>[]): ClienteLi
     return {
       id: r.id as string,
       user_id: r.user_id as string,
+      organization_id: (r.organization_id as string) ?? '',
       nome: r.nome as string,
       tipo: r.tipo as Cliente['tipo'],
       tax_id: (r.tax_id as string | null) ?? null,
@@ -64,9 +66,15 @@ function mapRpcRowsToClienteListItem(rows: Record<string, unknown>[]): ClienteLi
 export async function listClientes(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   opts?: { ativosApenas?: boolean }
 ): Promise<Cliente[]> {
-  let q = sb.from('clientes').select('*').eq('user_id', userId).order('nome')
+  let q = sb
+    .from('clientes')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('organization_id', organizationId)
+    .order('nome')
   if (opts?.ativosApenas) {
     q = q.eq('ativo', true)
   }
@@ -78,14 +86,16 @@ export async function listClientes(
 export async function listClientesComUltimoContato(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   opts?: { ativosApenas?: boolean }
 ): Promise<ClienteListItem[]> {
   const { data, error } = await sb.rpc('list_clientes_com_ultimo_contato', {
+    p_organization_id: organizationId,
     p_ativos_apenas: opts?.ativosApenas === true,
   })
   if (error) {
     if (isMissingListClientesRpcError(error)) {
-      return listClientesComUltimoContatoLegacy(sb, userId, opts)
+      return listClientesComUltimoContatoLegacy(sb, userId, organizationId, opts)
     }
     throw error
   }
@@ -111,13 +121,16 @@ function rowAfterCursor(c: ClienteListItem, cursor: ClientesPageCursor): boolean
 async function fetchClientesComUltimoContatoPageLegacy(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   opts: {
     ativosApenas?: boolean
     limit: number
     cursor: ClientesPageCursor | null
   }
 ): Promise<FetchClientesPageResult> {
-  const all = await listClientesComUltimoContato(sb, userId, { ativosApenas: opts.ativosApenas })
+  const all = await listClientesComUltimoContato(sb, userId, organizationId, {
+    ativosApenas: opts.ativosApenas,
+  })
   const filtered = opts.cursor ? all.filter((c) => rowAfterCursor(c, opts.cursor!)) : all
   const rows = filtered.slice(0, opts.limit)
   const last = rows[rows.length - 1]
@@ -130,6 +143,7 @@ async function fetchClientesComUltimoContatoPageLegacy(
 export async function fetchClientesComUltimoContatoPage(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   opts: {
     ativosApenas?: boolean
     limit?: number
@@ -139,6 +153,7 @@ export async function fetchClientesComUltimoContatoPage(
   const limit = Math.min(Math.max(opts.limit ?? CLIENTES_PAGE_SIZE, 1), 500)
   const cursor = opts.cursor ?? null
   const { data, error } = await sb.rpc('list_clientes_com_ultimo_contato_page', {
+    p_organization_id: organizationId,
     p_ativos_apenas: opts.ativosApenas === true,
     p_limit: limit,
     p_cursor_nome: cursor?.nome ?? null,
@@ -146,7 +161,7 @@ export async function fetchClientesComUltimoContatoPage(
   })
   if (error) {
     if (isMissingListClientesRpcError(error)) {
-      return fetchClientesComUltimoContatoPageLegacy(sb, userId, {
+      return fetchClientesComUltimoContatoPageLegacy(sb, userId, organizationId, {
         ativosApenas: opts.ativosApenas,
         limit,
         cursor,
@@ -165,12 +180,15 @@ export type ClientesKpisDisplay = ReturnType<typeof clientesListKpis>
 /** KPIs agregados no servidor (fallback: lista completa legada). */
 export async function fetchClientesKpisSummary(
   sb: SupabaseClient,
-  _userId: string
+  userId: string,
+  organizationId: string
 ): Promise<ClientesKpisDisplay> {
-  const { data, error } = await sb.rpc('clientes_kpis_summary')
+  const { data, error } = await sb.rpc('clientes_kpis_summary', {
+    p_organization_id: organizationId,
+  })
   if (error) {
     if (isMissingListClientesRpcError(error)) {
-      const all = await listClientesComUltimoContato(sb, _userId, {})
+      const all = await listClientesComUltimoContato(sb, userId, organizationId, {})
       return clientesListKpis(all)
     }
     throw error
@@ -190,9 +208,13 @@ export type ImportClientesBatchError = { index: number; msg: string }
 /** Insere várias fichas num único RPC (`import_clientes_batch`). */
 export async function importClientesBatch(
   sb: SupabaseClient,
+  organizationId: string,
   items: Record<string, unknown>[]
 ): Promise<{ inserted: number; errors: ImportClientesBatchError[] }> {
-  const { data, error } = await sb.rpc('import_clientes_batch', { p_rows: items })
+  const { data, error } = await sb.rpc('import_clientes_batch', {
+    p_organization_id: organizationId,
+    p_rows: items,
+  })
   if (error) {
     if (isMissingListClientesRpcError(error)) {
       throw new Error(
@@ -210,11 +232,17 @@ export async function importClientesBatch(
   return { inserted: Number(out.inserted ?? 0), errors }
 }
 
-export async function getCliente(sb: SupabaseClient, userId: string, id: string): Promise<Cliente | null> {
+export async function getCliente(
+  sb: SupabaseClient,
+  userId: string,
+  organizationId: string,
+  id: string
+): Promise<Cliente | null> {
   const { data, error } = await sb
     .from('clientes')
     .select('*')
     .eq('user_id', userId)
+    .eq('organization_id', organizationId)
     .eq('id', id)
     .maybeSingle()
   if (error) throw error
@@ -224,6 +252,7 @@ export async function getCliente(sb: SupabaseClient, userId: string, id: string)
 export async function createCliente(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   row: {
     nome: string
     tipo?: ClienteTipo
@@ -242,6 +271,7 @@ export async function createCliente(
     .from('clientes')
     .insert({
       user_id: userId,
+      organization_id: organizationId,
       nome: row.nome,
       tipo: row.tipo ?? 'novo',
       ativo: row.ativo ?? true,
@@ -263,6 +293,7 @@ export async function createCliente(
 export async function updateCliente(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   id: string,
   patch: ClienteUpdate
 ): Promise<Cliente> {
@@ -274,6 +305,7 @@ export async function updateCliente(
     .from('clientes')
     .update(patchNorm)
     .eq('user_id', userId)
+    .eq('organization_id', organizationId)
     .eq('id', id)
     .select()
     .single()

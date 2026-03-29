@@ -11,7 +11,7 @@
  *  6. alertasFollowUp — orçamentos com follow_up_at não nulo, ≤ hoje+N dias (`FOLLOW_UP_ALERT_WINDOW_DAYS`),
  *     status ∈ {orcamento_enviado, dormindo}; ordenação: atrasados (data < hoje) primeiro, depois por data ASC.
  *
- * Pós Promise.all: `ultimas5` via `listRecentInteracoes(sb, userId, 5)` (não entra no array paralelo).
+ * Pós Promise.all: `ultimas5` via `listRecentInteracoes(sb, userId, organizationId, 5)` (não entra no array paralelo).
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { OrcamentoStatus } from '@/types/database'
@@ -55,7 +55,11 @@ export type DashboardData = {
   ultimas5: InteracaoRow[]
 }
 
-export async function fetchDashboard(sb: SupabaseClient, userId: string): Promise<DashboardData> {
+export async function fetchDashboard(
+  sb: SupabaseClient,
+  userId: string,
+  organizationId: string
+): Promise<DashboardData> {
   const today = new Date().toISOString().slice(0, 10)
   const followUpWindowEnd = addDaysToIsoDate(today, FOLLOW_UP_ALERT_WINDOW_DAYS)
   const { start: monthStart, end: monthEnd } = localMonthBoundsIso()
@@ -69,17 +73,29 @@ export async function fetchDashboard(sb: SupabaseClient, userId: string): Promis
     { data: pipelineRows, error: pe },
     { data: alertRows, error: ae },
   ] = await Promise.all([
-    sb.from('clientes').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('ativo', true),
-    sb
-      .from('orcamentos')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .in('status', ['novo_contato', 'orcamento_enviado']),
-    sb.from('orcamentos').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'dormindo'),
     sb
       .from('clientes')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
+      .eq('organization_id', organizationId)
+      .eq('ativo', true),
+    sb
+      .from('orcamentos')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('organization_id', organizationId)
+      .in('status', ['novo_contato', 'orcamento_enviado']),
+    sb
+      .from('orcamentos')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('organization_id', organizationId)
+      .eq('status', 'dormindo'),
+    sb
+      .from('clientes')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('organization_id', organizationId)
       .eq('ativo', true)
       .gte('created_at', monthStart)
       .lte('created_at', monthEnd),
@@ -87,6 +103,7 @@ export async function fetchDashboard(sb: SupabaseClient, userId: string): Promis
       .from('orcamentos')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
+      .eq('organization_id', organizationId)
       .eq('status', 'ganho')
       .gte('updated_at', monthStart)
       .lte('updated_at', monthEnd),
@@ -94,11 +111,13 @@ export async function fetchDashboard(sb: SupabaseClient, userId: string): Promis
       .from('orcamentos')
       .select('valor')
       .eq('user_id', userId)
+      .eq('organization_id', organizationId)
       .in('status', ['novo_contato', 'orcamento_enviado']),
     sb
       .from('orcamentos')
       .select('*, clientes(nome), produtos(nome, codigo, categoria)')
       .eq('user_id', userId)
+      .eq('organization_id', organizationId)
       .not('follow_up_at', 'is', null)
       .lte('follow_up_at', followUpWindowEnd)
       .in('status', [...DASHBOARD_FOLLOW_UP_ALERT_STATUSES]),
@@ -118,7 +137,7 @@ export async function fetchDashboard(sb: SupabaseClient, userId: string): Promis
     return fa.localeCompare(fb)
   })
 
-  const ultimas5 = await listRecentInteracoes(sb, userId, 5)
+  const ultimas5 = await listRecentInteracoes(sb, userId, organizationId, 5)
 
   return {
     totalClientes: totalClientes ?? 0,

@@ -89,7 +89,7 @@ describe('fetchDashboard', () => {
       { data: [alertA, alertB], error: null },
     ]
     const sb = createMockSupabase(responses)
-    const result = await fetchDashboard(sb, 'user-1')
+    const result = await fetchDashboard(sb, 'user-1', 'org-1')
 
     expect(result.totalClientes).toBe(5)
     expect(result.orcamentosEmAberto).toBe(2)
@@ -99,7 +99,7 @@ describe('fetchDashboard', () => {
     expect(result.valorPipelineAberto).toBe(125.5)
     expect(result.alertasFollowUp.map((o) => o.id)).toEqual(['a2', 'a1'])
     expect(result.ultimas5).toEqual([])
-    expect(interacoesMod.listRecentInteracoes).toHaveBeenCalledWith(sb, 'user-1', 5)
+    expect(interacoesMod.listRecentInteracoes).toHaveBeenCalledWith(sb, 'user-1', 'org-1', 5)
   })
 
   it('contrato: valorPipelineAberto com lista vazia é zero', async () => {
@@ -113,7 +113,7 @@ describe('fetchDashboard', () => {
       { data: [], error: null },
     ]
     const sb = createMockSupabase(responses)
-    const result = await fetchDashboard(sb, 'u')
+    const result = await fetchDashboard(sb, 'u', 'org-1')
     expect(result.valorPipelineAberto).toBe(0)
     expect(result.alertasFollowUp).toEqual([])
   })
@@ -148,7 +148,7 @@ describe('fetchDashboard', () => {
       { data: [alertLate, alertEarly], error: null },
     ]
     const sb = createMockSupabase(responses)
-    const result = await fetchDashboard(sb, 'u')
+    const result = await fetchDashboard(sb, 'u', 'org-1')
     expect(result.alertasFollowUp.map((o) => o.id)).toEqual(['e', 'l'])
   })
 })

@@ -8,7 +8,7 @@ const corsHeaders: Record<string, string> = {
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
-/** Máximo de pedidos por utilizador por janela (alinhado a `consume_openrouter_chat_rate`). */
+/** Máximo de pedidos por organização por janela (alinhado a `consume_openrouter_chat_rate`). */
 const OPENROUTER_RATE_MAX = 30
 const OPENROUTER_RATE_WINDOW_SEC = 3600
 
@@ -43,7 +43,23 @@ Deno.serve(async (req) => {
       })
     }
 
+    const body = (await req.json()) as {
+      organizationId?: string
+      messages?: { role: string; content: string }[]
+      model?: string
+    }
+    const organizationId = typeof body.organizationId === 'string' ? body.organizationId.trim() : ''
+    const uuidRe =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    if (!organizationId || !uuidRe.test(organizationId)) {
+      return new Response(JSON.stringify({ error: 'organizationId required (UUID)' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const { data: rateRaw, error: rateErr } = await supabase.rpc('consume_openrouter_chat_rate', {
+      p_organization_id: organizationId,
       p_max: OPENROUTER_RATE_MAX,
       p_window_seconds: OPENROUTER_RATE_WINDOW_SEC,
     })
@@ -66,10 +82,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    const body = (await req.json()) as {
-      messages?: { role: string; content: string }[]
-      model?: string
-    }
     const messages = body.messages
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: 'messages required' }), {

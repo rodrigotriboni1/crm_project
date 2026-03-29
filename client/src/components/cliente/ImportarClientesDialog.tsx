@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { FileSpreadsheet, Loader2, Sparkles } from 'lucide-react'
 import { isAssistantConfigured } from '@/api/openrouter'
 import { importClientesBatch } from '@/api/clientes'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { suggestClienteColumnMapping } from '@/lib/clienteImportAi'
 import {
   buildMappingFromAi,
@@ -39,6 +40,7 @@ function initialMapping(headers: string[]): ColumnMapping {
 }
 
 export default function ImportarClientesDialog({ user, open, onOpenChange }: Props) {
+  const { activeOrganizationId } = useOrganization()
   const qc = useQueryClient()
   const [file, setFile] = useState<File | null>(null)
   const [sheets, setSheets] = useState<ParsedSheet[]>([])
@@ -126,7 +128,9 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
     setAiWarnings([])
     setAiLoading(true)
     try {
-      const { mapping: m, warnings } = await suggestClienteColumnMapping(active.headers, sample)
+      const { mapping: m, warnings } = await suggestClienteColumnMapping(active.headers, sample, {
+        organizationId: activeOrganizationId ?? undefined,
+      })
       setMapping(buildMappingFromAi(active.headers, m))
       setAiWarnings(warnings ?? [])
     } catch (e) {
@@ -141,7 +145,7 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
   const IMPORT_BATCH_SIZE = 80
 
   const runImport = async () => {
-    if (!user?.id || !supabase || !active || !nomeMapped) return
+    if (!user?.id || !supabase || !active || !nomeMapped || !activeOrganizationId) return
     setImporting(true)
     setImportResult(null)
     const errors: { row: number; msg: string }[] = []
@@ -183,6 +187,7 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
         const slice = jobs.slice(i, i + IMPORT_BATCH_SIZE)
         const { inserted, errors: batchErrs } = await importClientesBatch(
           supabase,
+          activeOrganizationId,
           slice.map((j) => j.json)
         )
         ok += inserted
@@ -200,8 +205,8 @@ export default function ImportarClientesDialog({ user, open, onOpenChange }: Pro
 
     setImportResult({ ok, errors })
     setImporting(false)
-    void qc.invalidateQueries({ queryKey: qk.clientes(user.id) })
-    void qc.invalidateQueries({ queryKey: qk.dashboard(user.id) })
+    void qc.invalidateQueries({ queryKey: qk.clientes(user.id, activeOrganizationId) })
+    void qc.invalidateQueries({ queryKey: qk.dashboard(user.id, activeOrganizationId) })
   }
 
   const targetOpts = importTargetOptions()

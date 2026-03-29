@@ -9,12 +9,14 @@ export const INTERACOES_PAGE_SIZE = 40
 export async function listInteracoes(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   clienteId: string
 ): Promise<Interacao[]> {
   const { data, error } = await sb
     .from('interacoes')
     .select('*')
     .eq('user_id', userId)
+    .eq('organization_id', organizationId)
     .eq('cliente_id', clienteId)
     .order('data_contato', { ascending: false })
   if (error) throw error
@@ -25,6 +27,7 @@ export async function listInteracoes(
 export async function listInteracoesPage(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   clienteId: string,
   opts: { limit?: number; offset?: number }
 ): Promise<Interacao[]> {
@@ -34,6 +37,7 @@ export async function listInteracoesPage(
     .from('interacoes')
     .select('*')
     .eq('user_id', userId)
+    .eq('organization_id', organizationId)
     .eq('cliente_id', clienteId)
     .order('data_contato', { ascending: false })
     .range(offset, offset + limit - 1)
@@ -44,12 +48,14 @@ export async function listInteracoesPage(
 export async function listRecentInteracoes(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   limit = 10
 ): Promise<InteracaoRow[]> {
   const { data, error } = await sb
     .from('interacoes')
     .select('*, clientes(nome)')
     .eq('user_id', userId)
+    .eq('organization_id', organizationId)
     .order('data_contato', { ascending: false })
     .limit(limit)
   if (error) throw error
@@ -59,6 +65,7 @@ export async function listRecentInteracoes(
 export async function createInteracao(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   row: {
     cliente_id: string
     canal: InteracaoCanalUsuario
@@ -71,6 +78,7 @@ export async function createInteracao(
     .from('interacoes')
     .insert({
       user_id: userId,
+      organization_id: organizationId,
       cliente_id: row.cliente_id,
       canal: row.canal,
       anotacao: row.anotacao,

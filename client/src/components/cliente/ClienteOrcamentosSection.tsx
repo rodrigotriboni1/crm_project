@@ -57,7 +57,7 @@ const orcBaseFields = {
   } satisfies FieldDefinition,
 } as const
 
-type CreateOrcRow = Parameters<typeof createOrcamento>[2]
+type CreateOrcRow = Parameters<typeof createOrcamento>[3]
 
 type Props = {
   clienteId: string

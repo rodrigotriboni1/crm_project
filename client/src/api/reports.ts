@@ -165,6 +165,7 @@ function aggregateOrcamentos(rows: ReportsOrcamentoRow[]): Omit<ReportsData, 'ra
 export async function fetchReportsData(
   sb: SupabaseClient,
   userId: string,
+  organizationId: string,
   range: ReportsDateRange
 ): Promise<ReportsData> {
   if (range.start > range.end) {
@@ -178,10 +179,17 @@ export async function fetchReportsData(
       .from('orcamentos')
       .select('id, display_num, cliente_id, status, valor, data_orcamento, clientes(nome)')
       .eq('user_id', userId)
+      .eq('organization_id', organizationId)
       .gte('data_orcamento', range.start)
       .lte('data_orcamento', range.end)
       .order('data_orcamento', { ascending: true }),
-    sb.from('interacoes').select('canal').eq('user_id', userId).gte('data_contato', tsStart).lte('data_contato', tsEnd),
+    sb
+      .from('interacoes')
+      .select('canal')
+      .eq('user_id', userId)
+      .eq('organization_id', organizationId)
+      .gte('data_contato', tsStart)
+      .lte('data_contato', tsEnd),
   ])
 
   if (oe) throw oe

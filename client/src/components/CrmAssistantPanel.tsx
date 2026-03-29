@@ -14,6 +14,7 @@ import {
 } from '@/api/assistantChat'
 import { openrouterChat, isAssistantConfigured } from '@/api/openrouter'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import {
   clearAssistantTurns,
   loadAssistantTurns,
@@ -61,6 +62,7 @@ export function CrmAssistantPanel({
   storageScope,
 }: CrmAssistantPanelProps) {
   const { user } = useAuth()
+  const { activeOrganizationId } = useOrganization()
   const [threads, setThreads] = useState<AssistantChatThread[]>([])
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
   const [threadsReady, setThreadsReady] = useState(false)
@@ -74,18 +76,21 @@ export function CrmAssistantPanel({
   const configured = isAssistantConfigured(user)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const threadKey = user?.id ? assistantActiveThreadKey(user.id, storageScope) : ''
+  const threadStorageKey =
+    user?.id && activeOrganizationId
+      ? assistantActiveThreadKey(user.id, storageScope, activeOrganizationId)
+      : null
 
   const persistActiveThread = useCallback(
     (id: string) => {
-      if (!user?.id) return
+      if (!threadStorageKey) return
       try {
-        localStorage.setItem(threadKey, id)
+        localStorage.setItem(threadStorageKey, id)
       } catch {
         /* ignore */
       }
     },
-    [user?.id, threadKey]
+    [threadStorageKey]
   )
 
   useEffect(() => {
@@ -93,6 +98,15 @@ export function CrmAssistantPanel({
       setThreads([])
       setActiveThreadId(null)
       setThreadsReady(false)
+      setTurns([])
+      return
+    }
+
+    if (!activeOrganizationId) {
+      setThreads([])
+      setActiveThreadId(null)
+      setThreadsReady(false)
+      setBootstrapLoading(false)
       setTurns([])
       return
     }
@@ -113,7 +127,7 @@ export function CrmAssistantPanel({
     void (async () => {
       try {
         setError(null)
-        let list = await listAssistantThreads(supabase, user.id)
+        let list = await listAssistantThreads(supabase, user.id, activeOrganizationId)
         if (list.length === 0) {
           const local = loadAssistantTurns(localTurnsKey(user.id, storageScope))
           if (local.length > 0) {
@@ -123,20 +137,22 @@ export function CrmAssistantPanel({
                 : storageScope === 'generic'
                   ? 'Geral — importadas'
                   : 'Conversas importadas'
-            const t = await createAssistantThread(supabase, user.id, importTitle)
+            const t = await createAssistantThread(supabase, user.id, activeOrganizationId, importTitle)
             await bulkInsertAssistantMessages(supabase, t.id, local)
             clearAssistantTurns(localTurnsKey(user.id, storageScope))
-            list = await listAssistantThreads(supabase, user.id)
+            list = await listAssistantThreads(supabase, user.id, activeOrganizationId)
           } else {
-            const t = await createAssistantThread(supabase, user.id, 'Nova conversa')
+            const t = await createAssistantThread(supabase, user.id, activeOrganizationId, 'Nova conversa')
             list = [t]
           }
         }
         let stored: string | null = null
-        try {
-          stored = localStorage.getItem(threadKey)
-        } catch {
-          stored = null
+        if (threadStorageKey) {
+          try {
+            stored = localStorage.getItem(threadStorageKey)
+          } catch {
+            stored = null
+          }
         }
         let pick =
           stored && list.some((x) => x.id === stored) ? stored : null
@@ -146,7 +162,7 @@ export function CrmAssistantPanel({
             if (rel) {
               pick = rel.id
             } else {
-              const t = await createAssistantThread(supabase, user.id, 'Relatórios')
+              const t = await createAssistantThread(supabase, user.id, activeOrganizationId, 'Relatórios')
               list = [t, ...list]
               pick = t.id
             }
@@ -155,7 +171,7 @@ export function CrmAssistantPanel({
             if (rel) {
               pick = rel.id
             } else {
-              const t = await createAssistantThread(supabase, user.id, 'Geral')
+              const t = await createAssistantThread(supabase, user.id, activeOrganizationId, 'Geral')
               list = [t, ...list]
               pick = t.id
             }
@@ -187,7 +203,7 @@ export function CrmAssistantPanel({
     return () => {
       cancelled = true
     }
-  }, [user?.id, persistActiveThread, storageScope, threadKey])
+  }, [user?.id, activeOrganizationId, persistActiveThread, storageScope, threadStorageKey])
 
   useEffect(() => {
     if (!supabase || !user?.id || !activeThreadId || !threadsReady) return
@@ -226,10 +242,10 @@ export function CrmAssistantPanel({
   const activeThread = threads.find((t) => t.id === activeThreadId)
 
   const handleNewThread = useCallback(async () => {
-    if (!supabase || !user?.id) return
+    if (!supabase || !user?.id || !activeOrganizationId) return
     setError(null)
     try {
-      const t = await createAssistantThread(supabase, user.id, 'Nova conversa')
+      const t = await createAssistantThread(supabase, user.id, activeOrganizationId, 'Nova conversa')
       setThreads((prev) => [t, ...prev])
       setActiveThreadId(t.id)
       persistActiveThread(t.id)
@@ -237,7 +253,7 @@ export function CrmAssistantPanel({
     } catch {
       setError('Não foi possível criar uma nova conversa.')
     }
-  }, [user?.id, persistActiveThread])
+  }, [user?.id, activeOrganizationId, persistActiveThread])
 
   const handleSelectThread = useCallback(
     (id: string) => {
@@ -251,13 +267,13 @@ export function CrmAssistantPanel({
   const handleDeleteThread = useCallback(
     async (e: React.MouseEvent, threadId: string) => {
       e.stopPropagation()
-      if (!supabase || !user?.id) return
+      if (!supabase || !user?.id || !activeOrganizationId) return
       setError(null)
       try {
         await deleteAssistantThread(supabase, threadId)
         const next = threads.filter((t) => t.id !== threadId)
         if (next.length === 0) {
-          const t = await createAssistantThread(supabase, user.id, 'Nova conversa')
+          const t = await createAssistantThread(supabase, user.id, activeOrganizationId, 'Nova conversa')
           setThreads([t])
           setActiveThreadId(t.id)
           persistActiveThread(t.id)
@@ -273,14 +289,14 @@ export function CrmAssistantPanel({
         setError('Não foi possível apagar a conversa.')
       }
     },
-    [supabase, user?.id, threads, activeThreadId, persistActiveThread]
+    [supabase, user?.id, activeOrganizationId, threads, activeThreadId, persistActiveThread]
   )
 
   const send = useCallback(
     async (text: string) => {
       const trimmed = text.trim()
       if (!trimmed || loading || !configured || !user?.id) return
-      if (supabase && !activeThreadId) return
+      if (supabase && (!activeThreadId || !activeOrganizationId)) return
       setError(null)
       setInput('')
       const nextTurns: ChatTurn[] = [...turns, { role: 'user', content: trimmed }]
@@ -294,7 +310,7 @@ export function CrmAssistantPanel({
           },
           ...nextTurns,
         ]
-        const reply = await openrouterChat(messages)
+        const reply = await openrouterChat(messages, { organizationId: activeOrganizationId ?? undefined })
         setTurns((prev) => [...prev, { role: 'assistant', content: reply }])
         if (supabase && activeThreadId) {
           try {
@@ -338,6 +354,7 @@ export function CrmAssistantPanel({
       supabase,
       activeThreadId,
       threads,
+      activeOrganizationId,
     ]
   )
 

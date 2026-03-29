@@ -47,7 +47,9 @@ const baseRow = {
 describe('fetchReportsData', () => {
   it('rejeita intervalo inválido', async () => {
     const sb = createMockSupabase([])
-    await expect(fetchReportsData(sb, 'u', { start: '2026-02-01', end: '2026-01-01' })).rejects.toThrow(
+    await expect(
+      fetchReportsData(sb, 'u', 'org-1', { start: '2026-02-01', end: '2026-01-01' })
+    ).rejects.toThrow(
       'Data inicial não pode ser posterior',
     )
   })
@@ -88,7 +90,7 @@ describe('fetchReportsData', () => {
       { data: [{ canal: 'email' }, { canal: 'email' }, { canal: 'telefone' }], error: null },
     ]
     const sb = createMockSupabase(responses)
-    const r = await fetchReportsData(sb, 'u', { start: '2026-03-01', end: '2026-03-31' })
+    const r = await fetchReportsData(sb, 'u', 'org-1', { start: '2026-03-01', end: '2026-03-31' })
 
     expect(r.range).toEqual({ start: '2026-03-01', end: '2026-03-31' })
     expect(r.totalOrcamentosNoPeriodo).toBe(3)

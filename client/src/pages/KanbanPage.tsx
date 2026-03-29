@@ -10,6 +10,7 @@ import {
 } from '@dnd-kit/core'
 import { Phone, Send, Moon, CheckCircle, XCircle, Search, LayoutGrid, Table2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
 import { useOrcamentos, ORCAMENTO_STATUS_ORDER } from '@/hooks/useCrm'
 import { useOrcamentoStatusTransitions } from '@/hooks/useOrcamentoStatusTransitions'
@@ -57,7 +58,8 @@ function resolveDropStatus(overId: string | undefined, rows: OrcamentoRow[]): Or
 export default function KanbanPage() {
   useGenericAssistantDock('Kanban')
   const { user } = useAuth()
-  const { data: rows = [], isLoading } = useOrcamentos(user)
+  const { activeOrganizationId } = useOrganization()
+  const { data: rows = [], isLoading } = useOrcamentos(user, activeOrganizationId)
   const {
     savingId,
     moveError,
