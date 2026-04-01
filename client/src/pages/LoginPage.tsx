@@ -1,6 +1,8 @@
-import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import type { AuthRedirectFailure } from '@/lib/authRedirectErrors'
+import { parseAuthRedirectFailure } from '@/lib/authRedirectErrors'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { UiComponent } from '@/components/standards'
@@ -20,14 +22,39 @@ const loginPasswordField: FieldDefinition = {
   label: 'Senha',
 }
 
+function authNoticeMessage(n: AuthRedirectFailure): string {
+  if (n.kind === 'expired_link') {
+    return 'Este link de confirmação expirou ou já foi usado. Tente criar a conta de novo com o mesmo e-mail ou, se já tiver confirmado, inicie sessão.'
+  }
+  return n.message
+}
+
 export default function LoginPage() {
   const { user, loading, signIn, signUp } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
+  const [authNotice, setAuthNotice] = useState<AuthRedirectFailure | null>(null)
   const [pending, setPending] = useState(false)
+
+  useEffect(() => {
+    const st = (location.state as { authNotice?: AuthRedirectFailure } | null)?.authNotice
+    if (st) {
+      setAuthNotice(st)
+      navigate(location.pathname, { replace: true, state: null })
+      return
+    }
+    if (!location.search && !location.hash) return
+    const fromUrl = parseAuthRedirectFailure()
+    if (fromUrl) {
+      setAuthNotice(fromUrl)
+      navigate('/login', { replace: true })
+    }
+  }, [location.pathname, location.search, location.hash, location.state, navigate])
 
   if (loading) {
     return <LoadingScreen message="Verificando sessão…" />
@@ -102,6 +129,11 @@ export default function LoginPage() {
               />
               {error && (
                 <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
+              )}
+              {authNotice && (
+                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100">
+                  {authNoticeMessage(authNotice)}
+                </p>
               )}
               {info && (
                 <p className="rounded-md border border-brand-surface bg-brand-surface/50 px-3 py-2 text-sm text-brand-green">
