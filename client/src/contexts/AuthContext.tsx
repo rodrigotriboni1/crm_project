@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
+import { getAuthEmailRedirectTo } from '@/lib/authRedirect'
 import { supabase } from '@/lib/supabase'
 
 export type SignUpOptions = {
@@ -60,10 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, opts?: SignUpOptions) => {
     if (!supabase) return { error: new Error('Supabase não configurado') }
+    const emailRedirectTo =
+      typeof window !== 'undefined' ? getAuthEmailRedirectTo() : undefined
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: opts?.data ? { data: opts.data } : undefined,
+      options: {
+        ...(opts?.data ? { data: opts.data } : {}),
+        ...(emailRedirectTo ? { emailRedirectTo } : {}),
+      },
     })
     return { error: error as Error | null }
   }

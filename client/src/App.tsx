@@ -6,6 +6,7 @@ import Layout from '@/components/Layout'
 import LoadingScreen from '@/components/LoadingScreen'
 import SetupPage from '@/pages/SetupPage'
 import LoginPage from '@/pages/LoginPage'
+import AuthCallbackPage from '@/pages/AuthCallbackPage'
 import JoinOrganizationPage from '@/pages/JoinOrganizationPage'
 import DashboardPage from '@/pages/DashboardPage'
 import ClientesPage from '@/pages/ClientesPage'
@@ -44,6 +45,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/join" element={<JoinOrganizationPage />} />
         <Route element={<ProtectedLayout />}>
           <Route index element={<DashboardPage />} />
