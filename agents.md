@@ -366,6 +366,8 @@ Papéis: ...
 
 ## 7. Templates de Acionamento (Cursor)
 
+**Subagentes no repositório:** definições em [`.cursor/agents/`](.cursor/agents/) (YAML frontmatter + papel resumido). Pode invocar pelo nome (ex.: `/embaflow-supabase`) ou pedir delegação explícita; o conteúdo normativo completo continua neste ficheiro.
+
 Substitua o texto entre `<…>` e cole no chat. Use **um agente por mensagem** quando a tarefa for ambígua.
 
 **Orquestrador**
