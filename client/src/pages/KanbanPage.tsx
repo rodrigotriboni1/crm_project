@@ -21,6 +21,8 @@ import { useViewportMaxMd } from '@/hooks/useViewportMaxMd'
 import { useKanbanDragEnd } from '@/components/kanban/useKanbanDrag'
 import type { OrcamentoRow } from '@/api/crm'
 import type { OrcamentoStatus } from '@/types/database'
+import { cnAlertError } from '@/lib/supabaseDataErrors'
+import { cn } from '@/lib/utils'
 
 type ViewMode = 'kanban' | 'table'
 
@@ -100,10 +102,7 @@ export default function KanbanPage() {
     const msg = kanbanQueryError instanceof Error ? kanbanQueryError.message : 'Erro ao carregar orçamentos.'
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-3 sm:px-4 sm:py-4 md:px-6">
-        <div
-          className="mb-3 shrink-0 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-          role="alert"
-        >
+        <div className={cn(cnAlertError, 'mb-3 shrink-0')} role="alert">
           {msg}
         </div>
       </div>
@@ -128,7 +127,7 @@ export default function KanbanPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-3 sm:px-4 sm:py-4 md:px-6">
       {moveError && (
-        <div className="mb-3 shrink-0 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <div className={cn(cnAlertError, 'mb-3 shrink-0')}>
           {moveError}
           <button type="button" className="ml-2 underline" onClick={() => setMoveError(null)}>
             Fechar

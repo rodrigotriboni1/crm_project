@@ -1,4 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js'
+import { newClienteMutationError } from '@/lib/supabaseDataErrors'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { clientesKpisFromRpcSummary, clientesListKpis, clienteMatchesSearch } from '@/lib/clienteListHelpers'
 import { digitsOnly } from '@/lib/formatters'
@@ -281,6 +282,10 @@ export async function getCliente(
   return (data as Cliente) ?? null
 }
 
+/**
+ * Insert em `clientes` sujeito a RLS: `organization_id` na org do utilizador e
+ * `user_can_mutate_cliente_row` (ver migrações `clientes_insert_org`).
+ */
 export async function createCliente(
   sb: SupabaseClient,
   userId: string,
@@ -325,7 +330,7 @@ export async function createCliente(
       const merged = await mergeClienteDuplicateByTaxId(sb, userId, organizationId, taxNorm, row)
       if (merged) return merged
     }
-    throw error
+    throw newClienteMutationError(error)
   }
   return data as Cliente
 }

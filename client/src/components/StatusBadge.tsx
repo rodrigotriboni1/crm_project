@@ -2,13 +2,18 @@ import { cn } from '@/lib/utils'
 import { orcamentoStatusLabel } from '@/hooks/useCrm'
 import type { OrcamentoStatus } from '@/types/database'
 
-/** Tailwind classes for status pills */
+/** Tailwind classes for status pills (tokens — legível em claro e escuro) */
 export const STATUS_BADGE_STYLES: Record<OrcamentoStatus, string> = {
-  novo_contato: 'border-blue-200 bg-blue-50 text-blue-700',
-  orcamento_enviado: 'border-sky-200 bg-sky-50 text-sky-700',
-  dormindo: 'border-amber-200 bg-amber-50 text-amber-700',
-  ganho: 'border-green-200 bg-green-50 text-green-700',
-  perdido: 'border-red-200 bg-red-50 text-red-700',
+  novo_contato:
+    'border-[color-mix(in_srgb,var(--color-brand-primary)_35%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-brand-primary)_10%,var(--color-background))] text-[var(--color-brand-primary)]',
+  orcamento_enviado:
+    'border-[color-mix(in_srgb,var(--color-brand-primary)_28%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-phase-proposal-dot)_12%,var(--color-background))] text-[var(--color-phase-proposal-text)]',
+  dormindo:
+    'border-[color-mix(in_srgb,var(--color-brand-warning)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-brand-warning)_12%,var(--color-background))] text-[var(--color-phase-proposal-text)]',
+  ganho:
+    'border-[color-mix(in_srgb,var(--color-brand-success)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-brand-success)_10%,var(--color-background))] text-[var(--color-brand-success)]',
+  perdido:
+    'border-[color-mix(in_srgb,var(--color-brand-danger)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-brand-danger)_10%,var(--color-background))] text-[var(--color-brand-danger)]',
 }
 
 /** Left border accent for Kanban column headers */

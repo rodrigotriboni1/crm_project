@@ -16,6 +16,7 @@ import {
   type ClienteTipoFilter,
 } from '@/lib/clienteListHelpers'
 import type { ClienteListItem, ClienteUpdate } from '@/types/database'
+import { cnAlertError } from '@/lib/supabaseDataErrors'
 
 const ClientesGlideGrid = lazy(() => import('@/components/cliente/ClientesGlideGrid'))
 
@@ -130,7 +131,7 @@ export default function ClientesPlanilhaPage() {
       />
 
       {saveError && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+        <p className={cnAlertError} role="alert">
           {saveError}
         </p>
       )}

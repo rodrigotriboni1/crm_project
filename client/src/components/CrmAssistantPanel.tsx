@@ -24,6 +24,7 @@ import type { AssistantStorageScope } from '@/lib/storageKeys'
 import { assistantActiveThreadKey } from '@/lib/storageKeys'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+import { cnAlertError } from '@/lib/supabaseDataErrors'
 import type { AssistantVariant } from '@/lib/assistantVariants'
 import {
   describeAssistantScreenContext,
@@ -528,11 +529,7 @@ export function CrmAssistantPanel({
                   Gerando resposta…
                 </div>
               )}
-              {error && (
-                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
-                  {error}
-                </div>
-              )}
+              {error && <div className={cn(cnAlertError, 'text-xs')}>{error}</div>}
             </div>
 
             <div className="shrink-0 border-t border-border p-3">

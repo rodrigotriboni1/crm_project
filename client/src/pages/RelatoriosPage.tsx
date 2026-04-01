@@ -19,6 +19,8 @@ import { Label } from '@/components/ui/label'
 import { ListPageKpiGrid, PageContainer, SimpleDataTable } from '@/components/library'
 import { useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
 import { buildReportsAgentContext } from '@/lib/reportsAgentContext'
+import { cn } from '@/lib/utils'
+import { cnAlertError } from '@/lib/supabaseDataErrors'
 
 function pad2(n: number) {
   return String(n).padStart(2, '0')
@@ -139,7 +141,7 @@ export default function RelatoriosPage() {
           )}
 
           {isError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <div className={cn('rounded-lg px-4 py-3 text-sm', cnAlertError)}>
               {error instanceof Error ? error.message : String(error)}
             </div>
           )}

@@ -31,6 +31,7 @@ import {
 } from '@/lib/clienteListHelpers'
 import { SelectNative } from '@/components/ui/select-native'
 import { cn } from '@/lib/utils'
+import { cnAlertError } from '@/lib/supabaseDataErrors'
 
 export default function ClientesPage() {
   const { user } = useAuth()
@@ -309,7 +310,7 @@ export default function ClientesPage() {
       )}
 
       {bulkError && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+        <p className={cnAlertError} role="alert">
           {bulkError}
         </p>
       )}

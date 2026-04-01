@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import LoadingScreen from '@/components/LoadingScreen'
 import ThemeToggle from '@/components/ThemeToggle'
+import { mapAuthErrorForUser } from '@/lib/supabaseAuthErrors'
+import { cnAlertError, cnAlertInfo } from '@/lib/supabaseDataErrors'
 
 export default function JoinOrganizationPage() {
   const { user, loading, signUp } = useAuth()
@@ -69,7 +71,7 @@ export default function JoinOrganizationPage() {
       data: { invite_token: token },
     })
     setPending(false)
-    if (err) setSubmitError(err.message)
+    if (err) setSubmitError(mapAuthErrorForUser(err, 'signup'))
     else
       setInfo(
         'Conta criada. Se a confirmação por e-mail estiver ativa no Supabase, confirme e depois inicie sessão — ficará na organização indicada no convite.'
@@ -92,11 +94,7 @@ export default function JoinOrganizationPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {previewLoading && <p className="text-sm text-muted-foreground">A validar convite…</p>}
-            {!previewLoading && previewError && (
-              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                {previewError}
-              </p>
-            )}
+            {!previewLoading && previewError && <p className={cnAlertError}>{previewError}</p>}
             {!previewLoading && !previewError && orgName && (
               <p className="rounded-md border border-brand-surface bg-brand-surface/40 px-3 py-2 text-sm text-brand-dark">
                 Organização: <span className="font-medium">{orgName}</span>
@@ -131,16 +129,8 @@ export default function JoinOrganizationPage() {
                     minLength={6}
                   />
                 </div>
-                {submitError && (
-                  <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                    {submitError}
-                  </p>
-                )}
-                {info && (
-                  <p className="rounded-md border border-brand-surface bg-brand-surface/50 px-3 py-2 text-sm text-brand-green">
-                    {info}
-                  </p>
-                )}
+                {submitError && <p className={cnAlertError}>{submitError}</p>}
+                {info && <p className={cnAlertInfo}>{info}</p>}
                 <Button type="submit" className="w-full" disabled={pending || previewLoading || !!previewError}>
                   {pending ? 'Aguarde…' : 'Criar conta e aceitar convite'}
                 </Button>

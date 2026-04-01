@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+import { mapPostgrestOrNetworkError, newUserFacingDataError } from '@/lib/supabaseDataErrors'
 import { activeOrganizationStorageKey } from '@/lib/storageKeys'
 
 export type OrganizationSummary = {
@@ -23,6 +24,8 @@ type OrganizationCtx = {
   activeOrganizationId: string | null
   setActiveOrganizationId: (id: string) => void
   loading: boolean
+  /** Erro ao carregar `organization_members` (rede, RLS, etc.) — não confundir com «zero orgs». */
+  loadError: string | null
   refreshOrganizations: () => Promise<void>
   createOrganization: (name: string) => Promise<string>
 }
@@ -66,21 +69,25 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const [organizations, setOrganizations] = useState<OrganizationSummary[]>([])
   const [activeOrganizationId, setActiveState] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!supabase || !user) {
       setOrganizations([])
       setActiveState(null)
+      setLoadError(null)
       setLoading(false)
       return
     }
     setLoading(true)
+    setLoadError(null)
     const { data, error } = await supabase
       .from('organization_members')
       .select('organization_id, role, data_scope, organizations ( id, name )')
       .eq('user_id', user.id)
     if (error) {
       console.error(error)
+      setLoadError(mapPostgrestOrNetworkError(error))
       setOrganizations([])
       setActiveState(null)
       if (user.id) clearStoredOrgId(user.id)
@@ -97,6 +104,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       mapped.push({ id: org.id, name: org.name?.trim() ? org.name : 'Organização', role, dataScope })
     }
     mapped.sort((a, b) => a.name.localeCompare(b.name, 'pt'))
+    setLoadError(null)
     setOrganizations(mapped)
     const stored = readStoredOrgId(user.id)
     const validStored = stored && mapped.some((m) => m.id === stored) ? stored : null
@@ -123,7 +131,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     async (name: string) => {
       if (!supabase) throw new Error('Supabase não configurado')
       const { data, error } = await supabase.rpc('create_organization', { p_name: name })
-      if (error) throw error
+      if (error) throw newUserFacingDataError(error)
       const id = typeof data === 'string' ? data : String(data ?? '')
       if (!id) throw new Error('Organização não criada')
       await load()
@@ -139,6 +147,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       activeOrganizationId,
       setActiveOrganizationId,
       loading,
+      loadError,
       refreshOrganizations: load,
       createOrganization,
     }),
@@ -147,6 +156,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       activeOrganizationId,
       setActiveOrganizationId,
       loading,
+      loadError,
       load,
       createOrganization,
     ]

@@ -18,6 +18,7 @@ import DocumentEnrichmentPanel from '@/components/cliente/DocumentEnrichmentPane
 import { digitsOnly } from '@/lib/formatters'
 import { novoClienteFormFields } from '@/lib/fields/clienteFormFields'
 import { describeClienteTaxIdInputError, normalizeClienteTaxId } from '@/lib/taxId'
+import { cnAlertError, mapClienteMutationError } from '@/lib/supabaseDataErrors'
 import type { ClienteTipo } from '@/types/database'
 
 type Props = {
@@ -128,10 +129,8 @@ export default function NovoClienteDialog({ user, open, onOpenChange }: Props) {
           <UiComponent field={novoClienteFormFields.produtos} value={produtos} onChange={setProdutos} />
           <UiComponent field={novoClienteFormFields.obs} value={obs} onChange={setObs} />
           {create.isError && (
-            <p className="text-sm text-red-600">
-              {(create.error as Error).message.toLowerCase().includes('duplicate')
-                ? 'Já existe um cliente com este CPF/CNPJ.'
-                : (create.error as Error).message}
+            <p className={cnAlertError} role="alert">
+              {mapClienteMutationError(create.error)}
             </p>
           )}
           <div className="flex justify-end gap-2 pt-2">

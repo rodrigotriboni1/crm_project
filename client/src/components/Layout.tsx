@@ -1,4 +1,5 @@
 import { useCallback, useState, type ReactNode } from 'react'
+import { cnAlertError } from '@/lib/supabaseDataErrors'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -65,8 +66,11 @@ function OrganizationMain({ children }: { children: ReactNode }) {
     loading,
     organizations,
     activeOrganizationId,
+    loadError,
+    refreshOrganizations,
     createOrganization,
   } = useOrganization()
+  const [createOrgError, setCreateOrgError] = useState<string | null>(null)
 
   if (!user) return <>{children}</>
 
@@ -78,13 +82,42 @@ function OrganizationMain({ children }: { children: ReactNode }) {
     )
   }
 
+  if (loadError) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+        <p className={cn('max-w-md text-center text-sm', cnAlertError)} role="alert">
+          {loadError}
+        </p>
+        <p className="max-w-md text-center text-xs text-muted-foreground">
+          Se o problema continuar, confirme a ligação e que as migrações Supabase estão aplicadas no projecto.
+        </p>
+        <Button type="button" onClick={() => void refreshOrganizations()}>
+          Tentar de novo
+        </Button>
+      </div>
+    )
+  }
+
   if (organizations.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
         <p className="max-w-sm text-center text-sm text-brand-mid">
           Não pertence a nenhuma organização. Crie uma para usar o CRM.
         </p>
-        <Button type="button" onClick={() => void createOrganization('Organização')}>
+        {createOrgError && (
+          <p className={cn('max-w-sm text-center text-sm', cnAlertError)} role="alert">
+            {createOrgError}
+          </p>
+        )}
+        <Button
+          type="button"
+          onClick={() => {
+            setCreateOrgError(null)
+            void createOrganization('Organização').catch((e: unknown) => {
+              setCreateOrgError(e instanceof Error ? e.message : String(e))
+            })
+          }}
+        >
           Criar organização
         </Button>
       </div>

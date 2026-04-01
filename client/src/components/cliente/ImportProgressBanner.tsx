@@ -56,8 +56,11 @@ export default function ImportProgressBanner() {
       className={cn(
         'fixed z-[60] max-w-md rounded-lg border bg-card p-3 text-sm shadow-lg',
         'bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] left-4 right-4 md:bottom-4 md:left-auto md:right-4',
-        phase === 'error' && 'border-red-200 bg-red-50/95 dark:border-red-900 dark:bg-red-950/40',
-        phase === 'done' && errors.length === 0 && 'border-green-200 bg-green-50/95 dark:border-green-900 dark:bg-green-950/30',
+        phase === 'error' &&
+          'border-[color-mix(in_srgb,var(--color-brand-danger)_45%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-brand-danger)_12%,var(--color-card))]',
+        phase === 'done' &&
+          errors.length === 0 &&
+          'border-[color-mix(in_srgb,var(--color-brand-success)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-brand-success)_10%,var(--color-card))]',
         (phase === 'running' || (phase === 'done' && errors.length > 0)) &&
           'border-border bg-sidebar/95 backdrop-blur-sm'
       )}

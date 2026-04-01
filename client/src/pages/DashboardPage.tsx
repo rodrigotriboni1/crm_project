@@ -11,6 +11,7 @@ import AvatarCircle from '@/components/AvatarCircle'
 import { useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
 import { buildDashboardAgentContext } from '@/lib/dashboardAgentContext'
 import { cn } from '@/lib/utils'
+import { cnAlertError } from '@/lib/supabaseDataErrors'
 
 function brl(n: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
@@ -73,7 +74,7 @@ export default function DashboardPage() {
   if (isError) {
     return (
       <div className="px-4 py-4 sm:p-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className={cn('rounded-lg px-4 py-3 text-sm', cnAlertError)}>
           Erro ao carregar: {error instanceof Error ? error.message : String(error)}
         </div>
       </div>
@@ -190,8 +191,8 @@ export default function DashboardPage() {
                         className={cn(
                           'flex-shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium',
                           overdue
-                            ? 'border-red-200 bg-red-50 text-red-600'
-                            : 'border-blue-200 bg-blue-50 text-blue-600'
+                            ? 'border-[color-mix(in_srgb,var(--color-brand-danger)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-brand-danger)_10%,var(--color-background))] text-[var(--color-brand-danger)]'
+                            : 'border-[color-mix(in_srgb,var(--color-brand-primary)_35%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-brand-primary)_8%,var(--color-background))] text-[var(--color-brand-primary)]'
                         )}
                       >
                         {text}

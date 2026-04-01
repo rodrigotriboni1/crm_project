@@ -13,6 +13,15 @@ supabase db push
 supabase migration list
 ```
 
+## Migrações críticas para signup e insert em `clientes`
+
+Se o cadastro de utilizadores falha com erro genérico (“Database error saving new user”) ou **novo cliente** falha com política RLS, confirme que o remoto inclui pelo menos:
+
+- [20260430140600_fix_organization_audit_actor_signup.sql](../supabase/migrations/20260430140600_fix_organization_audit_actor_signup.sql) — `log_organization_audit` no signup (`auth.uid()` nulo) deixava de violar `actor_user_id NOT NULL`.
+- [20260430140700_fix_clientes_insert_rls.sql](../supabase/migrations/20260430140700_fix_clientes_insert_rls.sql) — política `clientes_insert_org` alinhada a `user_can_mutate_cliente_row`.
+
+Comando: `supabase migration list` — as colunas **Local** e **Remote** devem coincidir até à última migração; linhas só em **Local** indicam `supabase db push` pendente no projecto ligado.
+
 ## Migrações relevantes
 
 | Ficheiro | Conteúdo |

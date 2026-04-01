@@ -9,6 +9,8 @@ import { UiComponent } from '@/components/standards'
 import type { FieldDefinition } from '@/types'
 import LoadingScreen from '@/components/LoadingScreen'
 import ThemeToggle from '@/components/ThemeToggle'
+import { mapAuthErrorForUser } from '@/lib/supabaseAuthErrors'
+import { cnAlertError, cnAlertInfo, cnAlertWarning } from '@/lib/supabaseDataErrors'
 
 const loginEmailField: FieldDefinition = {
   id: 'login-email',
@@ -69,7 +71,7 @@ export default function LoginPage() {
     const fn = mode === 'login' ? signIn : signUp
     const { error: err } = await fn(email, password)
     setPending(false)
-    if (err) setError(err.message)
+    if (err) setError(mapAuthErrorForUser(err, mode === 'login' ? 'login' : 'signup'))
     else if (mode === 'signup')
       setInfo('Se a confirmação por e-mail estiver ativa no Supabase, verifique a caixa de entrada.')
   }
@@ -127,19 +129,9 @@ export default function LoginPage() {
                 minLength={6}
                 className="space-y-2"
               />
-              {error && (
-                <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
-              )}
-              {authNotice && (
-                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100">
-                  {authNoticeMessage(authNotice)}
-                </p>
-              )}
-              {info && (
-                <p className="rounded-md border border-brand-surface bg-brand-surface/50 px-3 py-2 text-sm text-brand-green">
-                  {info}
-                </p>
-              )}
+              {error && <p className={cnAlertError}>{error}</p>}
+              {authNotice && <p className={cnAlertWarning}>{authNoticeMessage(authNotice)}</p>}
+              {info && <p className={cnAlertInfo}>{info}</p>}
               <Button type="submit" className="w-full" disabled={pending}>
                 {pending ? 'Aguarde…' : mode === 'login' ? 'Entrar' : 'Criar conta'}
               </Button>
