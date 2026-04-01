@@ -152,7 +152,7 @@ export default function EquipePage() {
       : null
 
   return (
-    <PageContainer max="lg" className="space-y-4">
+    <PageContainer max="full" className="space-y-4">
       <p className="text-sm text-muted-foreground">
         <Link to="/" className="font-medium text-brand-orange underline-offset-2 hover:underline">
           Voltar ao dashboard

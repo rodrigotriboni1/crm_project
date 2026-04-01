@@ -153,7 +153,7 @@ export default function ClientesPage() {
   }
 
   return (
-    <PageContainer max="lg" className="space-y-4">
+    <PageContainer max="full" className="space-y-4">
       <ListPageKpiGrid
         columnsClassName="sm:grid-cols-2 lg:grid-cols-5"
         items={[
@@ -177,7 +177,6 @@ export default function ClientesPage() {
         start={
           <div className="space-y-2">
             <SearchField
-              className="max-w-xl"
               value={q}
               onChange={setQ}
               placeholder="Nome, CPF/CNPJ, telefone ou produtos habituais…"

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd'
-import { Filter, LayoutGrid, Layers, Plus, Search, Table2 } from 'lucide-react'
+import { Filter, LayoutGrid, Layers, Search, Table2 } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { Link } from 'react-router-dom'
 import KanbanColumn from '@/components/kanban/KanbanColumn'
@@ -82,15 +82,6 @@ export default function KanbanBoard({
               <Layers className="h-3.5 w-3.5" />
               Agrupar
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              className="h-8 gap-1.5 bg-brand-primary px-3 text-xs text-white hover:bg-brand-primary/90"
-              onClick={() => openNovo()}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Nova oportunidade
-            </Button>
             <div className="flex gap-1 rounded-lg border border-border bg-muted/20 p-0.5">
               <Button
                 type="button"
@@ -116,7 +107,7 @@ export default function KanbanBoard({
         </div>
 
         {filterOpen && (
-          <div className="relative mt-3 w-full min-w-0 max-w-xl">
+          <div className="relative mt-3 w-full min-w-0">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"

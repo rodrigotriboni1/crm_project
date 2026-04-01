@@ -35,14 +35,6 @@ const valorField: FieldDefinition = {
   placeholder: '0,00',
 }
 
-const taxField: FieldDefinition = {
-  id: 'novo-orc-tax',
-  kind: 'document',
-  documentVariant: 'cpf_cnpj',
-  label: 'CPF / CNPJ',
-  placeholder: 'Documento deste orçamento',
-}
-
 const dataOrcField: FieldDefinition = {
   id: 'novo-orc-data',
   kind: 'date',
@@ -68,7 +60,6 @@ export default function NovoOrcamentoDialog({ user, open, onOpenChange, initialS
   const [statusIni, setStatusIni] = useState<OrcamentoStatus>('novo_contato')
   const [dataOrc, setDataOrc] = useState(() => new Date().toISOString().slice(0, 10))
   const [followUp, setFollowUp] = useState('')
-  const [taxId, setTaxId] = useState('')
 
   const clienteField = useMemo((): FieldDefinition => {
     return {
@@ -114,7 +105,6 @@ export default function NovoOrcamentoDialog({ user, open, onOpenChange, initialS
     setStatusIni(initialStatus ?? 'novo_contato')
     setDataOrc(new Date().toISOString().slice(0, 10))
     setFollowUp('')
-    setTaxId('')
   }, [open, initialStatus])
 
   const dormindoInvalid = statusIni === 'dormindo' && !followUp.trim()
@@ -132,7 +122,7 @@ export default function NovoOrcamentoDialog({ user, open, onOpenChange, initialS
       status: statusIni,
       data_orcamento: dataOrc,
       follow_up_at: fu,
-      tax_id: taxId.trim() || null,
+      tax_id: null,
     })
     onOpenChange(false)
   }
@@ -175,7 +165,6 @@ export default function NovoOrcamentoDialog({ user, open, onOpenChange, initialS
           </div>
           <UiComponent field={descField} value={desc} onChange={setDesc} />
           <UiComponent field={valorField} value={valorStr} onChange={setValorStr} />
-          <UiComponent field={taxField} value={taxId} onChange={setTaxId} />
           <UiComponent
             field={statusField}
             value={statusIni}

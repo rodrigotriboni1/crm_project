@@ -138,7 +138,7 @@ export default function KanbanPage() {
       {view === 'table' ? (
         <>
           <div className="mb-3 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full min-w-0 sm:max-w-md lg:max-w-xl lg:flex-1">
+            <div className="relative w-full min-w-0 sm:flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"

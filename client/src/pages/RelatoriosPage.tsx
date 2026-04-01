@@ -106,7 +106,7 @@ export default function RelatoriosPage() {
   const interacoesTotal = data?.interacoesPorCanal.reduce((a, c) => a + c.count, 0) ?? 0
 
   return (
-    <PageContainer max="lg" className="space-y-4">
+    <PageContainer max="full" className="space-y-4">
           <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-muted/20 p-3">
             <div className="space-y-1.5">
               <Label htmlFor="rep-start">Início</Label>

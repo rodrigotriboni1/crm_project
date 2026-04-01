@@ -349,7 +349,7 @@ export default function ProdutosPage() {
   )
 
   return (
-    <PageContainer max="lg" className="space-y-4">
+    <PageContainer max="full" className="space-y-4">
       <ListPageKpiGrid
         columnsClassName="sm:grid-cols-3"
         items={[
@@ -362,7 +362,6 @@ export default function ProdutosPage() {
       <ToolbarRow
         start={
           <SearchField
-            className="max-w-xl"
             value={q}
             onChange={setQ}
             placeholder="Nome, categoria, código ou descrição…"
