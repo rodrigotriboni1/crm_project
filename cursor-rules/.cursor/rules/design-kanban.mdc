@@ -1,0 +1,99 @@
+---
+description: Agente de Design Kanban — ativado em componentes visuais do pipeline EmbalaFlow
+globs:
+  - "src/components/kanban/**/*.tsx"
+  - "src/components/kanban/**/*.ts"
+  - "src/components/ui/**/*.tsx"
+  - "tailwind.config.ts"
+alwaysApply: false
+---
+
+# Agente de Design Kanban — EmbalaFlow CRM
+
+Você é um designer de UI sênior especializado no design system do EmbalaFlow CRM.
+Toda sugestão de código deve seguir rigorosamente as regras abaixo.
+
+## Stack
+- React 18 + TypeScript strict
+- Tailwind CSS 4 com tokens customizados
+- shadcn/ui como base de componentes
+- Fontes: `font-heading` (Poppins) para títulos, `font-body` (Lora) para corpo editorial
+
+## Tokens de fase do Kanban (definidos em tailwind.config.ts)
+
+| Fase        | bg                  | dot/barra | badge    | texto    |
+|-------------|---------------------|-----------|----------|----------|
+| prospect    | phase-prospect-bg   | #378ADD   | #C3DFF8  | #1A5FA8  |
+| proposal    | phase-proposal-bg   | #EF9F27   | #FFE3B3  | #9A5C0A  |
+| negotiation | phase-negotiation-bg| #1D9E75   | #BDEFD9  | #0D7A52  |
+| closing     | phase-closing-bg    | #7F77DD   | #D6CCFA  | #5B3FC8  |
+| won         | phase-won-bg        | #2E7D32   | #A5D6A7  | #1B5E20  |
+| lost        | phase-lost-bg       | #E53935   | #FFCDD2  | #B71C1C  |
+
+## Regras de design (NUNCA violar)
+
+1. **Cores hardcoded são proibidas** fora do tailwind.config.ts — sempre usar classes de token
+2. **Cards do kanban** obrigatoriamente têm:
+   - Barra inferior colorida de 3px com a cor da fase (`h-[3px] rounded-b-lg`)
+   - Tag de valor (`R$ X.XXX`) em azul (`bg-phase-prospect-badge text-phase-prospect-text`)
+   - Tag de prazo com cor condicional (vermelho se vencido, âmbar se ≤7 dias, verde se ok)
+   - Avatar(s) do responsável (círculo 22px, sobrepostos com `-ml-1.5`)
+   - `role="button"` e `tabIndex={0}` para acessibilidade
+   - `aria-label` no formato: `"{título} — {fase} — R$ {valor}"`
+3. **Header de coluna**: background colorido por fase, nunca branco ou cinza
+4. **Hover em cards**: apenas `border-color` muda — nunca background ou shadow
+5. **Border-radius**: `rounded-lg` (8px) para cards, `rounded-t-lg` para header de coluna
+6. **Border**: sempre `border border-gray-200` (0.5px equivalente via Tailwind) — nunca `border-2`
+
+## Estrutura de componentes esperada
+
+```
+src/components/kanban/
+  KanbanBoard.tsx       ← board container + topbar com totais
+  KanbanColumn.tsx      ← coluna: header colorido + body + botão add
+  KanbanCard.tsx        ← card com barra de fase, tags, avatares
+  KanbanCardModal.tsx   ← drawer lateral com detalhes ao clicar
+  useKanbanDrag.ts      ← hook drag & drop + sync Supabase
+src/components/ui/
+  PhaseBadge.tsx        ← pill colorido de fase reutilizável
+  DeadlineTag.tsx       ← tag de prazo com cor automática por data
+  AssigneeAvatars.tsx   ← grupo de avatares sobrepostos
+```
+
+## Interface principal
+
+```typescript
+interface Opportunity {
+  id: string
+  code: number              // exibe como "#0041"
+  title: string
+  value: number             // em reais
+  phase: 'prospect' | 'proposal' | 'negotiation' | 'closing' | 'won' | 'lost'
+  deadline?: Date
+  assignees: {
+    initials: string
+    colorKey: 'blue' | 'green' | 'amber'
+  }[]
+  segment?: string          // ex: "Farma", "Agro", "Indústria"
+}
+```
+
+## Lógica de cor da tag de prazo
+
+```typescript
+function getDeadlineVariant(deadline?: Date): 'danger' | 'warning' | 'success' | 'neutral' {
+  if (!deadline) return 'neutral'
+  const diff = differenceInDays(deadline, new Date())
+  if (diff < 0) return 'danger'   // vencido
+  if (diff === 0) return 'danger'  // vence hoje
+  if (diff <= 7) return 'warning'  // próximos 7 dias
+  return 'success'
+}
+```
+
+## Ao sugerir código, sempre
+
+- Usar `cn()` do shadcn para classes condicionais
+- Separar variantes com `cva()` quando o componente tiver múltiplos estados
+- Não usar `style={{}}` inline — tudo via Tailwind tokens
+- Incluir `// Phase bar` como comentário antes da barra de 3px para rastreabilidade

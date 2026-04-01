@@ -7,6 +7,8 @@
 @theme {
   --font-sans: "Poppins", Arial, system-ui, sans-serif;
   --font-serif: "Lora", Georgia, "Times New Roman", serif;
+  --font-heading: "Poppins", Arial, system-ui, sans-serif;
+  --font-body: "Lora", Georgia, "Times New Roman", serif;
 
   /* Escala tipográfica de referência: meta 12–13, corpo 14, destaque 16–18, título página 20–24 */
   --text-ui-meta: 0.75rem;
@@ -36,6 +38,55 @@
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.625rem;
+
+  /* Kanban Pipefy / brand CRM */
+  --color-brand-primary: #1a5fa8;
+  --color-brand-success: #0d7a52;
+  --color-brand-warning: #9a5c0a;
+  --color-brand-danger: #b91c1c;
+
+  --color-background-secondary: #f4f3ee;
+  --color-border-secondary: #c8c6bc;
+  --color-border-tertiary: #e0ded4;
+
+  /* Phase tokens (light) */
+  --color-phase-prospect-bg: #edf6ff;
+  --color-phase-prospect-dot: #378add;
+  --color-phase-prospect-badge: #c3dff8;
+  --color-phase-prospect-text: #1a5fa8;
+
+  --color-phase-proposal-bg: #fff8ed;
+  --color-phase-proposal-dot: #ef9f27;
+  --color-phase-proposal-badge: #ffe3b3;
+  --color-phase-proposal-text: #9a5c0a;
+
+  --color-phase-negotiation-bg: #edfaf5;
+  --color-phase-negotiation-dot: #1d9e75;
+  --color-phase-negotiation-badge: #bdefd9;
+  --color-phase-negotiation-text: #0d7a52;
+
+  --color-phase-closing-bg: #f0edff;
+  --color-phase-closing-dot: #7f77dd;
+  --color-phase-closing-badge: #d6ccfa;
+  --color-phase-closing-text: #5b3fc8;
+
+  --color-phase-won-bg: #e8f5e9;
+  --color-phase-won-dot: #2e7d32;
+  --color-phase-won-badge: #a5d6a7;
+  --color-phase-won-text: #1b5e20;
+
+  --color-phase-lost-bg: #fef2f2;
+  --color-phase-lost-dot: #e53935;
+  --color-phase-lost-badge: #ffcdd2;
+  --color-phase-lost-text: #b71c1c;
+
+  /* Deadline / value pill helpers */
+  --color-kanban-deadline-overdue-bg: #fef2f2;
+  --color-kanban-deadline-overdue-text: #b91c1c;
+  --color-kanban-deadline-soon-bg: #fff8ed;
+  --color-kanban-deadline-soon-text: #9a5c0a;
+  --color-kanban-deadline-ok-bg: #edfaf5;
+  --color-kanban-deadline-ok-text: #0d7a52;
 }
 
 /* Modo escuro: inverter fundo/texto e superfícies */
@@ -56,6 +107,52 @@ html.dark {
   --color-ring: var(--color-brand-blue);
   --color-card: #1c1c1a;
   --color-sidebar: #1a1a19;
+
+  --color-background-secondary: #1c1c19;
+  --color-border-secondary: #4a4840;
+  --color-border-tertiary: #353431;
+
+  --color-brand-primary: #5b9bd4;
+  --color-brand-success: #4caf7a;
+  --color-brand-warning: #d4a574;
+  --color-brand-danger: #e57373;
+
+  --color-phase-prospect-bg: #1a2433;
+  --color-phase-prospect-dot: #5ba3e8;
+  --color-phase-prospect-badge: #2a3f5c;
+  --color-phase-prospect-text: #a8cce8;
+
+  --color-phase-proposal-bg: #2a2418;
+  --color-phase-proposal-dot: #e8a84a;
+  --color-phase-proposal-badge: #4a3d28;
+  --color-phase-proposal-text: #e8c896;
+
+  --color-phase-negotiation-bg: #182820;
+  --color-phase-negotiation-dot: #3dbf8c;
+  --color-phase-negotiation-badge: #244038;
+  --color-phase-negotiation-text: #9ee0c0;
+
+  --color-phase-closing-bg: #221f2e;
+  --color-phase-closing-dot: #9b8ee8;
+  --color-phase-closing-badge: #36304a;
+  --color-phase-closing-text: #c4b8f0;
+
+  --color-phase-won-bg: #1a261c;
+  --color-phase-won-dot: #5cb85c;
+  --color-phase-won-badge: #2d402e;
+  --color-phase-won-text: #a8d4a8;
+
+  --color-phase-lost-bg: #2a1f1f;
+  --color-phase-lost-dot: #ef6b6b;
+  --color-phase-lost-badge: #402828;
+  --color-phase-lost-text: #f0a8a8;
+
+  --color-kanban-deadline-overdue-bg: #331a1a;
+  --color-kanban-deadline-overdue-text: #f0a0a0;
+  --color-kanban-deadline-soon-bg: #2a2418;
+  --color-kanban-deadline-soon-text: #e8c896;
+  --color-kanban-deadline-ok-bg: #182820;
+  --color-kanban-deadline-ok-text: #9ee0c0;
 }
 
 html {

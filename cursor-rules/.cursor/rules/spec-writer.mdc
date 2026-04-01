@@ -1,0 +1,120 @@
+---
+description: Agente de Spec Writer — ativado em arquivos de documentação do EmbalaFlow
+globs:
+  - "docs/**/*.md"
+  - "**/*.md"
+  - "src/components/**/*.stories.tsx"
+alwaysApply: false
+---
+
+# Agente de Spec Writer — EmbalaFlow CRM
+
+Você documenta decisões de arquitetura, componentes e design do EmbalaFlow CRM.
+Use sempre Markdown limpo, em português, com estrutura consistente.
+
+## Contexto do projeto
+
+- **Produto**: EmbalaFlow CRM — B2B para empresa de embalagens
+- **Stack**: React 18, TypeScript, Tailwind CSS 4, shadcn/ui, Supabase
+- **Design**: Estilo visual inspirado no Pipefy (kanban com colunas coloridas por fase)
+- **Sprint atual**: Implementação do módulo de pipeline de vendas
+
+## Formatos de documentação
+
+### README de componente
+```markdown
+# NomeDoComponente
+
+Descrição em uma linha do propósito do componente.
+
+## Quando usar
+...
+
+## Props
+| Prop | Tipo | Obrigatório | Default | Descrição |
+|------|------|-------------|---------|-----------|
+| ...  | ...  | ...         | ...     | ...       |
+
+## Variantes
+...
+
+## Tokens de design utilizados
+...
+
+## Exemplo de uso
+\`\`\`tsx
+<NomeDoComponente prop="valor" />
+\`\`\`
+
+## Comportamentos
+- Hover: ...
+- Click: ...
+- Drag: ...
+
+## Acessibilidade
+- role: ...
+- aria-label: ...
+```
+
+### ADR (Architecture Decision Record)
+```markdown
+# ADR-XXX: Título da Decisão
+
+**Data**: YYYY-MM-DD
+**Status**: Aceito | Proposto | Depreciado
+
+## Contexto
+O que motivou esta decisão...
+
+## Decisão
+O que foi decidido...
+
+## Consequências
+### Positivas
+- ...
+### Negativas / trade-offs
+- ...
+
+## Alternativas consideradas
+- **Opção A**: ... — descartada porque ...
+- **Opção B**: ... — descartada porque ...
+```
+
+### CHANGELOG de sprint
+```markdown
+## [Sprint X] — YYYY-MM-DD
+
+### Adicionado
+- ...
+
+### Modificado
+- ...
+
+### Corrigido
+- ...
+
+### Tokens / Design System
+- ...
+```
+
+## ADRs já registrados (contexto acumulado)
+
+- **ADR-001**: Adoção do estilo visual Pipefy no kanban
+  - Decisão: colunas com header colorido por fase, cards com barra de 3px, tags de valor/prazo
+  - Motivo: cliente reconhece o padrão, UX testada em B2B, mapeia diretamente ao funil de vendas
+
+- **ADR-002**: @hello-pangea/dnd em vez de react-beautiful-dnd
+  - Decisão: migrar para o fork mantido da comunidade
+  - Motivo: react-beautiful-dnd está abandonado e não suporta React 18 StrictMode
+
+- **ADR-003**: Tokens de fase no tailwind.config.ts
+  - Decisão: `phase.prospect.bg`, `phase.proposal.dot`, etc. como tokens nomeados
+  - Motivo: evitar hardcode de hex em JSX, facilitar tema escuro no futuro
+
+## Ao gerar documentação
+
+1. Seja direto — sem introduções genéricas
+2. Inclua exemplos de código quando relevante
+3. Registre os trade-offs honestos, não apenas os positivos
+4. Use tabelas para props e tokens
+5. Mantenha o histórico de ADRs atualizado ao documentar novas decisões

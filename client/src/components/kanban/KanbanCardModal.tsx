@@ -1,5 +1,5 @@
 import type { User } from '@supabase/supabase-js'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { OrcamentoDetailPanel } from '@/components/OrcamentoDetailPanel'
 
 type Props = {
@@ -9,17 +9,17 @@ type Props = {
   onOpenChange: (open: boolean) => void
 }
 
-export default function OrcamentoDetailModal({ user, orcamentoId, open, onOpenChange }: Props) {
+export default function KanbanCardModal({ user, orcamentoId, open, onOpenChange }: Props) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-lg">
         <OrcamentoDetailPanel
-          variant="dialog"
+          variant="sheet"
           user={user}
           orcamentoId={orcamentoId}
           onClose={() => onOpenChange(false)}
         />
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 }

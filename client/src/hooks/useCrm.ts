@@ -31,7 +31,7 @@ import { INTERACAO_CANAIS_USUARIO } from '@/lib/interacaoCanal'
 import { ORCAMENTO_STATUS_ORDER, orcamentoStatusLabel } from '@/lib/orcamentoStatusUi'
 import { qk } from '@/lib/queryKeys'
 import type { ClienteTipo, ClienteUpdate, OrcamentoStatus, ProdutoUpdate } from '@/types/database'
-import type { ReportsDateRange } from '@/api/crm'
+import type { OrcamentosKanbanLoad, ReportsDateRange } from '@/api/crm'
 
 function requireClient(user: User | null, organizationId: string | null) {
   if (!supabase) throw new Error('Supabase não configurado')
@@ -420,6 +420,35 @@ export function useApplyOrcamentoUpdate(user: User | null, organizationId: strin
         note: args.note,
         lostReason: args.lostReason,
       })
+    },
+    onMutate: async (args) => {
+      if (!user || !organizationId) return undefined
+      const key = [...qk.orcamentos(user.id, organizationId), 'kanban'] as const
+      await qc.cancelQueries({ queryKey: key })
+      const previous = qc.getQueryData<OrcamentosKanbanLoad>(key)
+      if (!previous) return undefined
+      qc.setQueryData<OrcamentosKanbanLoad>(key, {
+        ...previous,
+        rows: previous.rows.map((r) =>
+          r.id === args.orcamentoId
+            ? {
+                ...r,
+                status: args.status,
+                follow_up_at: args.followUpAt,
+                lost_reason:
+                  args.status === 'perdido' && args.lostReason !== undefined
+                    ? args.lostReason
+                    : r.lost_reason,
+              }
+            : r
+        ),
+      })
+      return { previous, key } as const
+    },
+    onError: (_err, _args, context) => {
+      if (context?.previous) {
+        qc.setQueryData(context.key, context.previous)
+      }
     },
     onSuccess: (_d, args) => {
       if (user && organizationId) {

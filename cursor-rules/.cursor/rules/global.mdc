@@ -1,0 +1,34 @@
+---
+description: Contexto global do EmbalaFlow CRM — sempre ativo em todo o projeto
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# EmbalaFlow CRM — Contexto Global
+
+Este é o projeto **EmbalaFlow CRM**, um sistema B2B de gestão de relacionamento
+com clientes para uma empresa de embalagens.
+
+## Stack
+- React 18 + TypeScript (strict)
+- Tailwind CSS 4 + shadcn/ui
+- Supabase (banco + auth + realtime)
+- @hello-pangea/dnd para drag & drop
+- Fontes: Poppins (headings) + Lora (corpo editorial)
+
+## Princípios inegociáveis
+1. TypeScript strict — `any` é proibido
+2. Cores sempre via tokens Tailwind — nunca hex hardcoded em JSX
+3. Acessibilidade mínima WCAG AA em todos os componentes interativos
+4. Erros do Supabase sempre tratados explicitamente
+5. Componentes funcionais — zero class components
+
+## Módulo em desenvolvimento: Pipeline Kanban
+Design inspirado no Pipefy. Fases: Prospecção → Proposta → Negociação → Fechamento → Ganho/Perdido.
+Cada fase tem cor própria definida nos tokens `phase.*` do tailwind.config.ts.
+
+## Quando em dúvida
+- Prefira legibilidade a esperteza
+- Prefira composição a abstração prematura
+- Prefira um componente a mais a um componente gigante

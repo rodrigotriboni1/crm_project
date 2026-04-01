@@ -1,34 +1,32 @@
-import { useRef, type PointerEvent } from 'react'
+import { useRef, type KeyboardEvent, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { Draggable } from '@hello-pangea/dnd'
 import { ExternalLink } from 'lucide-react'
-import { useDraggable } from '@dnd-kit/core'
-import { CSS } from '@dnd-kit/utilities'
-import { Card, CardContent } from '@/components/ui/card'
 import { SelectNative } from '@/components/ui/select-native'
-import AvatarCircle from '@/components/AvatarCircle'
+import AssigneeAvatars from '@/components/ui/AssigneeAvatars'
+import DeadlineTag from '@/components/ui/DeadlineTag'
 import type { OrcamentoRow } from '@/api/crm'
 import type { OrcamentoStatus } from '@/types/database'
 import { cn } from '@/lib/utils'
 import { digitsOnly, formatCpfCnpj } from '@/lib/formatters'
 import { formatOrcamentoDisplayNum } from '@/lib/orcamentoDisplayNum'
 import { ORCAMENTO_STATUS_ORDER, orcamentoStatusLabel } from '@/lib/orcamentoStatusUi'
+import { KANBAN_STATUS_CARD_BAR } from '@/lib/kanbanPhaseUi'
 
-function fmt(dateStr: string) {
+function fmtShort(dateStr: string) {
   const [, m, d] = dateStr.split('-')
   return `${d}/${m}`
 }
 
-function isOverdue(o: OrcamentoRow): boolean {
-  if (!o.follow_up_at) return false
-  return new Date(o.follow_up_at) < new Date(new Date().toDateString())
+function cardIdLabel(displayNum: number) {
+  return `#${formatOrcamentoDisplayNum(displayNum).slice(-4)}`
 }
 
-function isSoon(o: OrcamentoRow): boolean {
-  if (!o.follow_up_at) return false
-  const t = new Date(o.follow_up_at).getTime()
-  const n = new Date(new Date().toDateString()).getTime()
-  const diff = (t - n) / 86400000
-  return diff >= 0 && diff <= 3
+function initialsFromName(name: string) {
+  const p = name.trim().split(/\s+/).filter(Boolean)
+  if (p.length === 0) return '?'
+  if (p.length === 1) return p[0]!.slice(0, 2)
+  return (p[0]![0] + p[p.length - 1]![0]).toUpperCase()
 }
 
 function formatDocLine(tax: string | null | undefined): string | null {
@@ -39,16 +37,8 @@ function formatDocLine(tax: string | null | undefined): string | null {
   return null
 }
 
-function CardMetaLine({ o }: { o: OrcamentoRow }) {
-  const doc = formatDocLine(o.tax_id)
-  return (
-    <div className="mt-2 space-y-0.5 border-t border-border/60 pt-2 text-xs leading-snug text-muted-foreground">
-      <p>
-        Orçamento n.º <span className="font-medium text-foreground/90">{formatOrcamentoDisplayNum(o.display_num ?? 0)}</span>
-      </p>
-      {doc ? <p>{doc}</p> : null}
-    </div>
-  )
+function brl(n: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
 }
 
 export function KanbanCardBody({
@@ -62,68 +52,76 @@ export function KanbanCardBody({
   columnStatus: OrcamentoStatus
   className?: string
   compact?: boolean
-  /** Nº do cartão + taxId (desligar no overlay de arraste) */
   showIds?: boolean
 }) {
   const nome = o.clientes?.nome ?? 'Cliente'
-  const overdue = isOverdue(o)
-  const soon = isSoon(o)
+  const title = nome
+  const segment = o.produtos?.categoria?.trim() || undefined
+  const follow = o.follow_up_at
+  const valorNum = Number(o.valor ?? 0)
+
+  const doc = formatDocLine(o.tax_id)
 
   return (
-    <Card
+    <div
       className={cn(
-        'shadow-none border transition-all',
-        columnStatus === 'perdido' && 'opacity-60',
+        'flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-[border-color] duration-150 hover:border-border-secondary',
+        columnStatus === 'perdido' && 'opacity-70',
         className
       )}
     >
-      <CardContent className={cn('p-3', compact && 'p-2.5')}>
-        <div className="flex items-start gap-2">
-          <AvatarCircle name={nome} />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold leading-snug">{nome}</p>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">{o.produto_descricao || '—'}</p>
-            <Link
-              to={`/clientes/${o.cliente_id}`}
-              className="mt-1 inline-flex items-center gap-0.5 text-xs font-medium text-brand-orange hover:underline"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ExternalLink className="h-3 w-3" />
-              Cliente
-            </Link>
-          </div>
+      <div className={cn('flex flex-col gap-[7px] p-2', compact && 'p-1.5')}>
+        <div className="flex items-start justify-between gap-2">
+          <p className="min-w-0 flex-1 font-heading text-[13px] font-medium leading-snug text-foreground">{title}</p>
+          <span className="shrink-0 font-heading text-[10px] text-muted-foreground">{cardIdLabel(o.display_num ?? 0)}</span>
         </div>
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold">
-            {o.valor ? `R$ ${Number(o.valor).toLocaleString('pt-BR')}` : '—'}
-          </p>
-          {overdue && (
-            <span className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-600">
-              {o.follow_up_at ? fmt(o.follow_up_at) : ''} ⚠
+
+        <div className="flex flex-wrap gap-1.5">
+          <span className="inline-flex items-center rounded-[20px] bg-phase-prospect-badge px-2 py-0.5 font-heading text-[10px] font-medium text-phase-prospect-text">
+            {o.valor ? brl(valorNum) : '—'}
+          </span>
+          {follow ? (
+            <DeadlineTag followUpAt={follow} label={fmtShort(follow)} />
+          ) : null}
+          {segment ? (
+            <span className="inline-flex items-center rounded-[20px] bg-muted px-2 py-0.5 font-heading text-[10px] font-medium text-muted-foreground">
+              {segment}
             </span>
-          )}
-          {!overdue && soon && (
-            <span className="rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">
-              Em breve
-            </span>
-          )}
-          {!overdue && !soon && o.follow_up_at && (
-            <span className="text-xs text-muted-foreground">{fmt(o.follow_up_at)}</span>
-          )}
+          ) : null}
         </div>
-        {showIds ? <CardMetaLine o={o} /> : null}
-      </CardContent>
-    </Card>
+
+        <div className="flex items-center justify-between gap-2 pt-0.5">
+          <AssigneeAvatars assignees={[{ initials: initialsFromName(nome) }]} />
+          <span className="shrink-0 font-heading text-[10px] text-muted-foreground">
+            {follow ? fmtShort(follow) : '—'}
+          </span>
+        </div>
+
+        <Link
+          to={`/clientes/${o.cliente_id}`}
+          className="inline-flex w-fit items-center gap-0.5 font-heading text-[10px] font-medium text-brand-primary hover:underline"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ExternalLink className="h-3 w-3" />
+          Cliente
+        </Link>
+
+        {showIds && doc ? (
+          <p className="border-t border-border-tertiary pt-1.5 font-heading text-[10px] text-muted-foreground">{doc}</p>
+        ) : null}
+      </div>
+      <div className={cn('h-[3px] w-full shrink-0 rounded-b-lg', KANBAN_STATUS_CARD_BAR[columnStatus])} aria-hidden />
+    </div>
   )
 }
 
 type DraggableProps = {
   o: OrcamentoRow
   columnStatus: OrcamentoStatus
+  index: number
   saving?: boolean
   onOpenDetail: () => void
-  /** Em viewports estreitos: sem arrastar; selector de etapa. */
   dragDisabled?: boolean
   onChangeStatus?: (o: OrcamentoRow, status: OrcamentoStatus) => void
 }
@@ -131,77 +129,86 @@ type DraggableProps = {
 export function DraggableKanbanCard({
   o,
   columnStatus,
+  index,
   saving,
   onOpenDetail,
   dragDisabled = false,
   onChangeStatus,
 }: DraggableProps) {
   const clickRef = useRef<{ x: number; y: number; t: number } | null>(null)
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: o.id,
-    data: { type: 'card', orcamento: o },
-    disabled: Boolean(saving) || dragDisabled,
-  })
+  const disabled = Boolean(saving) || dragDisabled
+  const nome = o.clientes?.nome ?? 'Cliente'
+  const ariaLabel = `${nome} — ${orcamentoStatusLabel(columnStatus)} — ${brl(Number(o.valor ?? 0))}`
 
-  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined
-
-  const l = listeners as { onPointerDown?: (e: PointerEvent<HTMLElement>) => void } & Record<
-    string,
-    unknown
-  >
+  const onKeyActivate = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      if (!saving) onOpenDetail()
+    }
+  }
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        isDragging && 'opacity-40',
-        saving && 'pointer-events-none opacity-60',
-        !saving && !dragDisabled && 'cursor-grab active:cursor-grabbing'
-      )}
-      {...attributes}
-      {...listeners}
-      onPointerDown={(e) => {
-        l.onPointerDown?.(e)
-        clickRef.current = { x: e.clientX, y: e.clientY, t: Date.now() }
-      }}
-      onClick={(e) => {
-        if (saving) return
-        if ((e.target as HTMLElement).closest('a[href]')) return
-        const p = clickRef.current
-        clickRef.current = null
-        if (!p) return
-        const dt = Date.now() - p.t
-        const d = Math.hypot(e.clientX - p.x, e.clientY - p.y)
-        if (dt < 500 && d < 14) onOpenDetail()
-      }}
-    >
-      <KanbanCardBody o={o} columnStatus={columnStatus} />
-      {dragDisabled && onChangeStatus && (
+    <Draggable draggableId={o.id} index={index} isDragDisabled={disabled}>
+      {(dragProvided, snapshot) => {
+        const dh = dragProvided.dragHandleProps
+        return (
         <div
-          className="mt-1 border-t border-border/80 px-1 pb-1 pt-2"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
+          ref={dragProvided.innerRef}
+          {...dragProvided.draggableProps}
+          {...(dh ?? { role: 'button' as const, tabIndex: 0 })}
+          style={{
+            ...dragProvided.draggableProps.style,
+          }}
+          aria-label={ariaLabel}
+          className={cn(
+            snapshot.isDragging && 'opacity-60',
+            saving && 'pointer-events-none opacity-60',
+            !disabled && 'cursor-grab active:cursor-grabbing'
+          )}
+          onMouseDown={(e: MouseEvent<HTMLDivElement>) => {
+            clickRef.current = { x: e.clientX, y: e.clientY, t: Date.now() }
+          }}
+          onKeyDown={onKeyActivate}
+          onClick={(e) => {
+            if (saving) return
+            if ((e.target as HTMLElement).closest('a[href]')) return
+            const p = clickRef.current
+            clickRef.current = null
+            if (!p) return
+            const dt = Date.now() - p.t
+            const d = Math.hypot(e.clientX - p.x, e.clientY - p.y)
+            if (dt < 500 && d < 14) onOpenDetail()
+          }}
         >
-          <label className="sr-only" htmlFor={`kanban-status-${o.id}`}>
-            Mover etapa
-          </label>
-          <SelectNative
-            id={`kanban-status-${o.id}`}
-            className="h-10 w-full text-xs"
-            value={o.status}
-            onChange={(e) => onChangeStatus(o, e.target.value as OrcamentoStatus)}
-            disabled={Boolean(saving)}
-            aria-label="Mover para outra etapa"
-          >
-            {ORCAMENTO_STATUS_ORDER.map((st) => (
-              <option key={st} value={st}>
-                {orcamentoStatusLabel(st)}
-              </option>
-            ))}
-          </SelectNative>
+          <KanbanCardBody o={o} columnStatus={columnStatus} />
+          {dragDisabled && onChangeStatus && (
+            <div
+              className="mt-1 border-t border-border px-1 pb-1 pt-2"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <label className="sr-only" htmlFor={`kanban-status-${o.id}`}>
+                Mover etapa
+              </label>
+              <SelectNative
+                id={`kanban-status-${o.id}`}
+                className="h-10 w-full text-xs"
+                value={o.status}
+                onChange={(e) => onChangeStatus(o, e.target.value as OrcamentoStatus)}
+                disabled={Boolean(saving)}
+                aria-label="Mover para outra etapa"
+              >
+                {ORCAMENTO_STATUS_ORDER.map((st) => (
+                  <option key={st} value={st}>
+                    {orcamentoStatusLabel(st)}
+                  </option>
+                ))}
+              </SelectNative>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+        )
+      }}
+    </Draggable>
   )
 }

@@ -1,84 +1,92 @@
-import type { ElementType } from 'react'
-import { useDroppable } from '@dnd-kit/core'
+import { Droppable } from '@hello-pangea/dnd'
 import { orcamentoStatusLabel } from '@/hooks/useCrm'
-import { STATUS_COLUMN_TOP } from '@/components/StatusBadge'
 import { DraggableKanbanCard } from '@/components/kanban/KanbanCard'
 import type { OrcamentoRow } from '@/api/crm'
 import type { OrcamentoStatus } from '@/types/database'
 import { cn } from '@/lib/utils'
-
-function brl(n: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
-}
+import { KANBAN_STATUS_DOT, KANBAN_STATUS_HEADER_BG } from '@/lib/kanbanPhaseUi'
 
 type Props = {
   status: OrcamentoStatus
   items: OrcamentoRow[]
-  StatusIcon: ElementType
-  statusColorClass: string
   savingId: string | null
   onOpenDetail: (id: string) => void
   dragDisabled?: boolean
   onChangeStatus?: (o: OrcamentoRow, status: OrcamentoStatus) => void
+  onAddCard: (status: OrcamentoStatus) => void
 }
 
 export default function KanbanColumn({
   status,
   items,
-  StatusIcon,
-  statusColorClass,
   savingId,
   onOpenDetail,
   dragDisabled = false,
   onChangeStatus,
+  onAddCard,
 }: Props) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: status,
-    data: { type: 'column', status },
-  })
-
-  const totalValor = items.reduce((sum, o) => sum + Number(o.valor ?? 0), 0)
+  const label = orcamentoStatusLabel(status)
   const count = items.length
 
   return (
-    <div
-      className={cn(
-        'flex min-h-0 min-w-[min(260px,calc(100vw-2.5rem))] shrink-0 flex-col rounded-lg border border-border border-t-4 bg-card/80 sm:min-w-[220px] xl:min-w-0 xl:max-w-none xl:flex-1',
-        STATUS_COLUMN_TOP[status]
-      )}
-    >
-      <div className="shrink-0 space-y-1 px-2 pb-2 pt-3">
-        <div className={cn('flex items-center gap-1.5 text-xs font-medium', statusColorClass)}>
-          <StatusIcon className="h-3.5 w-3.5" />
-          {orcamentoStatusLabel(status)}
-        </div>
-        <p className="text-[10px] leading-snug text-muted-foreground">
-          {count} {count === 1 ? 'oportunidade' : 'oportunidades'} · {brl(totalValor)}
-        </p>
-      </div>
+    <div className="flex w-[260px] shrink-0 flex-col">
       <div
-        ref={setNodeRef}
         className={cn(
-          'min-h-[120px] flex-1 space-y-2 overflow-y-auto p-2',
-          isOver && 'rounded-md bg-brand-orange/5 ring-1 ring-brand-orange/25'
+          'flex items-center justify-between gap-2 rounded-t-lg px-2 py-2',
+          KANBAN_STATUS_HEADER_BG[status]
         )}
       >
-        {items.length === 0 ? (
-          <p className="py-6 text-center text-xs text-muted-foreground">Nenhum orçamento nesta etapa.</p>
-        ) : (
-          items.map((o) => (
-            <DraggableKanbanCard
-              key={o.id}
-              o={o}
-              columnStatus={status}
-              saving={savingId === o.id}
-              onOpenDetail={() => onOpenDetail(o.id)}
-              dragDisabled={dragDisabled}
-              onChangeStatus={onChangeStatus}
-            />
-          ))
-        )}
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={cn('h-2 w-2 shrink-0 rounded-full', KANBAN_STATUS_DOT[status])} aria-hidden />
+          <span className="truncate font-heading text-xs font-medium text-foreground">{label}</span>
+        </div>
+        <span
+          className="shrink-0 rounded-full bg-card/90 px-2 py-0.5 font-heading text-[10px] font-semibold tabular-nums text-foreground shadow-sm dark:bg-card/50"
+          aria-label={`${count} cartões`}
+        >
+          {count}
+        </span>
       </div>
+
+      <Droppable droppableId={status}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={cn(
+              'flex min-h-[120px] flex-1 flex-col gap-[7px] overflow-y-auto rounded-b-lg border-[0.5px] border-border-tertiary border-t-0 bg-background-secondary p-2',
+              snapshot.isDraggingOver && 'ring-1 ring-brand-primary/25'
+            )}
+          >
+            {items.length === 0 ? (
+              <p className="py-4 text-center font-heading text-xs text-muted-foreground">
+                Nenhum orçamento nesta etapa.
+              </p>
+            ) : (
+              items.map((o, index) => (
+                <DraggableKanbanCard
+                  key={o.id}
+                  o={o}
+                  columnStatus={status}
+                  index={index}
+                  saving={savingId === o.id}
+                  onOpenDetail={() => onOpenDetail(o.id)}
+                  dragDisabled={dragDisabled}
+                  onChangeStatus={onChangeStatus}
+                />
+              ))
+            )}
+            {provided.placeholder}
+            <button
+              type="button"
+              className="mt-auto flex w-full items-center justify-center rounded-md border-[0.5px] border-dashed border-border-secondary py-2 font-heading text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              onClick={() => onAddCard(status)}
+            >
+              + Adicionar card
+            </button>
+          </div>
+        )}
+      </Droppable>
     </div>
   )
 }

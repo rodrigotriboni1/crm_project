@@ -1,0 +1,73 @@
+---
+description: Agente de Compliance — valida design system e acessibilidade em qualquer componente
+globs:
+  - "src/**/*.tsx"
+  - "src/**/*.css"
+alwaysApply: false
+---
+
+# Agente de Compliance de Design — EmbalaFlow CRM
+
+Ao revisar ou gerar código de componentes, valide automaticamente as regras abaixo.
+Reporte sempre no formato: ✅ ok / ⚠️ aviso / ❌ violação.
+
+## Checklist de compliance
+
+### 1. Tokens de cor (❌ crítico se violado)
+- Nenhuma cor hex hardcoded fora do `tailwind.config.ts`
+- Proibido: `style={{ color: '#1A5FA8' }}`, `className="text-[#1A5FA8]"`
+- Correto: `className="text-brand-primary"` ou `className="text-phase-prospect-text"`
+
+### 2. Estrutura obrigatória de cards Kanban (❌ crítico)
+Todo `KanbanCard` deve conter:
+```
+□ Barra de fase: <div className="h-[3px] rounded-b-lg ..."> // Phase bar
+□ Tag de valor com classe de token de fase
+□ Tag de prazo com variante condicional (danger/warning/success)
+□ Avatar(s) com tamanho fixo w-[22px] h-[22px]
+□ role="button" no elemento raiz
+□ tabIndex={0} no elemento raiz
+□ aria-label descritivo
+```
+
+### 3. Acessibilidade WCAG AA (⚠️ aviso se violado)
+Combinações de cor aprovadas no design system:
+| Texto          | Background       | Ratio  | Status |
+|----------------|------------------|--------|--------|
+| #1A5FA8        | #EDF6FF          | 4.8:1  | ✅ AA  |
+| #0D7A52        | #EDFAF5          | 5.1:1  | ✅ AA  |
+| #9A5C0A        | #FFF8ED          | 4.6:1  | ✅ AA  |
+| #B91C1C        | #FEF2F2          | 5.3:1  | ✅ AA  |
+| #5B3FC8        | #F0EDFF          | 4.7:1  | ✅ AA  |
+| branco         | #1A5FA8          | 4.6:1  | ✅ AA  |
+
+Alerte se detectar combinações fora desta lista com texto colorido sobre fundo colorido.
+
+### 4. Tipografia (⚠️ aviso)
+- Títulos de seção/coluna: `font-heading` (Poppins)
+- Corpo de texto: padrão do Tailwind ou `font-body` (Lora) em contexto editorial
+- Nunca usar `font-bold` em labels de 10px ou menos — usar `font-medium`
+
+### 5. Bordas e radius (⚠️ aviso)
+- Cards: `rounded-lg` (nunca `rounded-xl` ou `rounded-2xl`)
+- Inputs: `rounded-md`
+- Tags/pills: `rounded-full`
+- Proibido: `border-2` em cards — sempre `border` (1px)
+
+### 6. Drag & drop (❌ crítico)
+- Usar `@hello-pangea/dnd` — `react-beautiful-dnd` está depreciado para React 18
+- Todo `Draggable` deve ter `draggableId` único e estável (usar `opportunity.id`)
+- `DragDropContext.onDragEnd` deve sempre verificar `result.destination` antes de agir
+
+### 7. Supabase no frontend (❌ crítico)
+- Nunca importar `SUPABASE_SERVICE_KEY` em arquivos client-side
+- Sempre tratar o `error` retornado pelas queries
+- Nunca usar `.select('*')` — sempre listar colunas explicitamente
+
+## Ao receber um trecho de código para revisão
+
+1. Rode mentalmente o checklist acima
+2. Liste os achados agrupados por severidade
+3. Para cada ❌, sugira a correção exata
+4. Para cada ⚠️, explique o motivo e a alternativa
+5. Conclua com um score: `Compliance: X/10`

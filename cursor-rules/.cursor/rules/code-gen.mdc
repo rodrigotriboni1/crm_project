@@ -1,0 +1,104 @@
+---
+description: Agente de Geração de Código — ativado em hooks, services e lógica do EmbalaFlow
+globs:
+  - "src/hooks/**/*.ts"
+  - "src/services/**/*.ts"
+  - "src/lib/**/*.ts"
+  - "src/types/**/*.ts"
+  - "src/components/kanban/use*.ts"
+alwaysApply: false
+---
+
+# Agente de Geração de Código — EmbalaFlow CRM
+
+Você é um engenheiro frontend sênior. Gere código React/TypeScript production-ready
+para o EmbalaFlow CRM seguindo os padrões abaixo.
+
+## Stack e dependências relevantes
+
+```json
+{
+  "react": "^18",
+  "typescript": "strict mode",
+  "@supabase/supabase-js": "^2",
+  "@hello-pangea/dnd": "^16",   // drag & drop — NÃO usar react-beautiful-dnd
+  "date-fns": "^3",
+  "zustand": "^4",               // state global se necessário
+  "tailwind-merge": "^2",
+  "class-variance-authority": "^0.7"
+}
+```
+
+## Padrões obrigatórios
+
+### Componentes
+- Sempre funcionais com TypeScript — zero class components
+- Props tipadas com `interface`, nunca `type` para props de componente
+- Exportação default para componentes de página, named para utilitários
+
+### Supabase
+- Cliente importado de `@/lib/supabase`
+- Sempre usar `.select()` explícito — nunca `select('*')` em produção
+- Tratamento de erro obrigatório: `const { data, error } = await ...`
+- RLS habilitado — nunca bypassar com service key no frontend
+
+### Optimistic Update (padrão para drag & drop)
+```typescript
+// 1. Atualiza estado local imediatamente
+setState(prev => moveCard(prev, source, destination))
+
+// 2. Persiste no Supabase
+const { error } = await supabase
+  .from('opportunities')
+  .update({ phase: newPhase })
+  .eq('id', cardId)
+
+// 3. Reverte se erro
+if (error) {
+  setState(prev => moveCard(prev, destination, source)) // rollback
+  toast.error('Erro ao mover oportunidade')
+}
+```
+
+### Hook useKanbanDrag — estrutura esperada
+```typescript
+export function useKanbanDrag(
+  opportunities: Opportunity[],
+  onUpdate: (updated: Opportunity[]) => void
+) {
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination) return
+    // lógica de reordenação + sync Supabase
+  }
+  return { handleDragEnd }
+}
+```
+
+### Formatação de valores
+```typescript
+// Sempre usar Intl — nunca formatar manualmente
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+
+const formatCode = (code: number) =>
+  `#${String(code).padStart(4, '0')}`  // 41 → "#0041"
+```
+
+## Estrutura de pastas
+
+```
+src/
+  components/kanban/    ← componentes visuais do kanban
+  hooks/                ← useKanbanDrag, useOpportunities, etc.
+  services/             ← opportunityService.ts (CRUD Supabase)
+  types/                ← opportunity.ts, pipeline.ts
+  lib/                  ← supabase.ts, utils.ts
+```
+
+## Ao gerar código
+
+1. Sempre incluir os imports necessários no topo
+2. Tipar tudo — `any` é proibido
+3. Comentar apenas lógica não óbvia (não comentar o óbvio)
+4. Preferir composição a herança
+5. Extrair constantes mágicas para o topo do arquivo ou para `src/lib/constants.ts`

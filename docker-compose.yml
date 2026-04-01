@@ -1,0 +1,101 @@
+# Cursor Private / self-hosted Cloud Agent workers.
+# Requires: team plan, feature enabled in Cloud Agents dashboard, CURSOR_API_KEY, git remote on this repo.
+# Docs: https://cursor.com/docs/cloud-agent/self-hosted
+#
+# Usage:
+#   docker compose up -d cursor-agent-apikey          # long-lived worker
+#   docker compose --profile single-use up cursor-agent-single-use
+#   docker compose --profile metrics up -d cursor-agent-metrics
+#   docker compose --profile labeled up -d cursor-agent-labeled
+
+version: '3.9'
+
+services:
+  # Long-lived worker (starts with plain `docker compose up` if you only enable this service)
+  cursor-agent-apikey:
+    build: .
+    container_name: cursor-agent-apikey
+    environment:
+      - CURSOR_API_KEY=${CURSOR_API_KEY}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - https_proxy=${https_proxy:-}
+    volumes:
+      - .:/workspace
+    restart: unless-stopped
+    networks:
+      - cursor-network
+
+  # One session then exit (good for ephemeral VMs / CI-style)
+  cursor-agent-single-use:
+    profiles: [single-use]
+    build: .
+    container_name: cursor-agent-single-use
+    environment:
+      - CURSOR_API_KEY=${CURSOR_API_KEY}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - https_proxy=${https_proxy:-}
+    volumes:
+      - .:/workspace
+    command:
+      - agent
+      - worker
+      - start
+      - --worker-dir
+      - /workspace
+      - --single-use
+      - --idle-release-timeout
+      - "600"
+    networks:
+      - cursor-network
+
+  # Health/readiness for orchestration (e.g. K8s): /healthz, /readyz on 8080
+  cursor-agent-metrics:
+    profiles: [metrics]
+    build: .
+    container_name: cursor-agent-metrics
+    environment:
+      - CURSOR_API_KEY=${CURSOR_API_KEY}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - https_proxy=${https_proxy:-}
+    volumes:
+      - .:/workspace
+    ports:
+      - "8080:8080"
+    command:
+      - agent
+      - worker
+      - start
+      - --worker-dir
+      - /workspace
+      - --management-addr
+      - ":8080"
+    restart: unless-stopped
+    networks:
+      - cursor-network
+
+  # Example labels for routing in the dashboard (repeat --label or use CURSOR_WORKER_LABELS_FILE)
+  cursor-agent-labeled:
+    profiles: [labeled]
+    build: .
+    container_name: cursor-agent-labeled
+    environment:
+      - CURSOR_API_KEY=${CURSOR_API_KEY}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - https_proxy=${https_proxy:-}
+    volumes:
+      - .:/workspace
+    command:
+      - agent
+      - worker
+      - start
+      - --worker-dir
+      - /workspace
+      - --label
+      - env=prod
+    restart: unless-stopped
+    networks:
+      - cursor-network
+
+networks:
+  cursor-network:
+    driver: bridge

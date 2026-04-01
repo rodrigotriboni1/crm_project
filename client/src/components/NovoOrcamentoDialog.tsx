@@ -17,6 +17,8 @@ type Props = {
   user: User | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Ao abrir a partir de uma coluna do Kanban. */
+  initialStatus?: OrcamentoStatus
 }
 
 const descField: FieldDefinition = {
@@ -53,7 +55,7 @@ const followField: FieldDefinition = {
   label: 'Data follow-up',
 }
 
-export default function NovoOrcamentoDialog({ user, open, onOpenChange }: Props) {
+export default function NovoOrcamentoDialog({ user, open, onOpenChange, initialStatus }: Props) {
   const { activeOrganizationId } = useOrganization()
   const { data: clientes = [] } = useClientesForPicker(user, activeOrganizationId, { ativosApenas: true })
   const { data: produtosCatalogo = [] } = useProdutos(user, activeOrganizationId, { ativosApenas: true })
@@ -109,11 +111,11 @@ export default function NovoOrcamentoDialog({ user, open, onOpenChange }: Props)
     setProdutoId(PRODUTO_CUSTOM)
     setDesc('')
     setValorStr('')
-    setStatusIni('novo_contato')
+    setStatusIni(initialStatus ?? 'novo_contato')
     setDataOrc(new Date().toISOString().slice(0, 10))
     setFollowUp('')
     setTaxId('')
-  }, [open])
+  }, [open, initialStatus])
 
   const dormindoInvalid = statusIni === 'dormindo' && !followUp.trim()
 
