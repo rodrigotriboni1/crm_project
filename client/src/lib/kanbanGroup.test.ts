@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupOrcamentosByCliente } from '@/lib/kanbanGroup'
+import { applyKanbanGrouping, groupOrcamentosByCliente } from '@/lib/kanbanGroup'
 import type { OrcamentoRow } from '@/api/crm'
 
 function row(partial: Partial<OrcamentoRow> & Pick<OrcamentoRow, 'id' | 'cliente_id' | 'valor'>): OrcamentoRow {
@@ -60,5 +60,22 @@ describe('groupOrcamentosByCliente', () => {
       clientes: undefined,
     })
     expect(groupOrcamentosByCliente([o])[0]!.clienteNome).toBe('Cliente')
+  })
+})
+
+describe('applyKanbanGrouping', () => {
+  it('none keeps order', () => {
+    const a = row({ id: '1', cliente_id: 'c1', valor: 1 })
+    const b = row({ id: '2', cliente_id: 'c2', valor: 2 })
+    expect(applyKanbanGrouping('none', [a, b]).map((x) => x.id)).toEqual(['1', '2'])
+  })
+
+  it('cliente matches groupOrcamentosByCliente flat order', () => {
+    const items = [
+      row({ id: '1', cliente_id: 'b', valor: 100, clientes: { nome: 'B' } }),
+      row({ id: '2', cliente_id: 'a', valor: 50, clientes: { nome: 'A' } }),
+    ]
+    const out = applyKanbanGrouping('cliente', items)
+    expect(out.map((x) => x.id)).toEqual(['2', '1'])
   })
 })

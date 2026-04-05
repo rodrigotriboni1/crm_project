@@ -1,21 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, LayoutGrid, Table2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
 import { useOrcamentosKanban, ORCAMENTO_STATUS_ORDER } from '@/hooks/useCrm'
 import { useOrcamentoStatusTransitions } from '@/hooks/useOrcamentoStatusTransitions'
 import { filterOrcamentosByQuery } from '@/lib/orcamentosSearch'
+import {
+  applyKanbanAdvancedFilters,
+  collectKanbanCategoriaOptions,
+  countActiveKanbanAdvancedFilters,
+  defaultKanbanAdvancedFilters,
+} from '@/lib/kanbanFilters'
+import { applyKanbanGrouping, type KanbanGroupMode } from '@/lib/kanbanGroup'
 import KanbanCardModal from '@/components/kanban/KanbanCardModal'
 import KanbanBoard from '@/components/kanban/KanbanBoard'
+import KanbanFilterControls from '@/components/kanban/KanbanFilterControls'
 import KanbanTableView from '@/components/kanban/KanbanTableView'
 import DormindoFollowUpDialog from '@/components/kanban/DormindoFollowUpDialog'
 import PerdidoLostReasonDialog from '@/components/kanban/PerdidoLostReasonDialog'
 import OrcamentoDetailModal from '@/components/OrcamentoDetailModal'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Link } from 'react-router-dom'
-import { groupOrcamentosByCliente } from '@/lib/kanbanGroup'
 import { KANBAN_VIEW_KEY } from '@/lib/storageKeys'
 import { useViewportMaxMd } from '@/hooks/useViewportMaxMd'
 import { useKanbanDragEnd } from '@/components/kanban/useKanbanDrag'
@@ -61,7 +65,9 @@ export default function KanbanPage() {
 
   const [modalId, setModalId] = useState<string | null>(null)
   const [q, setQ] = useState('')
-  const [groupByCliente, setGroupByCliente] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(true)
+  const [advancedFilters, setAdvancedFilters] = useState(defaultKanbanAdvancedFilters)
+  const [groupMode, setGroupMode] = useState<KanbanGroupMode>('cliente')
   const [view, setView] = useState<ViewMode>(() => {
     try {
       return localStorage.getItem(KANBAN_VIEW_KEY) === 'table' ? 'table' : 'kanban'
@@ -78,7 +84,14 @@ export default function KanbanPage() {
     }
   }, [view])
 
-  const filteredRows = useMemo(() => filterOrcamentosByQuery(rows, q), [rows, q])
+  const todayIso = new Date().toISOString().slice(0, 10)
+
+  const categoryOptions = useMemo(() => collectKanbanCategoriaOptions(rows), [rows])
+
+  const filteredRows = useMemo(() => {
+    const byText = filterOrcamentosByQuery(rows, q)
+    return applyKanbanAdvancedFilters(byText, advancedFilters, todayIso)
+  }, [rows, q, advancedFilters, todayIso])
 
   const orderedByStatus = useMemo(() => {
     const m = new Map<OrcamentoStatus, OrcamentoRow[]>()
@@ -87,14 +100,30 @@ export default function KanbanPage() {
       const list = m.get(o.status)
       if (list) list.push(o)
     }
-    if (groupByCliente) {
-      for (const st of ORCAMENTO_STATUS_ORDER) {
-        const col = m.get(st) ?? []
-        m.set(st, groupOrcamentosByCliente(col).flatMap((g) => g.cards))
-      }
+    for (const st of ORCAMENTO_STATUS_ORDER) {
+      const col = m.get(st) ?? []
+      m.set(st, applyKanbanGrouping(groupMode, col))
     }
     return m
-  }, [filteredRows, groupByCliente])
+  }, [filteredRows, groupMode])
+
+  const tableRows = useMemo(() => {
+    const out: OrcamentoRow[] = []
+    for (const st of ORCAMENTO_STATUS_ORDER) {
+      out.push(...(orderedByStatus.get(st) ?? []))
+    }
+    return out
+  }, [orderedByStatus])
+
+  const activeAdvancedCount = useMemo(
+    () => countActiveKanbanAdvancedFilters(advancedFilters),
+    [advancedFilters]
+  )
+
+  const clearAllFilters = () => {
+    setQ('')
+    setAdvancedFilters(defaultKanbanAdvancedFilters())
+  }
 
   const onDragEnd = useKanbanDragEnd(rows, attemptStatusChange)
 
@@ -135,58 +164,39 @@ export default function KanbanPage() {
         </div>
       )}
 
+      <KanbanFilterControls
+        q={q}
+        setQ={setQ}
+        filtersOpen={filtersOpen}
+        setFiltersOpen={setFiltersOpen}
+        advanced={advancedFilters}
+        setAdvanced={setAdvancedFilters}
+        onClearFilters={clearAllFilters}
+        groupMode={groupMode}
+        setGroupMode={setGroupMode}
+        categoryOptions={categoryOptions}
+        view={view}
+        setView={setView}
+        activeAdvancedCount={activeAdvancedCount}
+      />
+
+      {kanbanTruncated && (
+        <div
+          className="mb-2 mt-2 shrink-0 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100"
+          role="status"
+        >
+          A mostrar os orçamentos mais recentes (limite de segurança). Para ver ou filtrar todos, use{' '}
+          <Link to="/orcamentos" className="font-medium underline underline-offset-2">
+            Orçamentos
+          </Link>
+          .
+        </div>
+      )}
+
       {view === 'table' ? (
         <>
-          <div className="mb-3 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full min-w-0 sm:flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="Cliente, produto, CPF/CNPJ ou nº do cartão…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                aria-label="Filtrar cartões do Kanban"
-              />
-            </div>
-            <div className="flex shrink-0 gap-1 rounded-lg border border-border bg-muted/20 p-0.5">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1.5 px-3 text-xs"
-                onClick={() => setView('kanban')}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                Kanban
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="h-8 gap-1.5 px-3 text-xs"
-                onClick={() => setView('table')}
-              >
-                <Table2 className="h-3.5 w-3.5" />
-                Tabela
-              </Button>
-            </div>
-          </div>
-
-          {kanbanTruncated && (
-            <div
-              className="mb-3 shrink-0 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100"
-              role="status"
-            >
-              A mostrar os orçamentos mais recentes (limite de segurança). Para ver ou filtrar todos, use{' '}
-              <Link to="/orcamentos" className="font-medium underline underline-offset-2">
-                Orçamentos
-              </Link>
-              .
-            </div>
-          )}
-
           <KanbanTableView
-            rows={filteredRows}
+            rows={tableRows}
             savingId={savingId}
             editableStatus
             onStatusChange={attemptStatusChange}
@@ -210,13 +220,6 @@ export default function KanbanPage() {
             onOpenDetail={(id) => setModalId(id)}
             isMobileKanban={isMobileKanban}
             onDragEnd={onDragEnd}
-            q={q}
-            setQ={setQ}
-            groupByCliente={groupByCliente}
-            setGroupByCliente={setGroupByCliente}
-            view={view}
-            setView={setView}
-            kanbanTruncated={kanbanTruncated}
           />
 
           <KanbanCardModal
