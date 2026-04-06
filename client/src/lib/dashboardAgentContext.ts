@@ -1,19 +1,17 @@
 import { FOLLOW_UP_ALERT_WINDOW_DAYS, type DashboardData } from '@/api/crm'
-
-const MAX_NOTE = 280
-
-function clip(s: string, max: number) {
-  const t = s.trim()
-  if (t.length <= max) return t
-  return `${t.slice(0, max)}…`
-}
+import { finalizeAssistantSnapshotJson } from '@/lib/assistantContextEnvelope'
+import { ASSISTANT_DEFAULT_MAX_NOTE, clipAssistantText } from '@/lib/assistantPii'
 
 /**
  * Snapshot enxuto do dashboard para o assistente (sem PII além do necessário ao uso comercial do CRM).
+ * Documento fiscal do cliente não é incluído; nomes comerciais sim.
  */
-export function buildDashboardAgentContext(data: DashboardData, todayIso: string): string {
-  const payload = {
-    geradoEm: new Date().toISOString(),
+export function buildDashboardAgentContext(
+  data: DashboardData,
+  todayIso: string,
+  organizationId: string | null
+): string {
+  const body = {
     hoje: todayIso,
     janelaFollowUpDias: FOLLOW_UP_ALERT_WINDOW_DAYS,
     metricas: {
@@ -38,8 +36,8 @@ export function buildDashboardAgentContext(data: DashboardData, todayIso: string
       clienteNome: i.clientes?.nome ?? null,
       canal: i.canal,
       dataContato: i.data_contato,
-      anotacao: clip(i.anotacao || '', MAX_NOTE),
+      anotacao: clipAssistantText(i.anotacao || '', ASSISTANT_DEFAULT_MAX_NOTE),
     })),
   }
-  return JSON.stringify(payload, null, 2)
+  return finalizeAssistantSnapshotJson({ organizationId, screen: 'dashboard' }, body)
 }

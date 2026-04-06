@@ -35,7 +35,7 @@ describe('describeAssistantScreenContext', () => {
     expect(s.bullets.some((b) => b.includes('10 clientes'))).toBe(true)
     expect(s.bullets.some((b) => b.includes('1 orçamento'))).toBe(true)
     expect(s.bullets.some((b) => b.includes('3 registo'))).toBe(true)
-    expect(s.footer).toMatch(/Dados gerados em/)
+    expect(s.footer).toMatch(/Snapshot gerado em/)
   })
 
   it('reports lists period and totals', () => {

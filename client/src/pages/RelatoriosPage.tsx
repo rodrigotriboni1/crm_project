@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ListPageKpiGrid, PageContainer, SimpleDataTable } from '@/components/library'
-import { useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
+import { useAssistantContextRefresh, useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
 import { buildReportsAgentContext } from '@/lib/reportsAgentContext'
 import { cn } from '@/lib/utils'
 import { cnAlertError } from '@/lib/supabaseDataErrors'
@@ -65,8 +65,12 @@ export default function RelatoriosPage() {
   const [applied, setApplied] = useState<ReportsDateRange>(initial)
 
   const { data, isLoading, isError, error, isFetching } = useReports(user, activeOrganizationId, applied)
+  const { contextRefreshNonce } = useAssistantContextRefresh()
 
-  const contextJson = useMemo(() => (data ? buildReportsAgentContext(data) : '{}'), [data])
+  const contextJson = useMemo(
+    () => (data ? buildReportsAgentContext(data, activeOrganizationId ?? null) : '{}'),
+    [data, activeOrganizationId, contextRefreshNonce]
+  )
   useRegisterAssistantDock('reports', contextJson)
 
   const applyRange = useCallback(() => {

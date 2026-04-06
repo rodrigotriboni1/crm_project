@@ -22,6 +22,7 @@ import {
 } from '@/lib/assistantChatHistory'
 import type { AssistantStorageScope } from '@/lib/storageKeys'
 import { assistantActiveThreadKey } from '@/lib/storageKeys'
+import { useAssistantDockOptional } from '@/contexts/AssistantDockContext'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { cnAlertError } from '@/lib/supabaseDataErrors'
@@ -56,7 +57,33 @@ function shortDate(iso: string) {
 function localTurnsKey(userId: string, scope: AssistantStorageScope): string {
   if (scope === 'reports') return `${userId}_reports`
   if (scope === 'generic') return `${userId}_generic`
+  if (scope === 'kanban') return `${userId}_kanban`
+  if (scope === 'clientes') return `${userId}_clientes`
+  if (scope === 'cliente_detail') return `${userId}_cliente_detail`
+  if (scope === 'produtos') return `${userId}_produtos`
+  if (scope === 'orcamentos_list') return `${userId}_orcamentos_list`
   return userId
+}
+
+function cloudDefaultThreadTitle(scope: AssistantStorageScope): string | null {
+  switch (scope) {
+    case 'reports':
+      return 'Relatórios'
+    case 'generic':
+      return 'Geral'
+    case 'kanban':
+      return 'Kanban'
+    case 'clientes':
+      return 'Clientes'
+    case 'cliente_detail':
+      return 'Cliente'
+    case 'produtos':
+      return 'Produtos'
+    case 'orcamentos_list':
+      return 'Orçamentos'
+    default:
+      return null
+  }
 }
 
 export function CrmAssistantPanel({
@@ -71,6 +98,7 @@ export function CrmAssistantPanel({
 }: CrmAssistantPanelProps) {
   const { user } = useAuth()
   const { activeOrganizationId } = useOrganization()
+  const assistantDock = useAssistantDockOptional()
   const [threads, setThreads] = useState<AssistantChatThread[]>([])
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
   const [threadsReady, setThreadsReady] = useState(false)
@@ -144,7 +172,17 @@ export function CrmAssistantPanel({
                 ? 'Relatórios — importadas'
                 : storageScope === 'generic'
                   ? 'Geral — importadas'
-                  : 'Conversas importadas'
+                  : storageScope === 'kanban'
+                    ? 'Kanban — importadas'
+                    : storageScope === 'clientes'
+                      ? 'Clientes — importadas'
+                      : storageScope === 'cliente_detail'
+                        ? 'Cliente — importadas'
+                        : storageScope === 'produtos'
+                          ? 'Produtos — importadas'
+                          : storageScope === 'orcamentos_list'
+                            ? 'Orçamentos — importadas'
+                            : 'Conversas importadas'
             const t = await createAssistantThread(supabase, user.id, activeOrganizationId, importTitle)
             await bulkInsertAssistantMessages(supabase, t.id, local)
             clearAssistantTurns(localTurnsKey(user.id, storageScope))
@@ -165,21 +203,13 @@ export function CrmAssistantPanel({
         let pick =
           stored && list.some((x) => x.id === stored) ? stored : null
         if (pick == null) {
-          if (storageScope === 'reports') {
-            const rel = list.find((t) => t.title === 'Relatórios')
+          const titled = cloudDefaultThreadTitle(storageScope)
+          if (titled) {
+            const rel = list.find((t) => t.title === titled)
             if (rel) {
               pick = rel.id
             } else {
-              const t = await createAssistantThread(supabase, user.id, activeOrganizationId, 'Relatórios')
-              list = [t, ...list]
-              pick = t.id
-            }
-          } else if (storageScope === 'generic') {
-            const rel = list.find((t) => t.title === 'Geral')
-            if (rel) {
-              pick = rel.id
-            } else {
-              const t = await createAssistantThread(supabase, user.id, activeOrganizationId, 'Geral')
+              const t = await createAssistantThread(supabase, user.id, activeOrganizationId, titled)
               list = [t, ...list]
               pick = t.id
             }
@@ -405,6 +435,19 @@ export function CrmAssistantPanel({
         </ul>
         {screenSummary.footer ? (
           <p className="mt-2 text-[10px] text-muted-foreground/90">{screenSummary.footer}</p>
+        ) : null}
+        {assistantDock ? (
+          <div className="mt-2 border-t border-border/60 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 w-full text-[10px] text-muted-foreground hover:text-foreground"
+              onClick={() => assistantDock.refreshAssistantContext()}
+            >
+              Actualizar referência para o próximo envio
+            </Button>
+          </div>
         ) : null}
       </details>
 

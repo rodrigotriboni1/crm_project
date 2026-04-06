@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
-import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
+import { useAssistantContextRefresh, useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
 import { useOrcamentosKanban, ORCAMENTO_STATUS_ORDER } from '@/hooks/useCrm'
 import { useOrcamentoStatusTransitions } from '@/hooks/useOrcamentoStatusTransitions'
 import { filterOrcamentosByQuery } from '@/lib/orcamentosSearch'
@@ -26,6 +26,7 @@ import { useKanbanDragEnd } from '@/components/kanban/useKanbanDrag'
 import type { OrcamentoRow } from '@/api/crm'
 import type { OrcamentoStatus } from '@/types/database'
 import { cnAlertError } from '@/lib/supabaseDataErrors'
+import { buildKanbanAgentContext } from '@/lib/kanbanAgentContext'
 import { cn } from '@/lib/utils'
 
 type ViewMode = 'kanban' | 'table'
@@ -33,10 +34,10 @@ type ViewMode = 'kanban' | 'table'
 const EMPTY_KANBAN_ROWS: OrcamentoRow[] = []
 
 export default function KanbanPage() {
-  useGenericAssistantDock('Kanban')
   const isMobileKanban = useViewportMaxMd()
   const { user } = useAuth()
   const { activeOrganizationId } = useOrganization()
+  const { contextRefreshNonce } = useAssistantContextRefresh()
   const {
     data: kanbanLoad,
     isLoading,
@@ -119,6 +120,29 @@ export default function KanbanPage() {
     () => countActiveKanbanAdvancedFilters(advancedFilters),
     [advancedFilters]
   )
+
+  const assistantContextJson = useMemo(
+    () =>
+      buildKanbanAgentContext(activeOrganizationId ?? null, {
+        filteredRows,
+        q,
+        advanced: advancedFilters,
+        groupMode,
+        view,
+        kanbanLoadTruncated: kanbanTruncated,
+      }),
+    [
+      activeOrganizationId,
+      filteredRows,
+      q,
+      advancedFilters,
+      groupMode,
+      view,
+      kanbanTruncated,
+      contextRefreshNonce,
+    ]
+  )
+  useRegisterAssistantDock('kanban', assistantContextJson)
 
   const clearAllFilters = () => {
     setQ('')

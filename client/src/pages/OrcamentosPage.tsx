@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
-import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
+import { useAssistantContextRefresh, useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
 import {
   useOrcamentosInfinite,
   useClientesKpis,
@@ -16,6 +16,7 @@ import KanbanTableView from '@/components/kanban/KanbanTableView'
 import { PageContainer } from '@/components/library'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { buildOrcamentosListAgentContext } from '@/lib/orcamentosListAgentContext'
 import { cn } from '@/lib/utils'
 import type { OrcamentoStatus } from '@/types/database'
 
@@ -24,7 +25,7 @@ type FilterKey = 'todos' | OrcamentoStatus
 export default function OrcamentosPage() {
   const { user } = useAuth()
   const { activeOrganizationId } = useOrganization()
-  useGenericAssistantDock('Orçamentos')
+  const { contextRefreshNonce } = useAssistantContextRefresh()
   const orcQ = useOrcamentosInfinite(user, activeOrganizationId)
   const orcamentos = useMemo(() => orcQ.data?.pages.flat() ?? [], [orcQ.data])
   const isLoading = orcQ.isLoading
@@ -45,6 +46,18 @@ export default function OrcamentosPage() {
     () => filterOrcamentosByQuery(filteredByStatus, q),
     [filteredByStatus, q]
   )
+
+  const assistantContextJson = useMemo(
+    () =>
+      buildOrcamentosListAgentContext(activeOrganizationId ?? null, {
+        filtroStatus: filter,
+        busca: q,
+        totalCarregados: orcamentos.length,
+        linhasVisiveis: displayRows,
+      }),
+    [activeOrganizationId, filter, q, orcamentos.length, displayRows, contextRefreshNonce]
+  )
+  useRegisterAssistantDock('orcamentos_list', assistantContextJson)
 
   return (
     <PageContainer max="full" className="space-y-4">

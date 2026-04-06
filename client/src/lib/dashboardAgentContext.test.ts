@@ -17,8 +17,11 @@ describe('buildDashboardAgentContext', () => {
   it('produces valid JSON with expected top-level keys', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2025-06-15T12:00:00.000Z'))
-    const json = buildDashboardAgentContext(emptyDashboard(), '2025-06-15')
+    const json = buildDashboardAgentContext(emptyDashboard(), '2025-06-15', 'org-test')
     const parsed = JSON.parse(json) as Record<string, unknown>
+    expect(parsed.contractVersion).toBe(1)
+    expect(parsed.screen).toBe('dashboard')
+    expect(parsed.organizationId).toBe('org-test')
     expect(parsed.hoje).toBe('2025-06-15')
     expect(parsed.janelaFollowUpDias).toBe(7)
     expect(parsed.metricas).toEqual(
@@ -72,7 +75,7 @@ describe('buildDashboardAgentContext', () => {
         },
       ],
     }
-    const parsed = JSON.parse(buildDashboardAgentContext(data, '2025-06-15')) as {
+    const parsed = JSON.parse(buildDashboardAgentContext(data, '2025-06-15', null)) as {
       filaFollowUp: { clienteNome: string }[]
       ultimasInteracoes: { anotacao: string }[]
     }

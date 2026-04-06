@@ -8,7 +8,7 @@ import { FOLLOW_UP_ALERT_WINDOW_DAYS } from '@/api/crm'
 import { Card, CardContent } from '@/components/ui/card'
 import OrcamentoDetailModal from '@/components/OrcamentoDetailModal'
 import AvatarCircle from '@/components/AvatarCircle'
-import { useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
+import { useAssistantContextRefresh, useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
 import { buildDashboardAgentContext } from '@/lib/dashboardAgentContext'
 import { cn } from '@/lib/utils'
 import { cnAlertError } from '@/lib/supabaseDataErrors'
@@ -60,13 +60,15 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const { activeOrganizationId } = useOrganization()
   const { data, isLoading, isError, error } = useDashboard(user, activeOrganizationId)
+  const { contextRefreshNonce } = useAssistantContextRefresh()
   const [modalId, setModalId] = useState<string | null>(null)
 
   const todayIso = new Date().toISOString().slice(0, 10)
 
   const contextJson = useMemo(
-    () => (data ? buildDashboardAgentContext(data, todayIso) : '{}'),
-    [data, todayIso]
+    () =>
+      data ? buildDashboardAgentContext(data, todayIso, activeOrganizationId ?? null) : '{}',
+    [data, todayIso, activeOrganizationId, contextRefreshNonce]
   )
   useRegisterAssistantDock('dashboard', contextJson)
 

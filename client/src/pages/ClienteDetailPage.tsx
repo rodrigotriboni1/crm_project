@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
-import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
+import { useAssistantContextRefresh, useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
 import {
   useCliente,
   useInteracoes,
@@ -17,12 +17,14 @@ import ClienteDadosCard from '@/components/cliente/ClienteDadosCard'
 import ClienteOrcamentosSection from '@/components/cliente/ClienteOrcamentosSection'
 import ClienteInteracoesSection from '@/components/cliente/ClienteInteracoesSection'
 import ClienteQuickActionBar from '@/components/cliente/ClienteQuickActionBar'
+import { finalizeAssistantSnapshotJson } from '@/lib/assistantContextEnvelope'
+import { buildClienteDetailAgentContext } from '@/lib/clienteDetailAgentContext'
 
 export default function ClienteDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const { activeOrganizationId } = useOrganization()
-  useGenericAssistantDock('Cliente')
+  const { contextRefreshNonce } = useAssistantContextRefresh()
   const { data: cliente, isLoading } = useCliente(user, activeOrganizationId, id)
   const interacoesQ = useInteracoes(user, activeOrganizationId, id)
   const interacoes = useMemo(() => interacoesQ.data?.pages.flat() ?? [], [interacoesQ.data])
@@ -37,6 +39,38 @@ export default function ClienteDetailPage() {
     document.getElementById('historico-contatos')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     setRegisterContatoOpen(true)
   }, [])
+
+  const assistantContextJson = useMemo(() => {
+    const org = activeOrganizationId ?? null
+    if (!id) {
+      return finalizeAssistantSnapshotJson(
+        { organizationId: org, screen: 'cliente_detail' },
+        { estado: 'sem_id' }
+      )
+    }
+    if (isLoading) {
+      return finalizeAssistantSnapshotJson(
+        { organizationId: org, screen: 'cliente_detail' },
+        { estado: 'a_carregar', clienteId: id }
+      )
+    }
+    if (!cliente) {
+      return finalizeAssistantSnapshotJson(
+        { organizationId: org, screen: 'cliente_detail' },
+        { estado: 'nao_encontrado', clienteId: id }
+      )
+    }
+    return buildClienteDetailAgentContext(org, { cliente, orcamentos, interacoes })
+  }, [
+    activeOrganizationId,
+    id,
+    isLoading,
+    cliente,
+    orcamentos,
+    interacoes,
+    contextRefreshNonce,
+  ])
+  useRegisterAssistantDock('cliente_detail', assistantContextJson)
 
   if (!id) return <p className="px-4 py-4 text-sm text-red-700 sm:p-6">Cliente inválido.</p>
   if (isLoading) {

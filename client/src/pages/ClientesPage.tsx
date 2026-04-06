@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Users } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
-import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
+import { useAssistantContextRefresh, useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
 import { useBulkPatchClientes, useClientes, useClientesKpis } from '@/hooks/useCrm'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,12 +31,13 @@ import {
 } from '@/lib/clienteListHelpers'
 import { SelectNative } from '@/components/ui/select-native'
 import { cn } from '@/lib/utils'
+import { buildClientesListAgentContext } from '@/lib/clientesAgentContext'
 import { cnAlertError } from '@/lib/supabaseDataErrors'
 
 export default function ClientesPage() {
   const { user } = useAuth()
   const { activeOrganizationId } = useOrganization()
-  useGenericAssistantDock('Clientes')
+  const { contextRefreshNonce } = useAssistantContextRefresh()
   const [q, setQ] = useState('')
   const {
     data: clientes = [],
@@ -87,6 +88,38 @@ export default function ClientesPage() {
       }),
     [clientes, q, tipoFilter, phoneFilter, sort, archiveFilter]
   )
+
+  const resumoFiltros = useMemo(() => {
+    const parts: string[] = []
+    if (archiveFilter !== 'ativos') parts.push(`arquivo: ${archiveFilter}`)
+    if (tipoFilter !== 'todos') parts.push(`tipo: ${tipoFilter}`)
+    if (phoneFilter !== 'todos') parts.push(`telefone: ${phoneFilter}`)
+    if (sort !== 'nome_asc') parts.push(`ordenação: ${sort}`)
+    return parts.length ? parts.join('; ') : 'predefinição (ativos; ordenação por nome)'
+  }, [archiveFilter, tipoFilter, phoneFilter, sort])
+
+  const assistantContextJson = useMemo(
+    () =>
+      buildClientesListAgentContext(activeOrganizationId ?? null, {
+        view: 'lista',
+        busca: q,
+        kpis: kpisDisplay,
+        resumoFiltros,
+        listaFiltradaCount: filtered.length,
+        temMaisPaginas: Boolean(hasNextPage),
+        amostra: filtered,
+      }),
+    [
+      activeOrganizationId,
+      q,
+      kpisDisplay,
+      resumoFiltros,
+      filtered,
+      hasNextPage,
+      contextRefreshNonce,
+    ]
+  )
+  useRegisterAssistantDock('clientes', assistantContextJson)
 
   const allFilteredSelected =
     filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id))

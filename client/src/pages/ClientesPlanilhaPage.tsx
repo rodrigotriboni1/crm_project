@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, Sheet } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
-import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
-import { useBulkPatchClientes, useClientesForPlanilha } from '@/hooks/useCrm'
+import { useAssistantContextRefresh, useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
+import { useBulkPatchClientes, useClientesForPlanilha, useClientesKpis } from '@/hooks/useCrm'
 import { Button } from '@/components/ui/button'
 import { PageContainer, SearchField, ToolbarRow } from '@/components/library'
 import { SelectNative } from '@/components/ui/select-native'
@@ -16,6 +16,7 @@ import {
   type ClienteTipoFilter,
 } from '@/lib/clienteListHelpers'
 import type { ClienteListItem, ClienteUpdate } from '@/types/database'
+import { buildClientesListAgentContext } from '@/lib/clientesAgentContext'
 import { cnAlertError } from '@/lib/supabaseDataErrors'
 
 const ClientesGlideGrid = lazy(() => import('@/components/cliente/ClientesGlideGrid'))
@@ -27,8 +28,9 @@ function mergedForValidation(base: ClienteListItem, draft: ClienteUpdate): Clien
 export default function ClientesPlanilhaPage() {
   const { user } = useAuth()
   const { activeOrganizationId } = useOrganization()
-  useGenericAssistantDock('Clientes · Planilha')
+  const { contextRefreshNonce } = useAssistantContextRefresh()
   const { data: clientes = [], isLoading } = useClientesForPlanilha(user, activeOrganizationId)
+  const { data: kpis } = useClientesKpis(user, activeOrganizationId)
   const bulk = useBulkPatchClientes(user, activeOrganizationId)
 
   const [q, setQ] = useState('')
@@ -52,6 +54,46 @@ export default function ClientesPlanilhaPage() {
       }),
     [clientes, q, tipoFilter, phoneFilter, sort, archiveFilter]
   )
+
+  const kpisDisplay = kpis ?? {
+    ativos: 0,
+    arquivados: 0,
+    recompras: 0,
+    comTel: 0,
+    semContato30: 0,
+    pctTel: 0,
+  }
+
+  const resumoFiltros = useMemo(() => {
+    const parts: string[] = []
+    if (archiveFilter !== 'todos') parts.push(`arquivo: ${archiveFilter}`)
+    if (tipoFilter !== 'todos') parts.push(`tipo: ${tipoFilter}`)
+    if (phoneFilter !== 'todos') parts.push(`telefone: ${phoneFilter}`)
+    if (sort !== 'nome_asc') parts.push(`ordenação: ${sort}`)
+    return parts.length ? parts.join('; ') : 'predefinição (todos os estados; ordenação por nome)'
+  }, [archiveFilter, tipoFilter, phoneFilter, sort])
+
+  const assistantContextJson = useMemo(
+    () =>
+      buildClientesListAgentContext(activeOrganizationId ?? null, {
+        view: 'planilha',
+        busca: q,
+        kpis: kpisDisplay,
+        resumoFiltros,
+        listaFiltradaCount: filtered.length,
+        temMaisPaginas: false,
+        amostra: filtered,
+      }),
+    [
+      activeOrganizationId,
+      q,
+      kpisDisplay,
+      resumoFiltros,
+      filtered,
+      contextRefreshNonce,
+    ]
+  )
+  useRegisterAssistantDock('clientes', assistantContextJson)
 
   const mergePatch = useCallback((id: string, fragment: ClienteUpdate) => {
     setSaveError(null)

@@ -27,7 +27,7 @@ describe('buildReportsAgentContext', () => {
   it('produces valid JSON with expected top-level keys', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-03-15T12:00:00.000Z'))
-    const json = buildReportsAgentContext(emptyReports())
+    const json = buildReportsAgentContext(emptyReports(), 'org-r')
     const parsed = JSON.parse(json) as Record<string, unknown>
     expect(parsed.periodo).toEqual({ start: '2026-03-01', end: '2026-03-31' })
     expect(parsed.totais).toEqual(
@@ -52,7 +52,7 @@ describe('buildReportsAgentContext', () => {
       data_orcamento: '2026-03-01',
     }))
     const data: ReportsData = { ...emptyReports(), orcamentosResumo: many }
-    const parsed = JSON.parse(buildReportsAgentContext(data)) as {
+    const parsed = JSON.parse(buildReportsAgentContext(data, null)) as {
       orcamentosAmostra: unknown[]
       orcamentosAmostraTruncada: boolean
     }

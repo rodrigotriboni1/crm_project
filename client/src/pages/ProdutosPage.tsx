@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { LayoutList, Plus, Pencil, Table2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
-import { useGenericAssistantDock } from '@/contexts/AssistantDockContext'
+import { useAssistantContextRefresh, useRegisterAssistantDock } from '@/contexts/AssistantDockContext'
 import { useProdutos, useCreateProduto, useUpdateProduto } from '@/hooks/useCrm'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -22,6 +22,7 @@ import {
   ViewModeToggle,
 } from '@/components/library'
 import { UiComponent } from '@/components/standards'
+import { buildProdutosAgentContext } from '@/lib/produtosAgentContext'
 import { cn } from '@/lib/utils'
 import type { FieldDefinition } from '@/types'
 import type { Produto } from '@/types/database'
@@ -146,9 +147,9 @@ function categoryLabel(p: Produto): string {
 }
 
 export default function ProdutosPage() {
-  useGenericAssistantDock('Produtos')
   const { user } = useAuth()
   const { activeOrganizationId } = useOrganization()
+  const { contextRefreshNonce } = useAssistantContextRefresh()
   const { data: produtos = [], isLoading } = useProdutos(user, activeOrganizationId)
   const create = useCreateProduto(user, activeOrganizationId)
   const update = useUpdateProduto(user, activeOrganizationId)
@@ -234,6 +235,26 @@ export default function ProdutosPage() {
     }
     return [...m.entries()].sort(([a], [b]) => a.localeCompare(b, 'pt', { sensitivity: 'base' }))
   }, [filtered, groupByCategory])
+
+  const assistantContextJson = useMemo(
+    () =>
+      buildProdutosAgentContext(activeOrganizationId ?? null, {
+        viewMode,
+        groupByCategory,
+        busca: q,
+        totalVisivel: filtered.length,
+        amostra: filtered,
+      }),
+    [
+      activeOrganizationId,
+      viewMode,
+      groupByCategory,
+      q,
+      filtered,
+      contextRefreshNonce,
+    ]
+  )
+  useRegisterAssistantDock('produtos', assistantContextJson)
 
   const resetForm = () => {
     setNome('')
