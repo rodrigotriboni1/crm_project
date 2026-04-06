@@ -1,6 +1,6 @@
 import { useCallback, useState, type ReactNode } from 'react'
 import { cnAlertError } from '@/lib/supabaseDataErrors'
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
   LayoutGrid,
@@ -16,6 +16,7 @@ import {
   ExternalLink,
   UserPlus,
   Users2,
+  Link2,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
@@ -68,9 +69,7 @@ function OrganizationMain({ children }: { children: ReactNode }) {
     activeOrganizationId,
     loadError,
     refreshOrganizations,
-    createOrganization,
   } = useOrganization()
-  const [createOrgError, setCreateOrgError] = useState<string | null>(null)
 
   if (!user) return <>{children}</>
 
@@ -102,23 +101,14 @@ function OrganizationMain({ children }: { children: ReactNode }) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
         <p className="max-w-sm text-center text-sm text-brand-mid">
-          Não pertence a nenhuma organização. Crie uma para usar o CRM.
+          Ainda não pertence a nenhuma empresa. Peça um convite ao administrador ou utilize o link de convite que
+          recebeu por e-mail.
         </p>
-        {createOrgError && (
-          <p className={cn('max-w-sm text-center text-sm', cnAlertError)} role="alert">
-            {createOrgError}
-          </p>
-        )}
-        <Button
-          type="button"
-          onClick={() => {
-            setCreateOrgError(null)
-            void createOrganization('Organização').catch((e: unknown) => {
-              setCreateOrgError(e instanceof Error ? e.message : String(e))
-            })
-          }}
-        >
-          Criar organização
+        <Button type="button" variant="outline" asChild>
+          <Link to="/join" className="inline-flex items-center gap-2">
+            <Link2 className="h-4 w-4" />
+            Tenho um código de convite
+          </Link>
         </Button>
       </div>
     )

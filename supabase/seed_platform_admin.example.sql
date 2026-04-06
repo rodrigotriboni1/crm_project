@@ -1,0 +1,4 @@
+-- Depois de criar o utilizador em Auth, promover a admin da plataforma:
+-- substitua YOUR_USER_UUID pelo id em auth.users.
+--
+-- insert into public.platform_admins (user_id) values ('YOUR_USER_UUID');

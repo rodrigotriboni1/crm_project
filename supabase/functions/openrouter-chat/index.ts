@@ -32,9 +32,9 @@ function corsHeadersFor(req: Request): Record<string, string> | null {
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
-/** Máximo de pedidos por organização por janela (alinhado a `consume_openrouter_chat_rate`). */
-const OPENROUTER_RATE_MAX = 30
-const OPENROUTER_RATE_WINDOW_SEC = 3600
+/** Fallback se `get_organization_ai_chat_limits` falhar (alinhado a migração starter). */
+const OPENROUTER_RATE_MAX_FALLBACK = 30
+const OPENROUTER_RATE_WINDOW_SEC_FALLBACK = 3600
 
 Deno.serve(async (req) => {
   const cors = corsHeadersFor(req)
@@ -95,10 +95,23 @@ Deno.serve(async (req) => {
       })
     }
 
+    const { data: limitsRaw, error: limitsErr } = await supabase.rpc('get_organization_ai_chat_limits', {
+      p_organization_id: organizationId,
+    })
+    let rateMax = OPENROUTER_RATE_MAX_FALLBACK
+    let rateWindowSec = OPENROUTER_RATE_WINDOW_SEC_FALLBACK
+    if (!limitsErr && limitsRaw && typeof limitsRaw === 'object' && limitsRaw !== null) {
+      const L = limitsRaw as { max_requests?: unknown; window_seconds?: unknown }
+      const mr = Number(L.max_requests)
+      const ws = Number(L.window_seconds)
+      if (Number.isFinite(mr) && mr >= 1) rateMax = mr
+      if (Number.isFinite(ws) && ws >= 60) rateWindowSec = ws
+    }
+
     const { data: rateRaw, error: rateErr } = await supabase.rpc('consume_openrouter_chat_rate', {
       p_organization_id: organizationId,
-      p_max: OPENROUTER_RATE_MAX,
-      p_window_seconds: OPENROUTER_RATE_WINDOW_SEC,
+      p_max: rateMax,
+      p_window_seconds: rateWindowSec,
     })
     if (rateErr) {
       return new Response(JSON.stringify({ error: 'Rate limit check failed' }), {

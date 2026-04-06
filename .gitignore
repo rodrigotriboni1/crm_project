@@ -9,3 +9,6 @@ client/.env
 .cursor/_mcp_*.json
 .cursor/_next_mcp.json
 .mcp_mig*.json
+
+.vercel
+.env*.local

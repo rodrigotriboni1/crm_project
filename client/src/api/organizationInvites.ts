@@ -13,6 +13,8 @@ export type InviteOrAddErrorCode =
   | 'not_owner'
   | 'already_member'
   | 'invite_conflict'
+  | 'seat_limit_reached'
+  | 'org_inactive'
   | 'unknown'
 
 export async function inviteOrAddOrganizationMember(
@@ -52,7 +54,9 @@ export async function inviteOrAddOrganizationMember(
     code === 'invalid_email' ||
     code === 'not_owner' ||
     code === 'already_member' ||
-    code === 'invite_conflict'
+    code === 'invite_conflict' ||
+    code === 'seat_limit_reached' ||
+    code === 'org_inactive'
   ) {
     return { ok: false, error: code }
   }
@@ -71,6 +75,10 @@ export function inviteOrAddErrorMessage(code: InviteOrAddErrorCode): string {
       return 'Este utilizador já pertence à organização.'
     case 'invite_conflict':
       return 'Não foi possível criar o convite. Tente novamente.'
+    case 'seat_limit_reached':
+      return 'Limite de utilizadores do plano atingido. Actualize a subscrição ou remova um membro.'
+    case 'org_inactive':
+      return 'Esta empresa está inactiva ou suspensa. Contacte o suporte.'
     default:
       return 'Não foi possível concluir o convite. Tente novamente.'
   }

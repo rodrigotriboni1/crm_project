@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Loader2, Trash2, UserPlus } from 'lucide-react'
+import { Loader2, Trash2, UserPlus, UsersRound } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PageContainer, SectionCard } from '@/components/library'
+import OrganizationMembersDialog from '@/components/OrganizationMembersDialog'
 import type { TeamMemberRow, TeamRow } from '@/api/teams'
 import type { AuditLogRow } from '@/api/organizationGovernance'
 import { cn } from '@/lib/utils'
@@ -70,6 +71,7 @@ export default function EquipePage() {
   const [newTeamName, setNewTeamName] = useState('')
   const [addEmail, setAddEmail] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
+  const [orgMembersDialogOpen, setOrgMembersDialogOpen] = useState(false)
 
   const membersQ = useEquipeTeamMembers(user, selectedTeamId)
   const members: TeamMemberRow[] = membersQ.data ?? []
@@ -169,6 +171,32 @@ export default function EquipePage() {
             Fechar
           </button>
         </div>
+      )}
+
+      <SectionCard
+        title="Empresa e membros"
+        description="Convites por e-mail, lista de pendentes e âmbito de dados por pessoa. As equipas (squads operacionais) estão nas secções abaixo."
+        action={
+          <Button type="button" variant="outline" size="sm" onClick={() => setOrgMembersDialogOpen(true)}>
+            <UsersRound className="mr-1.5 h-4 w-4" />
+            Gerir convites e membros
+          </Button>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Utilize o diálogo para convidar por e-mail, copiar o link de adesão e ajustar quem vê toda a empresa ou
+          apenas a própria carteira.
+        </p>
+      </SectionCard>
+
+      {activeOrganizationId && (
+        <OrganizationMembersDialog
+          open={orgMembersDialogOpen}
+          onOpenChange={setOrgMembersDialogOpen}
+          organizationId={activeOrganizationId}
+          organizationName={activeOrg?.name ?? 'Organização'}
+          canInvite={isOwner}
+        />
       )}
 
       <SectionCard

@@ -1,5 +1,22 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+function normalizeRpcJsonArray(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data
+  if (data && typeof data === 'object') {
+    const vals = Object.values(data as Record<string, unknown>)
+    if (vals.length && vals.every((v) => v && typeof v === 'object')) return vals
+  }
+  if (typeof data === 'string') {
+    try {
+      const p = JSON.parse(data) as unknown
+      return Array.isArray(p) ? p : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
 export type OrganizationMemberRow = {
   user_id: string
   email: string | null
@@ -16,8 +33,7 @@ export async function listOrganizationMembers(
     p_organization_id: organizationId,
   })
   if (error) throw error
-  const raw = data as unknown
-  if (!Array.isArray(raw)) return []
+  const raw = normalizeRpcJsonArray(data)
   return raw.map((row) => {
     const r = row as Record<string, unknown>
     return {

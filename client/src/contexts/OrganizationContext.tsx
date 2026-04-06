@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
-import { mapPostgrestOrNetworkError, newUserFacingDataError } from '@/lib/supabaseDataErrors'
+import { mapPostgrestOrNetworkError } from '@/lib/supabaseDataErrors'
 import { activeOrganizationStorageKey } from '@/lib/storageKeys'
 
 export type OrganizationSummary = {
@@ -27,7 +27,6 @@ type OrganizationCtx = {
   /** Erro ao carregar `organization_members` (rede, RLS, etc.) — não confundir com «zero orgs». */
   loadError: string | null
   refreshOrganizations: () => Promise<void>
-  createOrganization: (name: string) => Promise<string>
 }
 
 const Ctx = createContext<OrganizationCtx | null>(null)
@@ -127,20 +126,6 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     [user?.id]
   )
 
-  const createOrganization = useCallback(
-    async (name: string) => {
-      if (!supabase) throw new Error('Supabase não configurado')
-      const { data, error } = await supabase.rpc('create_organization', { p_name: name })
-      if (error) throw newUserFacingDataError(error)
-      const id = typeof data === 'string' ? data : String(data ?? '')
-      if (!id) throw new Error('Organização não criada')
-      await load()
-      setActiveOrganizationId(id)
-      return id
-    },
-    [load, setActiveOrganizationId]
-  )
-
   const value = useMemo(
     () => ({
       organizations,
@@ -149,17 +134,8 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       loading,
       loadError,
       refreshOrganizations: load,
-      createOrganization,
     }),
-    [
-      organizations,
-      activeOrganizationId,
-      setActiveOrganizationId,
-      loading,
-      loadError,
-      load,
-      createOrganization,
-    ]
+    [organizations, activeOrganizationId, setActiveOrganizationId, loading, loadError, load]
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

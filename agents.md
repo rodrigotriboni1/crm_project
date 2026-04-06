@@ -9,7 +9,7 @@ Documento vivo do **repositório `crm-embalagens`**: stack e o que já existe. P
 ## Produto e repositório
 
 - **Nome:** EmbalaFlow CRM (embalagens / vendas B2B).
-- **Layout:** monorepo npm — **`client/`** (Vite + React + TypeScript + Tailwind 4), **`supabase/`** (migrations SQL + Edge Functions Deno).
+- **Layout:** monorepo npm — **`client/`** (Vite + React + TypeScript + Tailwind 4), **`admin/`** (Vite + React, consola interna para provisão de empresas; deploy separado — ver [`admin/README.md`](admin/README.md)), **`supabase/`** (migrations SQL + Edge Functions Deno).
 - **Deploy frontend:** Vercel (`vercel.json` aponta build para `client/dist`).
 - **Legado:** `crm-embalagens-react.html` / `index.html` na raiz (protótipo); app principal é o **client**.
 
@@ -30,9 +30,11 @@ Documento vivo do **repositório `crm-embalagens`**: stack e o que já existe. P
 - **Cliente:** `@supabase/supabase-js`, variáveis `VITE_SUPABASE_*` em `client/.env.example`.
 - **Dados:** Postgres com RLS; evolução em muitas migrations sob `supabase/migrations/` (baseline remoto, organizações, equipe, importação em lote de clientes, outbox, relatórios agregados, RPCs, ajustes de RLS, Kanban filtros salvos, etc.).
 - **Edge Functions** (Deno), entre outras:
-  - `openrouter-chat` — chat/LLM com rate limit no banco.
+  - `openrouter-chat` — chat/LLM com rate limit por organização e limites por plano (`get_organization_ai_chat_limits` + `consume_openrouter_chat_rate`).
+  - `stripe-webhook` — assinaturas Stripe (metadata `organization_id` na subscrição); actualiza `organization_billing` e quotas via RPC `apply_organization_billing_update` (service role). `verify_jwt = false` em `config.toml`.
   - `process-outbox` — processamento de eventos outbox.
   - `send-org-invite-email` — convites (ex.: Resend; secrets no Supabase).
+- **Multi-tenant / billing:** `platform_admins`, estado `organizations.status`, `seat_limit`, `organization_billing`; signup sem org por defeito (só convite); RPCs `admin_*` / `platform_*` na migração `20260406140000_platform_admin_billing.sql`.
 - **Ferramentas:** CLI `supabase` no `package.json` da raiz para migrações/deploy local.
 
 ### Infra local / CI
