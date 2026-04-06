@@ -52,7 +52,7 @@ const nav = [
   { to: '/relatorios', label: 'Relatórios', icon: BarChart3 },
   { to: '/produtos', label: 'Produtos', icon: Tags },
   { to: '/clientes', label: 'Clientes', icon: Users },
-  { to: '/organizacao/equipe', label: 'Equipa', icon: Users2 },
+  { to: '/organizacao/equipe', label: 'Equipe', icon: Users2 },
 ]
 
 const externalNovoOrcamentoUrl =

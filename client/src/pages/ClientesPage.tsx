@@ -289,9 +289,6 @@ export default function ClientesPage() {
             <Button type="button" variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               Importar planilha
             </Button>
-            <Button type="button" size="sm" onClick={() => setDialogOpen(true)}>
-              Novo cliente
-            </Button>
           </>
         }
       />

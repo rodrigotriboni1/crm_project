@@ -232,7 +232,7 @@ export default function EquipePage() {
 
       {selectedTeamId && (
         <SectionCard
-          title={`Membros — ${teams.find((t) => t.id === selectedTeamId)?.name ?? 'Equipa'}`}
+          title={`Membros — ${teams.find((t) => t.id === selectedTeamId)?.name ?? 'Equipe'}`}
           description="Apenas utilizadores que já pertencem à organização podem ser adicionados."
           action={
             isOwner ? (

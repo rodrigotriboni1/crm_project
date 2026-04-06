@@ -11,12 +11,14 @@ export type ToolbarRowProps = {
 
 /**
  * Linha de ferramentas: conteúdo flexível à esquerda, ações à direita.
+ * Em `sm+`, usa alinhamento ao topo para que, com várias linhas à esquerda (ex.: busca + filtros),
+ * os botões à direita não fiquem centrados na altura total.
  */
 export function ToolbarRow({ start, end, className }: ToolbarRowProps) {
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3',
+        'flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3',
         className
       )}
     >

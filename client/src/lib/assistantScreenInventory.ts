@@ -52,7 +52,7 @@ export const ASSISTANT_SCREEN_INVENTORY = [
     snapshot: 'Vista, busca, totais e amostra do catálogo.',
   },
   {
-    area: 'Equipa, Organização, outras',
+    area: 'Equipe, Organização, outras',
     rota: 'várias',
     variant: 'generic' as const,
     snapshot: 'Apenas rota e nome da tela — orientar o utilizador ao Dashboard/Relatórios para números.',

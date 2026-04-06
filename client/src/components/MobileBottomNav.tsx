@@ -27,7 +27,7 @@ const primaryItems: readonly {
 const moreItems: readonly { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/relatorios', label: 'Relatórios', icon: BarChart3 },
   { to: '/produtos', label: 'Produtos', icon: Tags },
-  { to: '/organizacao/equipe', label: 'Equipa', icon: Users2 },
+  { to: '/organizacao/equipe', label: 'Equipe', icon: Users2 },
 ]
 
 function MobileNavLink({
