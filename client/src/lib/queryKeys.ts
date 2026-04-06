@@ -14,4 +14,5 @@ export const qk = {
     ['orcamentos', uid, orgId, 'cliente', cid] as const,
   interacoes: (uid: string, orgId: string, cid: string) => ['interacoes', uid, orgId, cid] as const,
   produtos: (uid: string, orgId: string) => ['produtos', uid, orgId] as const,
+  kanbanSavedFilters: (uid: string, orgId: string) => ['kanbanSavedFilters', uid, orgId] as const,
 }

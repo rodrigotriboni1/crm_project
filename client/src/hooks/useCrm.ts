@@ -25,6 +25,9 @@ import {
   patchOrcamento,
   updateCliente,
   updateProduto,
+  createKanbanSavedFilter,
+  deleteKanbanSavedFilter,
+  listKanbanSavedFilters,
 } from '@/api/crm'
 import { supabase } from '@/lib/supabase'
 import { INTERACAO_CANAIS_USUARIO } from '@/lib/interacaoCanal'
@@ -477,6 +480,45 @@ export function usePatchOrcamento(user: User | null, organizationId: string | nu
       }
     },
   })
+}
+
+export function useKanbanSavedFilters(user: User | null, organizationId: string | null) {
+  const qc = useQueryClient()
+  const list = useQuery({
+    queryKey:
+      user && organizationId ? qk.kanbanSavedFilters(user.id, organizationId) : (['kanbanSavedFilters', 'none'] as const),
+    queryFn: async () => {
+      const { sb, orgId } = requireClient(user, organizationId)
+      return listKanbanSavedFilters(sb, orgId)
+    },
+    enabled: Boolean(supabase && user && organizationId),
+  })
+
+  const createMut = useMutation({
+    mutationFn: (input: Parameters<typeof createKanbanSavedFilter>[3]) => {
+      const { sb, uid, orgId } = requireClient(user, organizationId)
+      return createKanbanSavedFilter(sb, orgId, uid, input)
+    },
+    onSuccess: () => {
+      if (user && organizationId) {
+        void qc.invalidateQueries({ queryKey: qk.kanbanSavedFilters(user.id, organizationId) })
+      }
+    },
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => {
+      const { sb } = requireClient(user, organizationId)
+      return deleteKanbanSavedFilter(sb, id)
+    },
+    onSuccess: () => {
+      if (user && organizationId) {
+        void qc.invalidateQueries({ queryKey: qk.kanbanSavedFilters(user.id, organizationId) })
+      }
+    },
+  })
+
+  return { ...list, createMut, deleteMut }
 }
 
 export function useCreateInteracao(user: User | null, organizationId: string | null, clienteId: string) {

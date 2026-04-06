@@ -65,7 +65,7 @@ export default function KanbanPage() {
 
   const [modalId, setModalId] = useState<string | null>(null)
   const [q, setQ] = useState('')
-  const [filtersOpen, setFiltersOpen] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [advancedFilters, setAdvancedFilters] = useState(defaultKanbanAdvancedFilters)
   const [groupMode, setGroupMode] = useState<KanbanGroupMode>('cliente')
   const [view, setView] = useState<ViewMode>(() => {
@@ -165,6 +165,8 @@ export default function KanbanPage() {
       )}
 
       <KanbanFilterControls
+        user={user}
+        organizationId={activeOrganizationId}
         q={q}
         setQ={setQ}
         filtersOpen={filtersOpen}
