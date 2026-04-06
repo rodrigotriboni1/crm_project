@@ -9,7 +9,7 @@ Documento vivo do **repositório `crm-embalagens`**: stack e o que já existe. P
 ## Produto e repositório
 
 - **Nome:** EmbalaFlow CRM (embalagens / vendas B2B).
-- **Layout:** monorepo npm — **`client/`** (Vite + React + TypeScript + Tailwind 4), **`admin/`** (Vite + React, consola interna para provisão de empresas; deploy separado — ver [`admin/README.md`](admin/README.md)), **`supabase/`** (migrations SQL + Edge Functions Deno).
+- **Layout:** **`client/`** (Vite + React + TypeScript + Tailwind 4), **`supabase/`** (migrations SQL + Edge Functions Deno). A **consola admin** (provisão de empresas, Vite + React) está noutro repositório Git com deploy Vercel próprio; migrações e backend continuam aqui.
 - **Deploy frontend:** Vercel (`vercel.json` aponta build para `client/dist`).
 - **Legado:** `crm-embalagens-react.html` / `index.html` na raiz (protótipo); app principal é o **client**.
 

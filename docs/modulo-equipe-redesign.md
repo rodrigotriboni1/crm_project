@@ -2,7 +2,7 @@
 
 Documento de produto e arquitetura (pt-BR). Ancorado no código atual: `organizations`, `organization_members`, convites (`organization_invitations`), RLS em `clientes`/`orcamentos`/`interacoes`, UI em `[OrganizationMembersDialog.tsx](../client/src/components/OrganizationMembersDialog.tsx)` e `[OrganizationContext.tsx](../client/src/contexts/OrganizationContext.tsx)`.
 
-**Estado (2026):** existem **equipas** (`teams` / `team_members`), **âmbito de dados** por membro, **auditoria** e página `[EquipePage](../client/src/pages/EquipePage.tsx)` com secção “Empresa e membros” (convites) e equipas. A provisão de novas empresas passa pela **consola admin** e RPCs `admin_`* / `platform_*` (ver migração `20260406140000_platform_admin_billing.sql`).
+**Estado (2026):** existem **equipas** (`teams` / `team_members`), **âmbito de dados** por membro, **auditoria** e página `[EquipePage](../client/src/pages/EquipePage.tsx)` com secção “Empresa e membros” (convites) e equipas. A provisão de novas empresas passa pela **consola admin** (app noutro repositório Git) e RPCs `admin_`* / `platform_*` (ver migração `20260406140000_platform_admin_billing.sql`).
 
 ---
 
