@@ -6,7 +6,6 @@ import { SelectNative } from '@/components/ui/select-native'
 import type { KanbanAdvancedFilters, KanbanFollowUpFilter, KanbanProdutoOrigemFilter } from '@/lib/kanbanFilters'
 import { KANBAN_SEM_CATEGORIA_VALUE } from '@/lib/kanbanFilters'
 import { KANBAN_GROUP_MODE_LABELS, type KanbanGroupMode } from '@/lib/kanbanGroup'
-import { cn } from '@/lib/utils'
 
 type ViewMode = 'kanban' | 'table'
 
