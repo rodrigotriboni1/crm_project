@@ -31,10 +31,10 @@ Documento vivo do **repositório `crm-embalagens`**: stack e o que já existe. P
 - **Dados:** Postgres com RLS; evolução em muitas migrations sob `supabase/migrations/` (baseline remoto, organizações, equipe, importação em lote de clientes, outbox, relatórios agregados, RPCs, ajustes de RLS, Kanban filtros salvos, etc.).
 - **Edge Functions** (Deno), entre outras:
   - `openrouter-chat` — chat/LLM com rate limit por organização e limites por plano (`get_organization_ai_chat_limits` + `consume_openrouter_chat_rate`).
-  - `stripe-webhook` — assinaturas Stripe (metadata `organization_id` na subscrição); actualiza `organization_billing` e quotas via RPC `apply_organization_billing_update` (service role). `verify_jwt = false` em `config.toml`.
+  - `stripe-webhook` — assinaturas Stripe (metadata `organization_id` na subscrição aponta para uma **unidade**; a RPC resolve a `legal_entity` e actualiza `legal_entity_billing` + quotas na entidade). `verify_jwt = false` em `config.toml`.
   - `process-outbox` — processamento de eventos outbox.
   - `send-org-invite-email` — convites (ex.: Resend; secrets no Supabase).
-- **Multi-tenant / billing:** `platform_admins`, estado `organizations.status`, `seat_limit`, `organization_billing`; signup sem org por defeito (só convite); RPCs `admin_*` / `platform_*` na migração `20260406140000_platform_admin_billing.sql`.
+- **Multi-tenant / billing:** `platform_admins`, `legal_entities` (plano, `seat_limit`, suspensão), `organizations` (unidades com `legal_entity_id`), `legal_entity_billing`; signup sem org por defeito (só convite); RPCs `admin_*` / `platform_*` (billing migrou em `20260430150000_legal_entities_matrizes.sql`).
 - **Ferramentas:** CLI `supabase` no `package.json` da raiz para migrações/deploy local.
 
 ### Infra local / CI

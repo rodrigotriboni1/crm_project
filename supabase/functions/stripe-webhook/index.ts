@@ -16,7 +16,10 @@ async function applySubscription(
 ): Promise<void> {
   const orgId = sub.metadata?.organization_id?.trim() ?? ''
   if (!orgId || !uuidRe.test(orgId)) {
-    console.warn('stripe-webhook: subscription without valid organization_id metadata', sub.id)
+    console.warn(
+      'stripe-webhook: subscription without valid organization_id metadata (UUID da unidade; billing aplica-se à entidade legal)',
+      sub.id
+    )
     return
   }
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id ?? ''

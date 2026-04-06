@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
+import { getAuthEmailRedirectTo } from '@/lib/authEmailRedirect'
 import { supabase } from '@/lib/supabase'
 
 export type SignUpOptions = {
@@ -63,7 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: opts?.data ? { data: opts.data } : undefined,
+      options: {
+        ...(opts?.data ? { data: opts.data } : {}),
+        emailRedirectTo: getAuthEmailRedirectTo(),
+      },
     })
     return { error: error as Error | null }
   }

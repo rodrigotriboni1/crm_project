@@ -19,7 +19,11 @@ import {
   Link2,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useOrganization } from '@/contexts/OrganizationContext'
+import {
+  groupOrganizationsForSelect,
+  organizationSelectIsFlat,
+  useOrganization,
+} from '@/contexts/OrganizationContext'
 import { Button } from '@/components/ui/button'
 import NovoOrcamentoDialog from '@/components/NovoOrcamentoDialog'
 import OrganizationMembersDialog from '@/components/OrganizationMembersDialog'
@@ -101,8 +105,8 @@ function OrganizationMain({ children }: { children: ReactNode }) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
         <p className="max-w-sm text-center text-sm text-brand-mid">
-          Ainda não pertence a nenhuma empresa. Peça um convite ao administrador ou utilize o link de convite que
-          recebeu por e-mail.
+          A sua conta ainda não tem acesso a nenhuma unidade do CRM. Peça um convite ao administrador ou utilize o
+          link de convite que recebeu por e-mail.
         </p>
         <Button type="button" variant="outline" asChild>
           <Link to="/join" className="inline-flex items-center gap-2">
@@ -117,7 +121,7 @@ function OrganizationMain({ children }: { children: ReactNode }) {
   if (!activeOrganizationId) {
     return (
       <div className="flex flex-1 items-center justify-center p-8 text-sm text-brand-mid">
-        A seleccionar empresa…
+        A seleccionar unidade…
       </div>
     )
   }
@@ -149,6 +153,13 @@ export default function Layout() {
 
   const activeOrg = organizations.find((o) => o.id === activeOrganizationId)
   const activeOrgOwner = activeOrg?.role === 'owner'
+  const selectGroups = groupOrganizationsForSelect(organizations)
+  const flatSelect = organizationSelectIsFlat(organizations)
+  const activeSelectTitle = activeOrg
+    ? activeOrg.legalEntityName === activeOrg.name
+      ? activeOrg.name
+      : `${activeOrg.legalEntityName} — ${activeOrg.name}`
+    : 'Unidade ativa'
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-light">
@@ -200,11 +211,11 @@ export default function Layout() {
           </Button>
         </div>
 
-        {/* Linha 2: empresa em largura total */}
+        {/* Linha 2: unidade (dados CRM) por entidade legal */}
         {user && organizations.length > 0 && activeOrganizationId && (
           <div className={cn('shrink-0 border-b border-border', collapsed ? 'px-2 py-2' : 'px-3 py-2')}>
             <label className="sr-only" htmlFor="active-org-select">
-              Empresa ativa
+              Unidade ativa
             </label>
             <SelectNative
               id="active-org-select"
@@ -214,14 +225,24 @@ export default function Layout() {
               )}
               value={activeOrganizationId}
               onChange={(e) => setActiveOrganizationId(e.target.value)}
-              title={organizations.find((o) => o.id === activeOrganizationId)?.name ?? 'Empresa ativa'}
-              aria-label="Empresa ativa"
+              title={activeSelectTitle}
+              aria-label="Unidade ativa do CRM"
             >
-              {organizations.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
+              {flatSelect
+                ? organizations.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))
+                : selectGroups.map((g) => (
+                    <optgroup key={g.legalEntityId} label={g.legalEntityLabel}>
+                      {g.units.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
             </SelectNative>
           </div>
         )}
@@ -295,7 +316,7 @@ export default function Layout() {
                 collapsed ? 'justify-center px-0' : 'justify-start gap-2'
               )}
               onClick={() => setTeamDialogOpen(true)}
-              title="Membros da organização"
+              title="Membros da unidade"
             >
               {activeOrgOwner ? (
                 <UserPlus className="h-4 w-4 shrink-0" />

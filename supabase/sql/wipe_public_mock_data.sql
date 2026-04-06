@@ -21,17 +21,20 @@ declare
     'organization_invitations',
     'organization_members',
     'organizations',
+    'legal_entity_billing',
+    'legal_entities',
     'openrouter_chat_rate',
     'profiles'
   ];
 begin
-  select string_agg(format('public.%I', c.relname), ', ' order by c.relname)
+  -- Ordem do array respeita FKs (ex.: organizations antes de legal_entities).
+  select string_agg(format('public.%I', u.tbl), ', ' order by u.pos)
   into names
-  from pg_class c
+  from unnest(want) with ordinality as u(tbl, pos)
+  join pg_class c on c.relname = u.tbl
   join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public'
-    and c.relkind = 'r'
-    and c.relname = any (want);
+    and c.relkind = 'r';
 
   if names is null or names = '' then
     raise notice 'Nenhuma tabela da lista encontrada em public; nada a truncar.';

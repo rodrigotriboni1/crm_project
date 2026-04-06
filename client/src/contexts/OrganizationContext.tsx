@@ -14,9 +14,44 @@ import { activeOrganizationStorageKey } from '@/lib/storageKeys'
 
 export type OrganizationSummary = {
   id: string
+  /** Nome da unidade operacional (matriz de dados no CRM). */
   name: string
   role: 'owner' | 'member'
   dataScope: 'organization' | 'own'
+  legalEntityId: string
+  /** Entidade legal (CNPJ/CPF); pode coincidir com o nome da unidade na provisão inicial. */
+  legalEntityName: string
+  taxIdType: 'cnpj' | 'cpf' | null
+  taxId: string | null
+}
+
+/** Agrupa unidades por entidade legal para o selector (optgroup). */
+export type OrganizationSelectGroup = {
+  legalEntityId: string
+  legalEntityLabel: string
+  units: OrganizationSummary[]
+}
+
+export function groupOrganizationsForSelect(orgs: OrganizationSummary[]): OrganizationSelectGroup[] {
+  const byLe = new Map<string, OrganizationSummary[]>()
+  for (const o of orgs) {
+    const arr = byLe.get(o.legalEntityId) ?? []
+    arr.push(o)
+    byLe.set(o.legalEntityId, arr)
+  }
+  const groups: OrganizationSelectGroup[] = []
+  for (const [legalEntityId, units] of byLe) {
+    const sorted = [...units].sort((a, b) => a.name.localeCompare(b.name, 'pt'))
+    const legalEntityLabel = sorted[0]?.legalEntityName?.trim() || 'Conta'
+    groups.push({ legalEntityId, legalEntityLabel, units: sorted })
+  }
+  groups.sort((a, b) => a.legalEntityLabel.localeCompare(b.legalEntityLabel, 'pt'))
+  return groups
+}
+
+/** Uma única opção simples, sem optgroup. */
+export function organizationSelectIsFlat(orgs: OrganizationSummary[]): boolean {
+  return orgs.length <= 1
 }
 
 type OrganizationCtx = {
@@ -31,11 +66,25 @@ type OrganizationCtx = {
 
 const Ctx = createContext<OrganizationCtx | null>(null)
 
+type LegalEntityRow = {
+  id: string
+  name: string | null
+  tax_id_type: string | null
+  tax_id: string | null
+}
+
+type OrgRowEmbed = {
+  id: string
+  name: string | null
+  legal_entity_id: string | null
+  legal_entities: LegalEntityRow | LegalEntityRow[] | null
+}
+
 type MemberRow = {
   organization_id: string
   role: string
   data_scope?: string
-  organizations: { id: string; name: string } | { id: string; name: string }[] | null
+  organizations: OrgRowEmbed | OrgRowEmbed[] | null
 }
 
 function readStoredOrgId(userId: string): string | null {
@@ -82,7 +131,9 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     setLoadError(null)
     const { data, error } = await supabase
       .from('organization_members')
-      .select('organization_id, role, data_scope, organizations ( id, name )')
+      .select(
+        'organization_id, role, data_scope, organizations ( id, name, legal_entity_id, legal_entities ( id, name, tax_id_type, tax_id ) )'
+      )
       .eq('user_id', user.id)
     if (error) {
       console.error(error)
@@ -98,9 +149,28 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     for (const r of rows) {
       const org = Array.isArray(r.organizations) ? r.organizations[0] : r.organizations
       if (!org?.id) continue
+      const leRaw = org.legal_entities
+      const le = Array.isArray(leRaw) ? leRaw[0] : leRaw
+      const legalEntityId = le?.id ?? org.legal_entity_id
+      if (!legalEntityId) continue
+      const legalEntityName =
+        le?.name?.trim() || org.name?.trim() || 'Entidade'
+      const tt = le?.tax_id_type
+      const taxIdType = tt === 'cnpj' || tt === 'cpf' ? tt : null
+      const taxId = le?.tax_id?.trim() ? le.tax_id.trim() : null
       const role = r.role === 'owner' ? 'owner' : 'member'
       const dataScope = r.data_scope === 'own' ? 'own' : 'organization'
-      mapped.push({ id: org.id, name: org.name?.trim() ? org.name : 'Organização', role, dataScope })
+      const unitName = org.name?.trim() ? org.name : 'Unidade'
+      mapped.push({
+        id: org.id,
+        name: unitName,
+        role,
+        dataScope,
+        legalEntityId,
+        legalEntityName,
+        taxIdType,
+        taxId,
+      })
     }
     mapped.sort((a, b) => a.name.localeCompare(b.name, 'pt'))
     setLoadError(null)

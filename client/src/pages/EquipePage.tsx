@@ -174,7 +174,7 @@ export default function EquipePage() {
       )}
 
       <SectionCard
-        title="Empresa e membros"
+        title="Unidade e membros"
         description="Convites por e-mail, lista de pendentes e âmbito de dados por pessoa. As equipas (squads operacionais) estão nas secções abaixo."
         action={
           <Button type="button" variant="outline" size="sm" onClick={() => setOrgMembersDialogOpen(true)}>

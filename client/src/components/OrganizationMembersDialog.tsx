@@ -452,7 +452,7 @@ export default function OrganizationMembersDialog({
                   {m.role === 'owner' ? 'Proprietário' : 'Membro'}
                   {m.role !== 'owner' && (
                     <span className="ml-2 normal-case text-muted-foreground">
-                      · visão: {m.data_scope === 'own' ? 'só próprios registos' : 'toda a organização'}
+                      · visão: {m.data_scope === 'own' ? 'só próprios registos' : 'toda a unidade'}
                     </span>
                   )}
                 </span>
@@ -472,7 +472,7 @@ export default function OrganizationMembersDialog({
                         if (r.ok) await loadMembers()
                       }}
                     >
-                      <option value="organization">Ver toda a organização</option>
+                      <option value="organization">Ver toda a unidade</option>
                       <option value="own">Só próprios clientes/orçamentos</option>
                     </SelectNative>
                     <Button
@@ -484,7 +484,7 @@ export default function OrganizationMembersDialog({
                       onClick={async () => {
                         if (!supabase) return
                         const ok = window.confirm(
-                          'Remover este membro da organização? Indique na caixa seguinte o e-mail de outro membro para reatribuir fichas (ou cancele e reatribua manualmente na página Equipe).'
+                          'Remover este membro desta unidade? Indique na caixa seguinte o e-mail de outro membro para reatribuir fichas (ou cancele e reatribua manualmente na página Equipe).'
                         )
                         if (!ok) return
                         const re = window.prompt('E-mail do membro que recebe as fichas (vazio = não reatribuir):', '')

@@ -9,6 +9,11 @@ interface ImportMetaEnv {
   readonly VITE_OPENROUTER_MODEL?: string
   /** URL externa (Typeform, site, etc.) para “novo orçamento”; opcional. */
   readonly VITE_NOVO_ORCAMENTO_EXTERNAL_URL?: string
+  /**
+   * URL pública da app (sem barra final), ex. https://app.seudominio.com.
+   * Obrigatória em produção para links de confirmação de e-mail não usarem localhost.
+   */
+  readonly VITE_PUBLIC_APP_URL?: string
 }
 
 interface ImportMeta {
