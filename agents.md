@@ -54,3 +54,13 @@ Documento vivo do **repositório `crm-embalagens`**: stack e o que já existe. P
 ## Histórico recente (git — referência)
 
 Commits recentes incluem melhorias no Kanban (filtros salvos, controlos), alinhamento de RLS em `clientes`, fluxo de e-mail de confirmação expirado, e merges de PRs de correções auth/DB. Atualizar esta secção quando houver marcos relevantes no Supabase ou no frontend.
+
+---
+
+## Learned User Preferences
+
+- Preferir deploy e CI separados para o cliente CRM e para a consola admin, para que falhas num pipeline não bloqueiem o outro.
+
+## Learned Workspace Facts
+
+- O repositório `embalflow-admin` pode existir como clone standalone (por exemplo em `Documents/embalflow-admin`) e também como submodule Git em `admin/` dentro do CRM; o CRM fixa uma revisão concreta do submodule.
